@@ -699,3 +699,22 @@ Open:
   loader is used), also with PROOT_NO_SECCOMP=1 and with the loader from nativeLibraryDir;
   ptrace itself works (strace runs). Cause under investigation.
 - Not tested yet (needs the screen unlocked): the in-app terminal (PTY login), the desktop.
+
+## Lessons from Local Desktop (localdesktop/localdesktop 43082a8, GPLv3, targetSdk 36)
+
+Read in source on 2026-11-12. It runs everything inside proot (Arch, glibc guest), so it needs
+no exec hook; what is worth taking:
+- proot fork (termux/proot ab2e346 + green-green-avk build scripts, talloc linked statically,
+  loader as lib*.so, started directly from nativeLibraryDir with only PROOT_LOADER and
+  PROOT_TMP_DIR). Their proot patches:
+  - seccomp traps only the ioctls proot rewrites (TCSETS*/TCGETS2/FICLONE); without it Turnip
+    on KGSL stops at the tracer on every GPU submit (relevant for Adreno under proot);
+  - chmod on app-owned bound dirs under fake root;
+  - fstat on sockets/pipes under fake root (Node/Electron children aborted without it).
+- No foreground service and no phantom-process handling in code: their guide asks users to
+  disable "child process restrictions" (Samsung developer option) or set
+  `max_phantom_processes` over adb. We need the endurance test from the review (finding 11).
+- Their libproot.so/libproot_loader.so are 4 KB aligned (may fail on 16 KB page kernels); link
+  ours with `-z max-page-size=16384` when we build proot.
+- Host-side PipeWire with an AAudio sink, fake /proc files, fake bwrap, Chromium --no-sandbox
+  wrappers: ideas for later.
