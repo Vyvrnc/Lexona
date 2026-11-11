@@ -281,7 +281,7 @@ class LinuxRuntime(private val context: Context) {
             "xfce4-notifyd", "xfce4-power-manager",
         )
         runCatching {
-            ProcessBuilder(File(binDir, "bash").absolutePath, "-c",
+            nativeProcess(File(binDir, "bash").absolutePath, "-c",
                 names.joinToString("; ") { "pkill -x '$it'" } + "; sleep 0.5; " +
                     names.joinToString("; ") { "pkill -9 -x '$it'" } + "; true")
                 .directory(homeDir)
@@ -3274,7 +3274,7 @@ class LinuxRuntime(private val context: Context) {
                 "-ldl", "-llog"
             )
             try {
-                val pb = ProcessBuilder(compileCmd)
+                val pb = nativeProcess(compileCmd)
                     .redirectErrorStream(true)
                     .also {
                         it.environment().clear()
@@ -3331,7 +3331,7 @@ class LinuxRuntime(private val context: Context) {
             exit "${'$'}exo"
         """.trimIndent()
         return runCatching {
-            val process = ProcessBuilder(File(binDir, "bash").absolutePath, "-c", script, "droiddesk-open", target)
+            val process = nativeProcess(File(binDir, "bash").absolutePath, "-c", script, "droiddesk-open", target)
                 .directory(homeDir)
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.to(File("/dev/null")))
@@ -3362,7 +3362,7 @@ class LinuxRuntime(private val context: Context) {
         screenProfileExecutor.execute {
             repeat(2) { attempt ->
                 val busy = runCatching {
-                    val process = ProcessBuilder(command.absolutePath, screen)
+                    val process = nativeProcess(command.absolutePath, screen)
                         .directory(homeDir)
                         .redirectErrorStream(true)
                         .redirectOutput(ProcessBuilder.Redirect.appendTo(File(tmpDir, "droiddesk-screen-profile.log")))
@@ -3392,6 +3392,11 @@ class LinuxRuntime(private val context: Context) {
     /** The session environment for the in-app terminal (TerminalActivity). */
     fun terminalEnvironment(): Map<String, String> = getTermuxEnv()
 
+    /** ProcessBuilder for a program, through linker64 when the app may not exec it (NativeExec). */
+    private fun nativeProcess(vararg command: String) = ProcessBuilder(NativeExec.command(context, command.toList()))
+
+    private fun nativeProcess(command: List<String>) = ProcessBuilder(NativeExec.command(context, command))
+
     private fun getTermuxEnv(): Map<String, String> {
         val env = mutableMapOf<String, String>()
 
@@ -3401,6 +3406,11 @@ class LinuxRuntime(private val context: Context) {
 
         env["PREFIX"] = prefixDir.absolutePath
         env["TMPDIR"] = tmpDir.absolutePath
+        // targetSdk >= 29: the socket hook starts data-dir programs through linker64 (NativeExec).
+        if (NativeExec.linkerExec(context)) env["DROIDDESK_LINKER_EXEC"] = "1"
+        env["DROIDDESK_NATIVE_LIB_DIR"] = context.applicationInfo.nativeLibraryDir
+        // termux-exec (in the bootstrap) must not wrap a second time.
+        env["TERMUX_EXEC__SYSTEM_LINKER_EXEC__MODE"] = "disable"
         // Clients must not autospawn PulseAudio: an autospawned daemon reads the package's
         // default.pa (OpenSL ES sink) and the watchdog then sees a server that answers. Only
         // pulseStartScript() starts it (ScreenMate One, fold.69 test).
@@ -3806,7 +3816,7 @@ class LinuxRuntime(private val context: Context) {
                 val angle = File(prefixDir, "opt/angle-android")
                 if (!server.isFile || !angle.isDirectory) {
                     val env = getTermuxEnv() + mapOf("DEBIAN_FRONTEND" to "noninteractive")
-                    ProcessBuilder(
+                    nativeProcess(
                         File(binDir, "apt-get").absolutePath, "-o", "Dpkg::Options::=--force-confdef",
                         "-o", "Dpkg::Options::=--force-confold", "install", "-y",
                         "virglrenderer-android", "angle-android",
@@ -3830,7 +3840,7 @@ class LinuxRuntime(private val context: Context) {
                         android.system.Os.symlink(socket.absolutePath, link.path)
                     }
                 }.onFailure { Log.w(TAG, "virgl: native socket link failed", it) }
-                val process = ProcessBuilder(
+                val process = nativeProcess(
                     patched.absolutePath, "--angle-vulkan", "--multi-clients", "--socket-path", socket.absolutePath,
                 ).directory(tmpDir).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.to(log))
                     .also {
@@ -3976,7 +3986,7 @@ class LinuxRuntime(private val context: Context) {
                     "DEBIAN_FRONTEND" to "noninteractive",
                     "DBUS_SESSION_BUS_ADDRESS" to "unix:path=${tmpDir.absolutePath}/dbus-session",
                 )
-                fun run(vararg command: String): Int = ProcessBuilder(*command)
+                fun run(vararg command: String): Int = nativeProcess(*command)
                     .directory(homeDir)
                     .redirectErrorStream(true)
                     .redirectOutput(ProcessBuilder.Redirect.appendTo(File(tmpDir, "droiddesk-look.log")))
@@ -4023,7 +4033,7 @@ class LinuxRuntime(private val context: Context) {
         Thread({
             try {
                 val log = File(tmpDir, "droiddesk-native-setup.log")
-                val process = ProcessBuilder(File(binDir, "bash").absolutePath, launcher.absolutePath, "setup")
+                val process = nativeProcess(File(binDir, "bash").absolutePath, launcher.absolutePath, "setup")
                     .directory(homeDir)
                     .redirectErrorStream(true)
                     .redirectOutput(log)
@@ -4070,7 +4080,7 @@ class LinuxRuntime(private val context: Context) {
                     if [ -n "${'$'}others" ]; then echo "would also remove:" ${'$'}others; exit 3; fi
                     apt-get install -y mesa
                 """.trimIndent()
-                val process = ProcessBuilder(File(binDir, "bash").absolutePath, "-c", script)
+                val process = nativeProcess(File(binDir, "bash").absolutePath, "-c", script)
                     .directory(homeDir)
                     .redirectErrorStream(true)
                     .redirectOutput(log)
@@ -4116,7 +4126,7 @@ class LinuxRuntime(private val context: Context) {
         Thread({
             try {
                 val log = File(tmpDir, "debian-setup.log")
-                val process = ProcessBuilder(File(prefixDir, "bin/bash").absolutePath, setup.absolutePath)
+                val process = nativeProcess(File(prefixDir, "bin/bash").absolutePath, setup.absolutePath)
                     .directory(homeDir)
                     .redirectErrorStream(true)
                     .redirectOutput(log)
@@ -4159,7 +4169,7 @@ class LinuxRuntime(private val context: Context) {
             val run = File(binDir, "debian-run")
             if (!run.canExecute()) writeDebianLauncher()
             val log = File(tmpDir, "gpu-selftest.log")
-            val process = ProcessBuilder(
+            val process = nativeProcess(
                 File(prefixDir, "bin/bash").absolutePath, run.absolutePath,
                 "/usr/local/sbin/droiddesk-gpu-selftest",
             )
@@ -4231,7 +4241,7 @@ class LinuxRuntime(private val context: Context) {
         )
         if (secret.reset) command += "--reset"
         val process = try {
-            ProcessBuilder(command)
+            nativeProcess(command)
                 .directory(homeDir)
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.appendTo(log))
@@ -4273,7 +4283,7 @@ class LinuxRuntime(private val context: Context) {
         val notifySend = File(binDir, "notify-send")
         if (!notifySend.canExecute()) return
         runCatching {
-            ProcessBuilder(notifySend.absolutePath, "-i", "dialog-password", title, text)
+            nativeProcess(notifySend.absolutePath, "-i", "dialog-password", title, text)
                 .directory(homeDir)
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.to(File("/dev/null")))
@@ -4750,7 +4760,7 @@ class LinuxRuntime(private val context: Context) {
     }
 
     private fun runQuickCommand(command: String): String = runCatching {
-        ProcessBuilder(File(binDir, "bash").absolutePath, "-c", command)
+        nativeProcess(File(binDir, "bash").absolutePath, "-c", command)
             .directory(prefixDir)
             .redirectErrorStream(true)
             .also { builder ->
@@ -4773,7 +4783,7 @@ class LinuxRuntime(private val context: Context) {
     fun readLinuxClipboard(): String? = runCatching {
         val xclip = File(binDir, "xclip")
         if (!xclip.canExecute()) return null
-        ProcessBuilder(xclip.absolutePath, "-selection", "clipboard", "-o")
+        nativeProcess(xclip.absolutePath, "-selection", "clipboard", "-o")
             .directory(homeDir)
             .redirectErrorStream(true)
             .also { builder ->
@@ -4790,7 +4800,7 @@ class LinuxRuntime(private val context: Context) {
     fun writeLinuxClipboard(value: String): Boolean = runCatching {
         val xclip = File(binDir, "xclip")
         if (!xclip.canExecute()) return false
-        val process = ProcessBuilder(xclip.absolutePath, "-selection", "clipboard", "-in")
+        val process = nativeProcess(xclip.absolutePath, "-selection", "clipboard", "-in")
             .directory(homeDir)
             .redirectErrorStream(true)
             .also { builder ->
@@ -4933,7 +4943,7 @@ class LinuxRuntime(private val context: Context) {
                 "--nofork",
                 "--nopidfile"
             )
-            val startedDbus = ProcessBuilder(dbusCmd)
+            val startedDbus = nativeProcess(dbusCmd)
                 .directory(homeDir.apply { mkdirs() })
                 .redirectErrorStream(true)
                 .also { pb ->
@@ -5018,7 +5028,7 @@ class LinuxRuntime(private val context: Context) {
         val bashBin = File(prefixDir, "bin/bash").absolutePath
         val command = listOf(bashBin, "-c", runScript)
 
-        val startedSession = ProcessBuilder(command)
+        val startedSession = nativeProcess(command)
             .directory(homeDir.apply { mkdirs() })
             .redirectErrorStream(true)
             .also { pb ->
@@ -5057,7 +5067,7 @@ class LinuxRuntime(private val context: Context) {
         while (System.currentTimeMillis() < deadline) {
             val check = processes.joinToString(" && ") { "pgrep -x '$it' >/dev/null" }
             val ready = runCatching {
-                ProcessBuilder(File(binDir, "bash").absolutePath, "-c", check)
+                nativeProcess(File(binDir, "bash").absolutePath, "-c", check)
                     .directory(homeDir)
                     .redirectErrorStream(true)
                     .also { builder ->
@@ -5198,7 +5208,7 @@ class LinuxRuntime(private val context: Context) {
                 pulseStartScript() + "\n" +
                 "echo \"PulseAudio sinks: ${'$'}(timeout 2 pactl list short sinks 2>/dev/null | cut -f2 | tr '\\n' ' ')\"\n" +
                 "exit 10\n"
-            val process = ProcessBuilder(File(prefixDir, "bin/bash").absolutePath, "-c", script)
+            val process = nativeProcess(File(prefixDir, "bin/bash").absolutePath, "-c", script)
                 .directory(homeDir)
                 .redirectErrorStream(true)
                 .also { builder ->
@@ -5267,7 +5277,7 @@ class LinuxRuntime(private val context: Context) {
         return try {
             Log.d(TAG, "Executing command natively: $command")
 
-            val process = ProcessBuilder(fullCommand)
+            val process = nativeProcess(fullCommand)
                 .directory(prefixDir)
                 .redirectErrorStream(true)
                 .also { pb ->

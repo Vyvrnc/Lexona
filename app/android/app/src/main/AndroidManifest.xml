@@ -130,6 +130,11 @@
 
     </application>
 
+    <!-- targetSdk 36 tests over adb (SmokeInstrumentation); only adb can start it. -->
+    <instrumentation
+        android:name="com.orailnoor.droiddesk.SmokeInstrumentation"
+        android:targetPackage="${applicationId}" />
+
     <queries>
         <!-- Lets the Android-to-XFCE bridge enumerate launchable installed apps. -->
         <intent>

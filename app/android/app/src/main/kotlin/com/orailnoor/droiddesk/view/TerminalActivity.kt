@@ -20,6 +20,7 @@ import android.widget.Button
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import com.orailnoor.droiddesk.runtime.LinuxRuntime
+import com.orailnoor.droiddesk.runtime.NativeExec
 import com.orailnoor.droiddesk.runtime.NetBridge
 import com.orailnoor.droiddesk.runtime.UsbBridge
 import com.termux.terminal.TerminalSession
@@ -289,8 +290,10 @@ object TerminalSessions {
             "codex" -> "$bin/codex-debian" to arrayOf("codex-debian")
             else -> "$bin/bash" to arrayOf("-bash")
         }
-        val shell = if (File(command).canExecute()) command else "$bin/bash"
-        val argv = if (shell == command) args else arrayOf("-bash")
+        val program = if (File(command).canExecute()) command else "$bin/bash"
+        val argv0 = if (program == command) args[0] else "-bash"
+        // targetSdk >= 29: through linker64, argv0 stays (a login shell needs "-bash").
+        val (shell, argv) = NativeExec.terminal(context, program, argv0)
         val session = TerminalSession(
             shell, home, argv, env.map { "${it.key}=${it.value}" }.toTypedArray(), 5000, client,
         )

@@ -4,6 +4,8 @@
 #
 #   WORK_DIR   build scratch + output (default: ~/DroidDesk-build, keep it out of synced folders)
 #   KEY_DIR    directory holding debug.keystore used for signing (default: $WORK_DIR/android-key)
+#   TARGET_SDK targetSdk of the APK (default 28 from build.gradle.kts; 36 starts programs
+#              through linker64, docs/targetsdk36-plan.md)
 #
 # The keystore is the update identity of every installed copy: lose it and the
 # next release can only be installed after uninstalling, which deletes Linux.
@@ -32,7 +34,7 @@ crlf=$(grep -rlI $'\r' android/app/src/main/assets/droiddesk || true)
 yes | sdkmanager --licenses >/dev/null 2>&1 || true
 sdkmanager "cmake;3.22.1" >/dev/null
 flutter pub get
-flutter build apk --release
+flutter build apk --release ${TARGET_SDK:+--android-project-arg=lexona.targetSdk=$TARGET_SDK}
 cp build/app/outputs/flutter-apk/app-release.apk /out/DroidDesk-fold-dex.apk
 B=$(ls -d /opt/android-sdk-linux/build-tools/*/ | tail -1)
 ${B}apksigner verify --print-certs /out/DroidDesk-fold-dex.apk | grep SHA-256
@@ -43,6 +45,7 @@ EOF
 # cygpath keeps Docker Desktop happy with Windows paths; plain paths elsewhere.
 to_host() { command -v cygpath >/dev/null && cygpath -m "$1" || echo "$1"; }
 MSYS_NO_PATHCONV=1 docker run --rm \
+  -e TARGET_SDK="${TARGET_SDK:-}" \
   -v "$(to_host "$WORK_DIR"):/out" \
   -v "$(to_host "$KEY_DIR"):/root/.android" \
   -v droiddesk-gradle:/root/.gradle -v droiddesk-pub:/root/.pub-cache \

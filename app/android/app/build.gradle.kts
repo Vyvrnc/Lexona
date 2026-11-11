@@ -26,7 +26,10 @@ android {
     defaultConfig {
         applicationId = "io.github.vyvrnc.lexona"
         minSdk = 28  // Downgraded to 28 to bypass W^X (Write XOR Execute) restrictions on app data
-        targetSdk = 28 // API 28 completely disables the Android 10+ execve() block
+        // 28 lets the app exec programs from its data dir; 36 (needed for new installs on
+        // Android 16, Play Protect) starts them through linker64 (NativeExec, socket hook).
+        // flutter build apk --android-project-arg=lexona.targetSdk=36
+        targetSdk = (project.findProperty("lexona.targetSdk") as String?)?.toInt() ?: 28
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders["appLabel"] = "Lexona"

@@ -15,6 +15,10 @@
 #include <errno.h>
 #include <dirent.h>
 #include <android/log.h>
+#include <spawn.h>
+#include <stdint.h>
+#include <sys/prctl.h>
+#include <sys/syscall.h>
 
 #ifndef NEW_PREFIX
 #define NEW_PREFIX "/data/user/0/io.github.vyvrnc.lexona/files/usr"
@@ -503,14 +507,19 @@ int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpat
     return real_renameat(olddirfd, rold, newdirfd, rnew);
 }
 
+static int is_self_exe_link(const char *path);
+static ssize_t copy_self_exe(char *buf, size_t bufsiz);
+
 ssize_t readlink(const char *pathname, char *buf, size_t bufsiz) {
     setup();
+    if (is_self_exe_link(pathname)) return copy_self_exe(buf, bufsiz);
     char pathbuf[1024];
     return real_readlink(rewrite_path(pathname, pathbuf, sizeof(pathbuf)), buf, bufsiz);
 }
 
 ssize_t readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsiz) {
     setup();
+    if (pathname && pathname[0] == '/' && is_self_exe_link(pathname)) return copy_self_exe(buf, bufsiz);
     char pathbuf[1024];
     return real_readlinkat(dirfd, rewrite_at_path(dirfd, pathname, pathbuf, sizeof(pathbuf)), buf, bufsiz);
 }
@@ -694,6 +703,8 @@ static const char* rewrite_exec_path(const char* path, char* buf, size_t buf_siz
 }
 
 static int (*real_execve)(const char *, char *const [], char *const []) = NULL;
+
+static int exec_planned(const char *path, char *const argv[], char *const envp[]);
 static int (*real_execvp)(const char *, char *const []) = NULL;
 static int (*real_execvpe)(const char *, char *const [], char *const []) = NULL;
 
@@ -745,7 +756,7 @@ static int exec_termux_script(const char *path, char *const argv[], char *const 
     new_argv[i++] = (char *) path;
     for (int k = 1; k < argc; k++) new_argv[i++] = argv[k];
     new_argv[i] = NULL;
-    int ret = real_execve(new_interp, new_argv, envp);
+    int ret = exec_planned(new_interp, new_argv, envp);
     int saved = errno;
     free(new_argv);
     errno = saved;
@@ -827,13 +838,175 @@ static int exec_relocated_maintainer_script(const char *path, char *const argv[]
     new_argv[i++] = script_path;
     for (int k = 1; k < argc; k++) new_argv[i++] = argv[k];
     new_argv[i] = NULL;
-    int ret = real_execve(new_interp, new_argv, envp);
+    int ret = exec_planned(new_interp, new_argv, envp);
     int saved = errno;
     free(new_argv);
     unlink(script_path);
     free(text);
     errno = saved;
     return ret;
+}
+
+/*
+ * targetSdk >= 29 (DROIDDESK_LINKER_EXEC=1): SELinux refuses to exec files in the app's data
+ * dir (W^X), but /system/bin/linker64 still loads them (exec-probe, Galaxy A16, Android 16).
+ * Every exec of such a file goes through linker64; a "#!" script goes through its interpreter,
+ * which may itself be in the data dir. Plans are built in fixed buffers before any fork
+ * (bionic's posix_spawn may vfork). Without the variable nothing here changes behaviour.
+ */
+#define LINKER64 "/system/bin/linker64"
+#define PLAN_ARGS 512
+#define PLAN_DEPTH 4
+
+struct exec_plan {
+    const char *path;                  /* what is really exec'd */
+    char *argv[PLAN_ARGS];
+    char interp[PLAN_DEPTH][1024];
+    char arg[PLAN_DEPTH][256];
+    char found[1024];                  /* PATH search result */
+};
+
+static int linker_exec_enabled(void) {
+    static int state = -1;
+    if (state < 0) {
+        const char *v = getenv("DROIDDESK_LINKER_EXEC");
+        state = v && v[0] == '1';
+    }
+    return state;
+}
+
+static int under_app_data(const char *path) {
+    return path && (strncmp(path, "/data/user/", 11) == 0 || strncmp(path, "/data/data/", 11) == 0);
+}
+
+/* 1: dynamic bionic ELF (PT_INTERP names linker64), 2: other ELF, 3: "#!" script, 0: other. */
+static int exec_kind(int fd, char *head, size_t head_size) {
+    ssize_t n = pread(fd, head, head_size - 1, 0);
+    if (n < 4) return 0;
+    head[n] = '\0';
+    if (head[0] == '#' && head[1] == '!') return 3;
+    if (memcmp(head, "\177ELF", 4) != 0 || n < 64 || head[4] != 2) return 0;
+    uint64_t phoff;
+    uint16_t phentsize, phnum;
+    memcpy(&phoff, head + 32, 8);
+    memcpy(&phentsize, head + 54, 2);
+    memcpy(&phnum, head + 56, 2);
+    for (uint16_t i = 0; i < phnum && i < 64; i++) {
+        unsigned char ph[56];
+        if (phentsize < 56 ||
+            pread(fd, ph, sizeof(ph), (off_t) (phoff + (uint64_t) i * phentsize)) != (ssize_t) sizeof(ph)) break;
+        uint32_t type;
+        memcpy(&type, ph, 4);
+        if (type != 3) continue; /* PT_INTERP */
+        uint64_t off, size;
+        memcpy(&off, ph + 8, 8);
+        memcpy(&size, ph + 32, 8);
+        char interp[256];
+        if (size == 0 || size >= sizeof(interp) || pread(fd, interp, size, (off_t) off) != (ssize_t) size) return 2;
+        interp[size] = '\0';
+        return strstr(interp, "linker64") ? 1 : 2;
+    }
+    return 2;
+}
+
+/*
+ * Fills plan with the exec that works for path/argv. Returns 0 when the plan differs from a
+ * plain exec of path, -1 when path is exec'd unchanged.
+ */
+static int make_exec_plan(const char *path, char *const argv[], struct exec_plan *plan) {
+    plan->path = path;
+    if (!linker_exec_enabled() || !path) return -1;
+    setup();
+    int argc = 0;
+    while (argv && argv[argc]) argc++;
+    if (argc + 2 * PLAN_DEPTH + 3 >= PLAN_ARGS) return -1;
+    char *cur[PLAN_ARGS];
+    for (int i = 0; i < argc; i++) cur[i] = argv[i];
+    cur[argc] = NULL;
+    const char *cur_path = path;
+    int changed = 0;
+    for (int depth = 0; depth < PLAN_DEPTH; depth++) {
+        if (!under_app_data(cur_path)) break;
+        int fd = real_open(cur_path, O_RDONLY | O_CLOEXEC);
+        if (fd < 0) break;
+        char head[512];
+        int kind = exec_kind(fd, head, sizeof(head));
+        close(fd);
+        if (kind == 1) {
+            /* linker64 [original argv0] path args…: the started program finds the original
+               argv0 in /proc/self/cmdline (identity_fix below). */
+            int k = 0;
+            plan->argv[k++] = cur[0] ? cur[0] : (char *) cur_path;
+            plan->argv[k++] = (char *) cur_path;
+            for (int i = 1; i < PLAN_ARGS - 2 && cur[0] && cur[i]; i++) plan->argv[k++] = cur[i];
+            plan->argv[k] = NULL;
+            plan->path = LINKER64;
+            return 0;
+        }
+        if (kind != 3) break;
+        char *line_end = strchr(head, '\n');
+        if (!line_end) break;
+        *line_end = '\0';
+        char *interp = head + 2;
+        while (*interp == ' ' || *interp == '\t') interp++;
+        char *arg = interp;
+        while (*arg && *arg != ' ' && *arg != '\t') arg++;
+        if (*arg) {
+            *arg++ = '\0';
+            while (*arg == ' ' || *arg == '\t') arg++;
+            char *end = arg + strlen(arg);
+            while (end > arg && (end[-1] == ' ' || end[-1] == '\t' || end[-1] == '\r')) *--end = '\0';
+        }
+        char rebuf[1024];
+        const char *real_interp = rewrite_path(interp, rebuf, sizeof(rebuf));
+        snprintf(plan->interp[depth], sizeof(plan->interp[depth]), "%s", real_interp);
+        snprintf(plan->arg[depth], sizeof(plan->arg[depth]), "%s", arg);
+        /* interpreter [arg] script args…, as the kernel does it */
+        char *next[PLAN_ARGS];
+        int k = 0;
+        next[k++] = plan->interp[depth];
+        if (plan->arg[depth][0]) next[k++] = plan->arg[depth];
+        next[k++] = (char *) cur_path;
+        for (int i = 1; cur[0] && cur[i] && k < PLAN_ARGS - 1; i++) next[k++] = cur[i];
+        next[k] = NULL;
+        memcpy(cur, next, sizeof(char *) * (size_t) (k + 1));
+        cur_path = plan->interp[depth];
+        changed = 1;
+    }
+    if (!changed) return -1;
+    int k = 0;
+    for (; cur[k]; k++) plan->argv[k] = cur[k];
+    plan->argv[k] = NULL;
+    plan->path = cur_path;
+    return 0;
+}
+
+/* A bare command name searched in PATH, as execvp does. NULL when not found. */
+static const char *search_path(const char *file, char *out, size_t out_size) {
+    const char *path_env = getenv("PATH");
+    if (!path_env || !*path_env) path_env = "/system/bin";
+    const char *p = path_env;
+    while (*p) {
+        const char *colon = strchr(p, ':');
+        size_t dir_len = colon ? (size_t) (colon - p) : strlen(p);
+        if (dir_len > 0 && dir_len + strlen(file) + 2 < out_size) {
+            memcpy(out, p, dir_len);
+            out[dir_len] = '/';
+            strcpy(out + dir_len + 1, file);
+            struct stat st;
+            if (real_stat(out, &st) == 0 && S_ISREG(st.st_mode) && real_access(out, X_OK) == 0) return out;
+        }
+        if (!colon) break;
+        p = colon + 1;
+    }
+    return NULL;
+}
+
+static int exec_planned(const char *path, char *const argv[], char *const envp[]) {
+    if (!real_execve) real_execve = dlsym(RTLD_NEXT, "execve");
+    static __thread struct exec_plan plan;
+    if (make_exec_plan(path, argv, &plan) == 0) return real_execve(plan.path, plan.argv, envp);
+    return real_execve(path, argv, envp);
 }
 
 int execve(const char *pathname, char *const argv[], char *const envp[]) {
@@ -844,6 +1017,7 @@ int execve(const char *pathname, char *const argv[], char *const envp[]) {
         int saved = errno;
         if (exec_relocated_maintainer_script(path, argv, envp) < 0) errno = saved;
     }
+    if (linker_exec_enabled()) return exec_planned(path, argv, envp);
     int ret = real_execve(path, argv, envp);
     if (errno == ENOENT || errno == EACCES) {
         int saved = errno;
@@ -863,6 +1037,13 @@ int execvp(const char *file, char *const argv[]) {
     const char *path = rewrite_exec_path(file, buf, sizeof(buf));
     // A path (dpkg passes maintainer scripts this way) does not use the PATH search.
     if (path && strchr(path, '/')) return execve(path, argv, environ);
+    if (linker_exec_enabled() && path && *path) {
+        char found[1024];
+        setup();
+        if (search_path(path, found, sizeof(found))) return execve(found, argv, environ);
+        errno = ENOENT;
+        return -1;
+    }
     return real_execvp(path, argv);
 }
 
@@ -871,5 +1052,161 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
     char buf[1024];
     const char *path = rewrite_exec_path(file, buf, sizeof(buf));
     if (path && strchr(path, '/')) return execve(path, argv, envp);
+    if (linker_exec_enabled() && path && *path) {
+        char found[1024];
+        setup();
+        if (search_path(path, found, sizeof(found))) return execve(found, argv, envp);
+        errno = ENOENT;
+        return -1;
+    }
     return real_execvpe(path, argv, envp);
+}
+
+/* The execl family: collect the arguments, then the matching execv*. */
+#define COLLECT_ARGS(first, list, out, count, max)                     \
+    do {                                                               \
+        (out)[0] = (char *) (first);                                   \
+        (count) = 1;                                                   \
+        char *next_arg;                                                \
+        while ((next_arg = va_arg(list, char *)) != NULL && (count) < (max) - 1) \
+            (out)[(count)++] = next_arg;                               \
+        (out)[(count)] = NULL;                                         \
+    } while (0)
+
+int execl(const char *path, const char *arg, ...) {
+    char *argv[PLAN_ARGS];
+    int argc;
+    va_list ap;
+    va_start(ap, arg);
+    COLLECT_ARGS(arg, ap, argv, argc, PLAN_ARGS);
+    va_end(ap);
+    return execve(path, argv, environ);
+}
+
+int execlp(const char *file, const char *arg, ...) {
+    char *argv[PLAN_ARGS];
+    int argc;
+    va_list ap;
+    va_start(ap, arg);
+    COLLECT_ARGS(arg, ap, argv, argc, PLAN_ARGS);
+    va_end(ap);
+    return execvp(file, argv);
+}
+
+int execle(const char *path, const char *arg, ...) {
+    char *argv[PLAN_ARGS];
+    int argc;
+    va_list ap;
+    va_start(ap, arg);
+    COLLECT_ARGS(arg, ap, argv, argc, PLAN_ARGS);
+    char *const *envp = va_arg(ap, char *const *);
+    va_end(ap);
+    return execve(path, argv, envp);
+}
+
+/* fexecve: the fd's path through the same plan (a data-dir fd cannot be exec'd either). */
+static int (*real_fexecve)(int, char *const [], char *const []) = NULL;
+int fexecve(int fd, char *const argv[], char *const envp[]) {
+    if (!real_fexecve) real_fexecve = dlsym(RTLD_NEXT, "fexecve");
+    if (linker_exec_enabled()) {
+        char link[64], target[1024];
+        snprintf(link, sizeof(link), "/proc/self/fd/%d", fd);
+        if (!real_readlink) setup();
+        ssize_t n = real_readlink(link, target, sizeof(target) - 1);
+        if (n > 0) {
+            target[n] = '\0';
+            if (under_app_data(target)) return execve(target, argv, envp);
+        }
+    }
+    return real_fexecve(fd, argv, envp);
+}
+
+/* posix_spawn(p): the plan is made here, in the parent, before libc forks. */
+static int (*real_posix_spawn)(pid_t *, const char *, const posix_spawn_file_actions_t *,
+                               const posix_spawnattr_t *, char *const [], char *const []) = NULL;
+static int (*real_posix_spawnp)(pid_t *, const char *, const posix_spawn_file_actions_t *,
+                                const posix_spawnattr_t *, char *const [], char *const []) = NULL;
+
+int posix_spawn(pid_t *pid, const char *path, const posix_spawn_file_actions_t *actions,
+                const posix_spawnattr_t *attr, char *const argv[], char *const envp[]) {
+    if (!real_posix_spawn) real_posix_spawn = dlsym(RTLD_NEXT, "posix_spawn");
+    if (linker_exec_enabled()) {
+        char buf[1024];
+        const char *p = rewrite_exec_path(path, buf, sizeof(buf));
+        struct exec_plan *plan = malloc(sizeof(*plan));
+        if (plan) {
+            int rc = make_exec_plan(p, argv, plan) == 0
+                ? real_posix_spawn(pid, plan->path, actions, attr, plan->argv, envp)
+                : real_posix_spawn(pid, p, actions, attr, argv, envp);
+            free(plan);
+            return rc;
+        }
+    }
+    return real_posix_spawn(pid, path, actions, attr, argv, envp);
+}
+
+int posix_spawnp(pid_t *pid, const char *file, const posix_spawn_file_actions_t *actions,
+                 const posix_spawnattr_t *attr, char *const argv[], char *const envp[]) {
+    if (!real_posix_spawnp) real_posix_spawnp = dlsym(RTLD_NEXT, "posix_spawnp");
+    if (linker_exec_enabled() && file && *file) {
+        if (strchr(file, '/')) return posix_spawn(pid, file, actions, attr, argv, envp);
+        char found[1024];
+        setup();
+        if (search_path(file, found, sizeof(found))) return posix_spawn(pid, found, actions, attr, argv, envp);
+        return ENOENT;
+    }
+    return real_posix_spawnp(pid, file, actions, attr, argv, envp);
+}
+
+/*
+ * Identity of a program started as "linker64 argv0 path args…": the kernel sees linker64
+ * (comm "linker64", /proc/self/exe the APEX linker) and the program gets argv[0] = path.
+ * Restored here: argv[0] (login shells, multi-call programs), comm (pgrep/pkill -x) and what
+ * readlink("/proc/self/exe") returns (node, Python, Chromium/Firefox re-exec).
+ */
+static char self_exe[1024];
+static char self_argv0[512];
+
+__attribute__((constructor)) static void identity_fix(int argc, char **argv) {
+    if (!linker_exec_enabled()) return;
+    char exe[256];
+    ssize_t n = syscall(SYS_readlinkat, AT_FDCWD, "/proc/self/exe", exe, sizeof(exe) - 1);
+    if (n <= 0) return;
+    exe[n] = '\0';
+    size_t len = (size_t) n;
+    if (len < 9 || strcmp(exe + len - 9, "/linker64") != 0) return;
+    int fd = (int) syscall(SYS_openat, AT_FDCWD, "/proc/self/cmdline", O_RDONLY | O_CLOEXEC);
+    if (fd < 0) return;
+    char cmd[2048];
+    ssize_t got = read(fd, cmd, sizeof(cmd) - 1);
+    close(fd);
+    if (got <= 0) return;
+    cmd[got] = '\0';
+    const char *orig_argv0 = cmd;
+    size_t first = strlen(cmd);
+    if ((ssize_t) first + 1 >= got) return;
+    const char *program = cmd + first + 1;
+    snprintf(self_exe, sizeof(self_exe), "%s", program);
+    /* Started by the app (ProcessBuilder's argv[0] is linker64 itself): argv0 is the program. */
+    size_t orig_len = strlen(orig_argv0);
+    if (orig_len >= 8 && strcmp(orig_argv0 + orig_len - 8, "linker64") == 0) orig_argv0 = program;
+    snprintf(self_argv0, sizeof(self_argv0), "%s", orig_argv0);
+    if (argc > 0 && argv && argv[0] && strcmp(argv[0], program) == 0) argv[0] = self_argv0;
+    const char *base = strrchr(program, '/');
+    prctl(PR_SET_NAME, base ? base + 1 : program, 0, 0, 0);
+}
+
+static int is_self_exe_link(const char *path) {
+    if (!self_exe[0] || !path) return 0;
+    if (strcmp(path, "/proc/self/exe") == 0 || strcmp(path, "/proc/thread-self/exe") == 0) return 1;
+    char mine[64];
+    snprintf(mine, sizeof(mine), "/proc/%d/exe", getpid());
+    return strcmp(path, mine) == 0;
+}
+
+static ssize_t copy_self_exe(char *buf, size_t bufsiz) {
+    size_t len = strlen(self_exe);
+    if (len > bufsiz) len = bufsiz;
+    memcpy(buf, self_exe, len);
+    return (ssize_t) len;
 }
