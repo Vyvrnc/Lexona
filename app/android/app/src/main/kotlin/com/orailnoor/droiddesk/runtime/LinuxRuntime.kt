@@ -537,7 +537,38 @@ class LinuxRuntime(private val context: Context) {
             File(prefixDir, "lib").absolutePath,
             "/data/data/com.termux/files/usr/lib/dri",
         )
+        writeProotWrapper()
     }
+
+    /**
+     * targetSdk >= 29: proot-distro execs proot with a minimal environment (no LD_PRELOAD, no
+     * PROOT_LOADER or PROOT_TMP_DIR) and Termux proot finds its loader next to /proc/self/exe,
+     * which is linker64 there. proot-distro takes PD_PROOT_BIN instead: this wrapper (system sh,
+     * Termux bash would miss its libraries in that environment) gives proot its loader from
+     * nativeLibraryDir and starts it through linker64. Rewritten at every start: the
+     * nativeLibraryDir path changes with each app update. (Galaxy A16, Android 16, 2026-11-12.)
+     */
+    private fun writeProotWrapper() {
+        val wrapper = prootWrapperFile
+        if (!NativeExec.linkerExec(context)) {
+            wrapper.delete()
+            return
+        }
+        runCatching {
+            wrapper.writeText(
+                """
+                #!/system/bin/sh
+                export PROOT_LOADER="${prootLoaderPath()}"
+                export PROOT_TMP_DIR="${tmpDir.absolutePath}/proot"
+                mkdir -p "${'$'}PROOT_TMP_DIR"
+                exec ${NativeExec.LINKER} "${File(binDir, "proot").absolutePath}" "${'$'}@"
+                """.trimIndent() + "\n",
+            )
+            wrapper.setExecutable(true, false)
+        }.onFailure { Log.w(TAG, "proot wrapper: ${it.message}") }
+    }
+
+    private val prootWrapperFile: File get() = File(binDir, "proot-lexona")
 
     private fun writeDebianLauncher() {
         val launcher = File(binDir, "start-debian")
@@ -3419,6 +3450,8 @@ class LinuxRuntime(private val context: Context) {
             env["DROIDDESK_LINKER_EXEC"] = "1"
             // proot-distro's proot reads it from its own environment.
             env["PROOT_LOADER"] = prootLoaderPath()
+            // proot-distro starts proot through writeProotWrapper's script.
+            if (prootWrapperFile.isFile) env["PD_PROOT_BIN"] = prootWrapperFile.absolutePath
         }
         env["DROIDDESK_NATIVE_LIB_DIR"] = context.applicationInfo.nativeLibraryDir
         // termux-exec (in the bootstrap) must not wrap a second time.
