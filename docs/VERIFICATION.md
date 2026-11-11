@@ -36,6 +36,12 @@ Android forbids binding to eth0 while a VPN without bypass covers the app) and `
 when the default network is a VPN. Tested: the hint text from the module (py_compile); not on a
 device.
 
+Also: the USB panel icon was cut to its corner again after switching to DeX (Fold 7,
+2026-11-11): GDK in the running tray kept scale 2 while xsettings said 1, so the reload by GDK's
+scale did nothing. The tray now compares GDK's scale with xsettings every 10 s and starts
+itself again while idle (no tray operation, no window open), once per scale. Tested: py_compile
+only; the switch test on the Fold follows the release.
+
 ## 1.0.1-fold.107 (2026-11-01)
 
 Fixed: the Claude launchers printed `ln: invalid option -- 'a'` at every start (Tab S10 FE,

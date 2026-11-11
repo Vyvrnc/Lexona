@@ -767,14 +767,35 @@ class Tray:
 
     def check_icon_scale(self):
         """The window scaling changes with the screen (DeX vs phone, droiddesk-screen-profile):
-        reload the icon for the new scale instead of restarting the tray, which would end
-        running USB operations."""
+        reload the icon for the new scale. GDK in a running tray can keep the old scale though
+        (Fold 7 in DeX, 2026-11-11: xsettings 1, GDK 2, the plug 96x96 in a 48x48 socket, only a
+        corner showed): every 10 s compare it with xsettings and start the tray again while it
+        is idle. Disk operations run in their own processes; the WebDAV servers have their own
+        session and come back from their bookmarks."""
         try:
             scale = self.icon.get_screen().get_monitor_scale_factor(0)
         except Exception:
             return
         if self.icon_scale is not None and scale != self.icon_scale:
             self.icon_size_changed(self.icon, self.icon.get_size())
+        self.scale_checks = getattr(self, "scale_checks", 0) + 1
+        # GDK_SCALE pins the scale on purpose; a restart would not change it.
+        if self.scale_checks % 5 or os.environ.get("GDK_SCALE"):
+            return
+        try:
+            wanted = int(subprocess.run(["xfconf-query", "-c", "xsettings", "-p", "/Gdk/WindowScalingFactor"],
+                                        capture_output=True, text=True, timeout=5, env=ENV).stdout.strip())
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return
+        if wanted < 1 or wanted == scale:
+            return
+        # One restart per scale: if GDK still disagrees afterwards, a loop would not help.
+        if os.environ.get("DROIDDESK_USB_TRAY_RESTARTED_FOR") == str(wanted):
+            return
+        if self.busy or self.activities or self.dav.starting or (self.window and self.window.get_visible()):
+            return
+        os.environ["DROIDDESK_USB_TRAY_RESTARTED_FOR"] = str(wanted)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
     def popup(self, icon, button, when):
         menu = Gtk.Menu()
