@@ -680,3 +680,22 @@ non-debuggable APK, targetSdk 36, domain `u:r:untrusted_app:s0` (not `_27`), pho
   AT_EXECFN = `/system/bin/linker64`.
 
 The blocker from the review (finding 1) is cleared; the identity work of Phase 1 is needed.
+
+## Progress (night 2026-11-11/12, branch `lexona-sdk36`, Galaxy A16)
+
+Done and tested with `TARGET_SDK=36 tools/build-apk.sh` (non-debuggable, adb install, phone
+locked, `am instrument … SmokeInstrumentation`):
+- Phase 0: `-P lexona.targetSdk`, build-apk.sh `TARGET_SDK`, SmokeInstrumentation.
+- Phase 1a/1b: socket_hook.c linker64 exec plan (ELF, `#!` chains, maintainer scripts),
+  execl*/fexecve/posix_spawn(p)/PATH search, identity (argv[0], comm, readlink of
+  /proc/self/exe); NativeExec.kt at all 21 LinuxRuntime exec sites and the terminal session.
+  Result: bootstrap extracts, bash 5.3 runs as `bash` (comm), children and `/system/bin/sh`
+  children work; `apt-get update` and `apt-get install nano` (download, unpack, configure,
+  maintainer scripts) work; `dpkg --audit` clean.
+- jniLibs `libproot-loader.so` replaced by the loader of Termux proot 5.1.107.102.
+
+Open:
+- proot at 36: `proot -0 /system/bin/id` fails with EPERM while translating execve (before the
+  loader is used), also with PROOT_NO_SECCOMP=1 and with the loader from nativeLibraryDir;
+  ptrace itself works (strace runs). Cause under investigation.
+- Not tested yet (needs the screen unlocked): the in-app terminal (PTY login), the desktop.
