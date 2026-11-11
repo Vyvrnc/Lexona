@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:droiddesk/services/platform_bridge.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 
 class DesktopToolsScreen extends StatefulWidget {
   const DesktopToolsScreen({super.key});
@@ -101,6 +101,7 @@ class _DesktopToolsScreenState extends State<DesktopToolsScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
+            style: _destructiveFill(),
             child: const Text('Restore'),
           ),
         ],
@@ -139,8 +140,9 @@ class _DesktopToolsScreenState extends State<DesktopToolsScreen>
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
+            style: _destructiveFill(),
             child: const Text('Delete'),
           ),
         ],
@@ -152,11 +154,18 @@ class _DesktopToolsScreenState extends State<DesktopToolsScreen>
     }
   }
 
+  /// Error fill, only inside a confirmation dialog (design language: destructive).
+  ButtonStyle _destructiveFill() => FilledButton.styleFrom(
+        backgroundColor: LexonaTheme.error,
+        foregroundColor:
+            LexonaTheme.isDark ? LexonaTheme.darkBackground : LexonaTheme.lightSurface,
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Desktop Tools'),
+        title: const Text('Desktop tools'),
         bottom: TabBar(
           controller: _tabs,
           isScrollable: true,
@@ -168,7 +177,7 @@ class _DesktopToolsScreenState extends State<DesktopToolsScreen>
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: DroidTheme.backgroundGradient,
+          gradient: LexonaTheme.backgroundGradient,
         ),
         child: TabBarView(
           controller: _tabs,
@@ -200,7 +209,7 @@ class _DesktopToolsScreenState extends State<DesktopToolsScreen>
       children: [
         Row(
           children: [
-            Text('PINNED', style: DroidTheme.label),
+            Text('PINNED', style: LexonaTheme.label),
             const Spacer(),
             if (_dockBusy)
               const SizedBox(
@@ -209,7 +218,7 @@ class _DesktopToolsScreenState extends State<DesktopToolsScreen>
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             const SizedBox(width: 8),
-            Text('${_dockPackages.length}/8', style: DroidTheme.bodySm),
+            Text('${_dockPackages.length}/8', style: LexonaTheme.caption),
           ],
         ),
         const SizedBox(height: 8),
@@ -242,8 +251,8 @@ class _DesktopToolsScreenState extends State<DesktopToolsScreen>
             );
           },
         ),
-        const SizedBox(height: 20),
-        Text('ADD AN ANDROID APP', style: DroidTheme.label),
+        const SizedBox(height: 24),
+        Text('ADD AN ANDROID APP', style: LexonaTheme.label),
         const SizedBox(height: 8),
         TextField(
           controller: _dockSearchController,
@@ -291,10 +300,10 @@ class _DesktopToolsScreenState extends State<DesktopToolsScreen>
         const SizedBox(height: 12),
         Text(
           'Backs up your Linux home, desktop settings, wallpaper and installed-package manifest.',
-          style: DroidTheme.bodySm,
+          style: LexonaTheme.caption,
         ),
-        const SizedBox(height: 20),
-        Text('SNAPSHOTS', style: DroidTheme.label),
+        const SizedBox(height: 24),
+        Text('SNAPSHOTS', style: LexonaTheme.label),
         const SizedBox(height: 8),
         if (_snapshots.isEmpty)
           const Card(
@@ -318,9 +327,12 @@ class _DesktopToolsScreenState extends State<DesktopToolsScreen>
                 onSelected: (value) => value == 'restore'
                     ? _restoreSnapshot(snapshot['name'].toString())
                     : _deleteSnapshot(snapshot['name'].toString()),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'restore', child: Text('Restore')),
-                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(value: 'restore', child: Text('Restore')),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Delete', style: TextStyle(color: LexonaTheme.error)),
+                  ),
                 ],
               ),
             ),

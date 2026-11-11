@@ -4851,7 +4851,7 @@ class LinuxRuntime(private val context: Context) {
                 homeDir = homeDir.apply { mkdirs() },
                 wallpaperFile = File(
                     homeDir,
-                    ".local/share/backgrounds/droiddesk-ubuntu-touch.jpg",
+                    ".local/share/backgrounds/lexona-wallpaper.jpg",
                 ),
             )
             AndroidAppBridge.syncLaunchers(

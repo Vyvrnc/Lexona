@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 import 'package:droiddesk/state/app_state.dart';
 import 'package:droiddesk/services/platform_bridge.dart';
 import 'package:droiddesk/screens/welcome_screen.dart';
@@ -58,8 +58,8 @@ class _DroidDeskAppState extends State<DroidDeskApp> {
     return MaterialApp(
       title: 'Lexona',
       debugShowCheckedModeBanner: false,
-      theme: DroidTheme.lightThemeData,
-      darkTheme: DroidTheme.darkThemeData,
+      theme: LexonaTheme.lightThemeData,
+      darkTheme: LexonaTheme.darkThemeData,
       themeMode: state.themeMode,
       builder: (context, child) {
         return AnnotatedRegion<SystemUiOverlayStyle>(

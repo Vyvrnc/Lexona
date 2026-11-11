@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:droiddesk/services/platform_bridge.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 
 /// Central state management for the entire DroidDesk app.
 class AppState extends ChangeNotifier {
@@ -59,7 +59,7 @@ class AppState extends ChangeNotifier {
 
   // ── Getters ──
   ThemeMode get themeMode => _themeMode;
-  bool get isDarkMode => DroidTheme.isDark;
+  bool get isDarkMode => LexonaTheme.isDark;
   bool get isBootstrapped => _isBootstrapped;
   bool get isRunning => _isRunning;
   bool get desktopEnded => _desktopEnded;
@@ -197,7 +197,7 @@ class AppState extends ChangeNotifier {
       } else {
         _themeMode = ThemeMode.dark;
       }
-      DroidTheme.currentThemeMode = _themeMode;
+      LexonaTheme.currentThemeMode = _themeMode;
       notifyListeners();
       await DroidDeskPlatform.updateStatusBarTheme(!isDarkMode);
     } catch (_) {
@@ -207,7 +207,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
-    DroidTheme.currentThemeMode = mode;
+    LexonaTheme.currentThemeMode = mode;
     notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();

@@ -325,7 +325,7 @@ object CameraBridge {
             "Lexona nemá oprávnění ke kameře. Klepnutím otevřete nastavení aplikace a v části Oprávnění povolte Fotoaparát."
         }
         val notification = Notification.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_camera)
+            .setSmallIcon(com.orailnoor.droiddesk.R.drawable.ic_stat_lexona)
             .setContentTitle("Kamera pro Linux")
             .setContentText(text)
             .setStyle(Notification.BigTextStyle().bigText(text))

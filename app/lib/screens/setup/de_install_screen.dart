@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 import 'package:droiddesk/state/app_state.dart';
 import 'package:droiddesk/services/platform_bridge.dart';
 import 'package:droiddesk/widgets/linux_language_picker.dart';
@@ -41,7 +41,7 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
 
   Widget _buildLanguageStep() {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: LexonaTheme.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -50,14 +50,14 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
             children: [
               Text(
                 'Language',
-                style: DroidTheme.headingXl.copyWith(color: Colors.white),
+                style: LexonaTheme.title,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 'Language of the Linux apps: Firefox, LibreOffice, Claude Code and the '
                 'terminal tools. The XFCE desktop itself stays in English.',
-                style: DroidTheme.bodyMd.copyWith(color: Colors.white60),
+                style: LexonaTheme.body,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -73,9 +73,9 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                               onChanged: (value) => setState(() => _language = value),
                               title: Text(
                                 entry.value,
-                                style: DroidTheme.bodyMd.copyWith(color: Colors.white),
+                                style: LexonaTheme.body.copyWith(color: LexonaTheme.textPrimary),
                               ),
-                              activeColor: DroidTheme.primary,
+                              activeColor: LexonaTheme.primary,
                             ),
                         ],
                       ),
@@ -83,14 +83,11 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _language == null ? null : _startInstall,
+                // Teal fill and onPrimary text come from the theme.
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: DroidTheme.primary,
+                  minimumSize: const Size.fromHeight(52),
                 ),
-                child: Text(
-                  'Start installation',
-                  style: DroidTheme.headingSm.copyWith(color: Colors.white),
-                ),
+                child: const Text('Start installation'),
               ),
             ],
           ),
@@ -132,19 +129,13 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
     final hasError = state.errorMessage != null;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: LexonaTheme.background,
       body: Stack(
         children: [
-          // Background Gradient
+          // Background: the theme's screen colour (dark and light).
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Colors.black, Color(0xFF020617)],
-                ),
-              ),
+              color: LexonaTheme.background,
             ),
           ),
 
@@ -157,11 +148,11 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                   // ── Header ──
                   Text(
                     isDone
-                        ? 'Installation Complete'
+                        ? 'Installation complete'
                         : hasError
-                        ? 'Installation Failed'
-                        : 'Configuring\nLinux Workstation',
-                    style: DroidTheme.headingXl.copyWith(color: Colors.white),
+                        ? 'Installation failed'
+                        : 'Configuring\nLinux workstation',
+                    style: LexonaTheme.title,
                     textAlign: TextAlign.center,
                   ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.2),
 
@@ -170,7 +161,7 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                     isDone
                         ? 'Your Linux environment is ready.'
                         : 'Downloading and configuring system packages.',
-                    style: DroidTheme.bodyMd.copyWith(color: Colors.white60),
+                    style: LexonaTheme.body,
                     textAlign: TextAlign.center,
                   ).animate().fadeIn(delay: 200.ms),
 
@@ -182,16 +173,13 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                       flex: 3,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: DroidTheme.surfaceBorder.withValues(
-                              alpha: 0.3,
-                            ),
-                          ),
+                          // Terminal/log view: opaque background colour, 1 px border.
+                          color: LexonaTheme.background,
+                          borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
+                          border: Border.all(color: LexonaTheme.border),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
                           child: ListView.builder(
                             controller: _scrollController,
                             padding: const EdgeInsets.all(12),
@@ -201,10 +189,8 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                                 padding: const EdgeInsets.only(bottom: 2),
                                 child: Text(
                                   state.terminalOutput[index],
-                                  style: const TextStyle(
-                                    fontFamily: 'monospace',
-                                    fontSize: 10,
-                                    color: Colors.greenAccent,
+                                  style: LexonaTheme.monoSm.copyWith(
+                                    color: LexonaTheme.textSecondary,
                                   ),
                                 ),
                               );
@@ -224,11 +210,9 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                           borderRadius: BorderRadius.circular(8),
                           child: LinearProgressIndicator(
                             value: state.extractProgress.clamp(0.0, 1.0),
-                            backgroundColor: DroidTheme.surfaceLight.withValues(
-                              alpha: 0.2,
-                            ),
+                            backgroundColor: LexonaTheme.surfaceRaised,
                             valueColor: const AlwaysStoppedAnimation<Color>(
-                              DroidTheme.primary,
+                              LexonaTheme.primary,
                             ),
                             minHeight: 8,
                           ),
@@ -238,8 +222,8 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                           state.extractStatus.isNotEmpty
                               ? state.extractStatus
                               : 'Extracting packages...',
-                          style: DroidTheme.monoSm.copyWith(
-                            color: Colors.white70,
+                          style: LexonaTheme.monoSm.copyWith(
+                            color: LexonaTheme.textSecondary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -254,18 +238,13 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: DroidTheme.primary,
+                        minimumSize: const Size.fromHeight(52),
                       ),
-                      child: Text(
-                        'Return to Home',
-                        style: DroidTheme.headingSm.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                    ).animate().scale(
-                      curve: Curves.elasticOut,
-                      duration: 800.ms,
+                      child: const Text('Return to home'),
+                    ).animate().fadeIn(duration: 350.ms).scale(
+                      begin: const Offset(0.95, 0.95),
+                      curve: Curves.easeOut,
+                      duration: 350.ms,
                     ),
 
                   if (hasError)
@@ -273,16 +252,11 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                       onPressed: () {
                         Navigator.pop(context);
                       },
+                      // Going back is not destructive: the screen's one teal button.
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: DroidTheme.error,
+                        minimumSize: const Size.fromHeight(52),
                       ),
-                      child: Text(
-                        'Go Back',
-                        style: DroidTheme.headingSm.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: const Text('Go back'),
                     ),
 
                   const Spacer(flex: 1),
@@ -295,26 +269,9 @@ class _DEInstallScreenState extends State<DEInstallScreen> {
                         icon: const Icon(
                           Icons.code_rounded,
                           size: 18,
-                          color: DroidTheme.primary,
                         ),
-                        label: Text(
-                          'Support Open Source',
-                          style: DroidTheme.bodySm.copyWith(
-                            color: Colors.white70,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: DroidTheme.primary.withValues(alpha: 0.3),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                        ),
+                        // Teal outline and teal text come from the theme.
+                        label: const Text('Support open source'),
                       ),
                     ),
                 ],

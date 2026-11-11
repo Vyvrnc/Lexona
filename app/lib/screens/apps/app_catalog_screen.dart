@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:droiddesk/services/platform_bridge.dart';
 import 'package:droiddesk/state/app_state.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -77,7 +77,8 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
       'ImageMagick',
       'Image conversion and processing toolkit.',
       Icons.image_rounded,
-      DroidTheme.primaryLight,
+      // Teal that reads on both the dark and the light icon tile.
+      LexonaTheme.primaryDark,
     ),
   ];
 
@@ -248,11 +249,13 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
               ? '$packageName installed'
               : '$packageName installation failed',
         ),
-        backgroundColor: cancelled
-            ? DroidTheme.surfaceLight
-            : ok
-            ? DroidTheme.success
-            : DroidTheme.error,
+        shape: _statusShape(
+          cancelled
+              ? LexonaTheme.border
+              : ok
+              ? LexonaTheme.success
+              : LexonaTheme.error,
+        ),
       ),
     );
   }
@@ -263,7 +266,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(ok ? '${app.name} installed' : '${app.name} installation failed'),
-        backgroundColor: ok ? DroidTheme.success : DroidTheme.error,
+        shape: _statusShape(ok ? LexonaTheme.success : LexonaTheme.error),
       ),
     );
   }
@@ -284,6 +287,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
+              style: _destructiveFill(),
               child: const Text('Remove'),
             ),
           ],
@@ -308,7 +312,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: ok ? DroidTheme.success : DroidTheme.error,
+        shape: _statusShape(ok ? LexonaTheme.success : LexonaTheme.error),
       ),
     );
   }
@@ -336,6 +340,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
+            style: _destructiveFill(),
             child: const Text('Remove'),
           ),
         ],
@@ -357,16 +362,35 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(ok ? '${package.displayName} removed' : 'Removal failed'),
-        backgroundColor: ok ? DroidTheme.success : DroidTheme.error,
+        shape: _statusShape(ok ? LexonaTheme.success : LexonaTheme.error),
       ),
     );
   }
+
+  /// Snack bars stay on the theme's opaque surface; the status shows as a 1 px border
+  /// next to the word in the message.
+  ShapeBorder _statusShape(Color color) => RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
+        side: BorderSide(color: color),
+      );
+
+  /// Error fill, only inside a confirmation dialog (design language: destructive).
+  ButtonStyle _destructiveFill() => FilledButton.styleFrom(
+        backgroundColor: LexonaTheme.error,
+        foregroundColor:
+            LexonaTheme.isDark ? LexonaTheme.darkBackground : LexonaTheme.lightSurface,
+      );
+
+  /// Compact outlined "Install" for list rows (the screen has no filled teal button).
+  ButtonStyle get _rowButton => OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+      );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Linux App Store'),
+        title: const Text('Linux app store'),
         bottom: TabBar(
           controller: _tabs,
           tabs: const [
@@ -378,7 +402,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: DroidTheme.backgroundGradient,
+          gradient: LexonaTheme.backgroundGradient,
         ),
         child: TabBarView(
           controller: _tabs,
@@ -409,7 +433,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
       if (!state.hasRoot)
         const _FeaturedApp(
           'proot_debian',
-          'Debian Compatibility',
+          'Debian compatibility',
           'Run packages unavailable in native repositories.',
           Icons.inventory_2_rounded,
           Color(0xFFD70A53),
@@ -439,11 +463,11 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
       children: [
-        Text('Popular Linux applications', style: DroidTheme.headingMd),
-        const SizedBox(height: 5),
+        Text('Popular Linux applications', style: LexonaTheme.heading),
+        const SizedBox(height: 4),
         Text(
           'Hand-picked apps tested for Lexona.',
-          style: DroidTheme.bodyMd,
+          style: LexonaTheme.body,
         ),
         const SizedBox(height: 18),
         for (final app in apps) ...[
@@ -458,21 +482,21 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
             featured: app,
             onInstall: app.optional ? () => _installOptional(app) : null,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
         ],
         if (!state.hasRoot) ...[
           const SizedBox(height: 14),
-          Text('Craft apps', style: DroidTheme.headingMd),
-          const SizedBox(height: 5),
+          Text('Craft apps', style: LexonaTheme.heading),
+          const SizedBox(height: 4),
           Text(
             'Open-source desktop apps by storytold (Rust, GPU accelerated), installed into Debian '
             'from the latest GitHub release with a verified checksum. Update fetches a newer one.',
-            style: DroidTheme.bodyMd,
+            style: LexonaTheme.body,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           for (final app in _craft) ...[
             _craftCard(app, state),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
           ],
         ],
       ],
@@ -486,37 +510,35 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
     final busy = _activePackage != null || running != null;
     final active = running == 'craft:${app.packageName}';
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: DroidTheme.cardBg,
-        borderRadius: BorderRadius.circular(DroidTheme.radiusMd),
+        color: LexonaTheme.surface,
+        borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
         border: Border.all(
-          color: installed
-              ? DroidTheme.success.withValues(alpha: .4)
-              : DroidTheme.surfaceBorder,
+          color: installed ? LexonaTheme.success : LexonaTheme.border,
         ),
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: app.color.withValues(alpha: .14),
-              borderRadius: BorderRadius.circular(13),
+              color: LexonaTheme.surfaceRaised,
+              borderRadius: BorderRadius.circular(LexonaTheme.radiusSm),
             ),
             child: Icon(app.icon, color: app.color),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(app.name, style: DroidTheme.headingSm),
+                Text(app.name, style: LexonaTheme.subheading),
                 const SizedBox(height: 3),
                 Text(
                   app.description,
-                  style: DroidTheme.bodySm,
+                  style: LexonaTheme.bodySm,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -526,7 +548,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
                     if (version != null && version.isNotEmpty) version,
                     'GUI app · Debian',
                   ].join(' · '),
-                  style: DroidTheme.monoSm,
+                  style: LexonaTheme.monoSm,
                 ),
               ],
             ),
@@ -547,11 +569,13 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
             IconButton(
               onPressed: busy ? null : () => _runCraft(app, 'uninstall'),
               icon: const Icon(Icons.delete_outline_rounded),
+              color: LexonaTheme.error,
               tooltip: 'Remove',
             ),
           ] else
-            FilledButton(
+            OutlinedButton(
               onPressed: busy ? null : () => _runCraft(app, 'install'),
+              style: _rowButton,
               child: const Text('Install'),
             ),
         ],
@@ -577,9 +601,9 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
                     )
                   : null,
               filled: true,
-              fillColor: DroidTheme.cardBg,
+              fillColor: LexonaTheme.surfaceRaised,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(LexonaTheme.radiusSm),
                 borderSide: BorderSide.none,
               ),
             ),
@@ -637,45 +661,43 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
         _activePackage == package.name || optionalInstall == package.name;
     final color = featured?.color ?? _categoryColor(package.section);
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: DroidTheme.cardBg,
-        borderRadius: BorderRadius.circular(DroidTheme.radiusMd),
+        color: LexonaTheme.surface,
+        borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
         border: Border.all(
-          color: installed
-              ? DroidTheme.success.withValues(alpha: .4)
-              : DroidTheme.surfaceBorder,
+          color: installed ? LexonaTheme.success : LexonaTheme.border,
         ),
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: .14),
-              borderRadius: BorderRadius.circular(13),
+              color: LexonaTheme.surfaceRaised,
+              borderRadius: BorderRadius.circular(LexonaTheme.radiusSm),
             ),
             child: Icon(
               featured?.icon ?? _categoryIcon(package.section, package.gui),
               color: color,
             ),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   featured?.name ?? package.displayName,
-                  style: DroidTheme.headingSm,
+                  style: LexonaTheme.subheading,
                 ),
                 const SizedBox(height: 3),
                 Text(
                   package.description.isEmpty
                       ? 'Linux package'
                       : package.description,
-                  style: DroidTheme.bodySm,
+                  style: LexonaTheme.bodySm,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -685,7 +707,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
                     if (package.version.isNotEmpty) package.version,
                     package.gui ? 'GUI app' : package.section,
                   ].where((e) => e.isNotEmpty).join(' · '),
-                  style: DroidTheme.monoSm,
+                  style: LexonaTheme.monoSm,
                 ),
               ],
             ),
@@ -701,12 +723,14 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
             IconButton(
               onPressed: busy ? null : () => _remove(package),
               icon: const Icon(Icons.delete_outline_rounded),
+              color: LexonaTheme.error,
               tooltip: 'Remove',
             )
           else if (installed)
-            const Icon(Icons.check_circle_rounded, color: DroidTheme.success)
+            Icon(Icons.check_circle_rounded, color: LexonaTheme.success)
           else
-            FilledButton(
+            OutlinedButton(
+              style: _rowButton,
               onPressed: busy
                   ? null
                   : () async {
@@ -746,8 +770,8 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
       decoration: BoxDecoration(
-        color: DroidTheme.cardBg,
-        border: Border(top: BorderSide(color: DroidTheme.surfaceBorder)),
+        color: LexonaTheme.surface,
+        border: Border(top: BorderSide(color: LexonaTheme.border)),
       ),
       child: SafeArea(
         top: false,
@@ -760,14 +784,14 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
                 Expanded(
                   child: Text(
                     status,
-                    style: DroidTheme.headingSm,
+                    style: LexonaTheme.subheading,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Text(
                   '${(progress * 100).round()}%',
-                  style: DroidTheme.monoSm,
+                  style: LexonaTheme.monoSm,
                 ),
               ],
             ),
@@ -796,7 +820,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
               const SizedBox(height: 8),
               Text(
                 tail,
-                style: DroidTheme.monoSm,
+                style: LexonaTheme.monoSm,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -824,7 +848,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
     if (value.contains('graphic')) return const Color(0xFFFF6B9E);
     if (value.contains('media')) return const Color(0xFFFF9F43);
     if (value.contains('office')) return const Color(0xFF38C793);
-    return DroidTheme.primaryLight;
+    return LexonaTheme.primaryText;
   }
 }
 

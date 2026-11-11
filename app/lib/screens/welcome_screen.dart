@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 import 'package:droiddesk/state/app_state.dart';
 import 'package:droiddesk/screens/setup/setup_progress.dart';
 import 'package:droiddesk/widgets/linux_language_picker.dart';
@@ -18,7 +18,7 @@ class WelcomeScreen extends StatelessWidget {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: DroidTheme.backgroundGradient,
+          gradient: LexonaTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: Padding(
@@ -30,13 +30,13 @@ class WelcomeScreen extends StatelessWidget {
                   child: IconButton(
                     onPressed: () => state.toggleThemeMode(),
                     tooltip: state.isDarkMode
-                        ? 'Switch to Light Theme'
-                        : 'Switch to Dark Theme',
+                        ? 'Switch to light theme'
+                        : 'Switch to dark theme',
                     icon: Icon(
                       state.isDarkMode
                           ? Icons.light_mode_rounded
                           : Icons.dark_mode_rounded,
-                      color: DroidTheme.textMuted,
+                      color: LexonaTheme.textMuted,
                     ),
                   ),
                 ),
@@ -48,13 +48,6 @@ class WelcomeScreen extends StatelessWidget {
                       height: 100,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          BoxShadow(
-                            color: DroidTheme.primary.withValues(alpha: 0.4),
-                            blurRadius: 30,
-                            spreadRadius: 2,
-                          ),
-                        ],
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(28),
@@ -66,9 +59,9 @@ class WelcomeScreen extends StatelessWidget {
                     )
                     .animate()
                     .scale(
-                      begin: const Offset(0.5, 0.5),
-                      duration: 600.ms,
-                      curve: Curves.elasticOut,
+                      begin: const Offset(0.9, 0.9),
+                      duration: 350.ms,
+                      curve: Curves.easeOut,
                     )
                     .fadeIn(duration: 400.ms),
 
@@ -77,10 +70,7 @@ class WelcomeScreen extends StatelessWidget {
                 // ── Title ──
                 Text(
                       'Lexona',
-                      style: DroidTheme.headingXl.copyWith(
-                        fontSize: 36,
-                        letterSpacing: -1.0,
-                      ),
+                      style: LexonaTheme.display,
                     )
                     .animate()
                     .fadeIn(delay: 200.ms, duration: 500.ms)
@@ -95,9 +85,7 @@ class WelcomeScreen extends StatelessWidget {
                 // ── Tagline ──
                 Text(
                       'Linux desktop on Android',
-                      style: DroidTheme.bodyLg.copyWith(
-                        color: DroidTheme.textSecondary,
-                      ),
+                      style: LexonaTheme.bodyLg,
                     )
                     .animate()
                     .fadeIn(delay: 400.ms, duration: 500.ms)
@@ -110,9 +98,9 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 Text(
-                  'Debian · XFCE Desktop · Single App',
-                  style: DroidTheme.bodySm.copyWith(
-                    color: DroidTheme.secondary,
+                  'Debian · XFCE desktop · Single app',
+                  style: LexonaTheme.caption.copyWith(
+                    color: LexonaTheme.primaryText,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 1.5,
                   ),
@@ -133,15 +121,15 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                             _featureChip(
                               Icons.security_rounded,
-                              'Root Optional',
+                              'Root optional',
                             ),
                             _featureChip(
                               Icons.desktop_mac_rounded,
-                              'Linux Desktop',
+                              'Linux desktop',
                             ),
                             _featureChip(
                               Icons.offline_bolt_rounded,
-                              'Local Execution',
+                              'Local execution',
                             ),
                           ]
                           .animate(interval: 100.ms)
@@ -158,7 +146,7 @@ class WelcomeScreen extends StatelessWidget {
                 // ── Get Started Button ──
                 SizedBox(
                       width: double.infinity,
-                      height: 56,
+                      height: 52,
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).push(
@@ -198,22 +186,11 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                           );
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: DroidTheme.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
+                        // Teal fill and onPrimary text come from the theme.
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              'Set Up Desktop Essentials',
-                              style: DroidTheme.headingSm.copyWith(
-                                color: Colors.white,
-                              ),
-                            ),
+                            const Text('Set up desktop essentials'),
                             const SizedBox(width: 8),
                             const Icon(Icons.arrow_forward_rounded, size: 20),
                           ],
@@ -241,19 +218,19 @@ class WelcomeScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: DroidTheme.surfaceLight,
+        color: LexonaTheme.surfaceRaised,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: DroidTheme.surfaceBorder),
+        border: Border.all(color: LexonaTheme.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: DroidTheme.secondary),
+          Icon(icon, size: 14, color: LexonaTheme.primaryText),
           const SizedBox(width: 6),
           Text(
             label,
-            style: DroidTheme.bodySm.copyWith(
-              color: DroidTheme.textSecondary,
+            style: LexonaTheme.caption.copyWith(
+              color: LexonaTheme.textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),

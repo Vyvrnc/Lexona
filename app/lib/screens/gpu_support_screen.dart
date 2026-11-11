@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 import 'package:droiddesk/state/app_state.dart';
 
 /// What the GPU does on this device, as far as we tested it. The rows come from
@@ -110,12 +110,12 @@ class GpuSupportScreen extends StatelessWidget {
     final mode = state.deviceInfo['graphicsMode']?.toString() ?? '';
 
     return Scaffold(
-      backgroundColor: DroidTheme.background,
+      backgroundColor: LexonaTheme.background,
       appBar: AppBar(
-        backgroundColor: DroidTheme.background,
-        foregroundColor: DroidTheme.textPrimary,
+        backgroundColor: LexonaTheme.background,
+        foregroundColor: LexonaTheme.textPrimary,
         elevation: 0,
-        title: Text('GPU support', style: DroidTheme.headingSm.copyWith(color: DroidTheme.textPrimary)),
+        title: const Text('GPU support'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
@@ -124,14 +124,14 @@ class GpuSupportScreen extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(gpu, style: DroidTheme.headingMd.copyWith(color: DroidTheme.textPrimary)),
+                Text(gpu, style: LexonaTheme.heading),
                 const SizedBox(height: 4),
-                Text(family.name, style: DroidTheme.bodySm.copyWith(color: DroidTheme.textSecondary)),
+                Text(family.name, style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary)),
                 const SizedBox(height: 12),
                 _kv('Hardware path', family.path),
                 if (mode.isNotEmpty) _kv('Now', mode),
                 const SizedBox(height: 8),
-                Text(family.defaultState, style: DroidTheme.bodySm.copyWith(color: DroidTheme.textSecondary)),
+                Text(family.defaultState, style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary)),
               ],
             ),
           ),
@@ -140,7 +140,7 @@ class GpuSupportScreen extends StatelessWidget {
             Column(
               children: [
                 for (var i = 0; i < family.checks.length; i++) ...[
-                  if (i > 0) Divider(height: 1, color: DroidTheme.surfaceBorder.withValues(alpha: 0.5)),
+                  if (i > 0) Divider(height: 1, color: LexonaTheme.border),
                   _checkRow(family.checks[i]),
                 ],
               ],
@@ -159,14 +159,13 @@ class GpuSupportScreen extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Test your device',
-                    style: DroidTheme.headingSm.copyWith(color: DroidTheme.textPrimary)),
+                Text('Test your device', style: LexonaTheme.heading),
                 const SizedBox(height: 8),
                 Text(
                   'With the desktop running, run droiddesk-gpu-report in the terminal (or ask Claude '
                   'Code or Codex to run it). It tests OpenGL, Vulkan and WebGL in your browsers and '
                   'writes a report to send us as a GitHub issue. It changes no settings.',
-                  style: DroidTheme.bodySm.copyWith(color: DroidTheme.textSecondary),
+                  style: LexonaTheme.body,
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -201,9 +200,9 @@ class GpuSupportScreen extends StatelessWidget {
   static Widget _card(Widget child) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: DroidTheme.cardBg,
-          borderRadius: BorderRadius.circular(DroidTheme.radiusMd),
-          border: Border.all(color: DroidTheme.surfaceBorder),
+          color: LexonaTheme.surface,
+          borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
+          border: Border.all(color: LexonaTheme.border),
         ),
         child: child,
       );
@@ -213,20 +212,20 @@ class GpuSupportScreen extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(width: 120, child: Text(key, style: DroidTheme.bodySm)),
+            SizedBox(width: 120, child: Text(key, style: LexonaTheme.caption)),
             Expanded(
-              child: Text(value, style: DroidTheme.monoSm.copyWith(color: DroidTheme.textSecondary)),
+              child: Text(value, style: LexonaTheme.monoSm.copyWith(color: LexonaTheme.textSecondary)),
             ),
           ],
         ),
       );
 
   static (IconData, Color, String) _look(GpuStatus s) => switch (s) {
-        GpuStatus.works => (Icons.check_circle_rounded, DroidTheme.success, 'Tested, works'),
-        GpuStatus.caveat => (Icons.error_outline_rounded, DroidTheme.warning, 'Works with limits'),
-        GpuStatus.broken => (Icons.cancel_rounded, DroidTheme.error, 'Broken'),
-        GpuStatus.software => (Icons.memory_rounded, DroidTheme.secondary, 'CPU / software'),
-        GpuStatus.untested => (Icons.help_outline_rounded, DroidTheme.textMuted, 'Not tested'),
+        GpuStatus.works => (Icons.check_circle_rounded, LexonaTheme.success, 'Tested, works'),
+        GpuStatus.caveat => (Icons.error_outline_rounded, LexonaTheme.warning, 'Works with limits'),
+        GpuStatus.broken => (Icons.cancel_rounded, LexonaTheme.error, 'Broken'),
+        GpuStatus.software => (Icons.memory_rounded, LexonaTheme.primaryText, 'CPU / software'),
+        GpuStatus.untested => (Icons.help_outline_rounded, LexonaTheme.textMuted, 'Not tested'),
       };
 
   static Widget _legend(GpuStatus s) {
@@ -236,7 +235,7 @@ class GpuSupportScreen extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 4),
-        Text(label, style: DroidTheme.bodySm.copyWith(color: DroidTheme.textMuted)),
+        Text(label, style: LexonaTheme.caption),
       ],
     );
   }
@@ -254,14 +253,14 @@ class GpuSupportScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(check.feature, style: DroidTheme.bodyMd.copyWith(color: DroidTheme.textPrimary)),
+                Text(check.feature, style: LexonaTheme.subheading),
                 const SizedBox(height: 2),
-                Text(check.detail, style: DroidTheme.bodySm.copyWith(color: DroidTheme.textSecondary)),
+                Text(check.detail, style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary)),
                 if (check.evidence.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(check.evidence,
-                        style: DroidTheme.bodySm.copyWith(color: DroidTheme.textMuted, fontSize: 11)),
+                        style: LexonaTheme.caption),
                   ),
               ],
             ),

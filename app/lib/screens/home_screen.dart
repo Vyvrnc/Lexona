@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 import 'package:droiddesk/state/app_state.dart';
 import 'package:droiddesk/services/platform_bridge.dart';
 import 'package:droiddesk/screens/setup/de_install_screen.dart';
@@ -33,7 +33,7 @@ class HomeScreen extends StatelessWidget {
       child: Scaffold(
         body: Container(
         decoration: BoxDecoration(
-          gradient: DroidTheme.backgroundGradient,
+          gradient: LexonaTheme.backgroundGradient,
         ),
         child: SafeArea(
           child: CustomScrollView(
@@ -62,13 +62,13 @@ class HomeScreen extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Lexona', style: DroidTheme.headingSm),
+                          Text('Lexona', style: LexonaTheme.subheading),
                           Text(
-                            state.isRunning ? 'Desktop Running' : 'Ready',
-                            style: DroidTheme.bodySm.copyWith(
+                            state.isRunning ? 'Desktop running' : 'Ready',
+                            style: LexonaTheme.bodySm.copyWith(
                               color: state.isRunning
-                                  ? DroidTheme.accent
-                                  : DroidTheme.textMuted,
+                                  ? LexonaTheme.success
+                                  : LexonaTheme.textMuted,
                             ),
                           ),
                         ],
@@ -77,20 +77,20 @@ class HomeScreen extends StatelessWidget {
                       IconButton(
                         onPressed: () => state.toggleThemeMode(),
                         tooltip: state.isDarkMode
-                            ? 'Switch to Light Theme'
-                            : 'Switch to Dark Theme',
+                            ? 'Switch to light theme'
+                            : 'Switch to dark theme',
                         icon: Icon(
                           state.isDarkMode
                               ? Icons.light_mode_rounded
                               : Icons.dark_mode_rounded,
-                          color: DroidTheme.textMuted,
+                          color: LexonaTheme.textMuted,
                         ),
                       ),
                       IconButton(
                         onPressed: () => _showSettings(context),
                         icon: Icon(
                           Icons.settings_rounded,
-                          color: DroidTheme.textMuted,
+                          color: LexonaTheme.textMuted,
                         ),
                       ),
                     ],
@@ -115,18 +115,18 @@ class HomeScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: DroidTheme.surface,
+                        color: LexonaTheme.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: DroidTheme.error),
+                        border: Border.all(color: LexonaTheme.error),
                       ),
                       child: ListTile(
-                        leading: const Icon(
+                        leading: Icon(
                           Icons.error_outline_rounded,
-                          color: DroidTheme.error,
+                          color: LexonaTheme.error,
                         ),
                         title: Text(
                           state.errorMessage!,
-                          style: DroidTheme.bodySm,
+                          style: LexonaTheme.bodySm,
                         ),
                         trailing: IconButton(
                           icon: const Icon(Icons.close_rounded),
@@ -144,7 +144,7 @@ class HomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                   child: Text(
                     'QUICK ACTIONS',
-                    style: DroidTheme.label,
+                    style: LexonaTheme.label,
                   ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
                 ),
               ),
@@ -162,7 +162,7 @@ class HomeScreen extends StatelessWidget {
                           title: 'Install ${state.selectedDE.toUpperCase()}',
                           subtitle:
                               'Install desktop environment packages (one-time setup)',
-                          color: DroidTheme.secondary,
+                          color: LexonaTheme.primaryText,
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -171,20 +171,20 @@ class HomeScreen extends StatelessWidget {
                             );
                           },
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                       ],
 
                       // ── Launch Desktop / Reconnect ──
                       if (state.isRunning)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: _ActionCard(
                             icon: Icons.fullscreen_rounded,
-                            title: 'Return to Desktop',
+                            title: 'Return to desktop',
                             subtitle:
                                 '${state.selectedDE.toUpperCase()} is currently running in background',
-                            color: DroidTheme.primary,
-                            gradient: DroidTheme.primaryGradient,
+                            color: LexonaTheme.primaryText,
+                            gradient: LexonaTheme.primaryGradient,
                             onTap: () {
                               state.launchDesktopActivity();
                             },
@@ -194,13 +194,13 @@ class HomeScreen extends StatelessWidget {
                       // ── Stop only the desktop: terminals and Claude Code keep running ──
                       if (!state.hasRoot && state.isRunning)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: _ActionCard(
                             icon: Icons.desktop_access_disabled_rounded,
-                            title: 'Zastavit plochu',
+                            title: 'Stop desktop',
                             subtitle:
-                                'Vypne XFCE a šetří výkon, terminál a Claude běží dál',
-                            color: DroidTheme.secondary,
+                                'Ends XFCE to save power; the terminal and Claude Code keep running',
+                            color: LexonaTheme.primaryText,
                             onTap: () => state.stopDesktop(),
                           ),
                         ),
@@ -209,21 +209,25 @@ class HomeScreen extends StatelessWidget {
                       if (!state.hasRoot &&
                           (state.isRunning || state.desktopEnded))
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: _ActionCard(
                             icon: Icons.restart_alt_rounded,
-                            title: 'Restartovat plochu',
+                            title: 'Restart desktop',
                             subtitle: state.desktopEnded
-                                ? 'Plocha skončila. Spustí znovu XFCE, okna aplikací zůstanou'
-                                : 'Panel, plocha a správce oken znovu, okna aplikací zůstanou',
-                            color: DroidTheme.secondary,
+                                ? 'The desktop ended. Starts XFCE again; app windows stay'
+                                : 'Restarts the panel, desktop and window manager; app windows stay',
+                            color: LexonaTheme.primaryText,
                             onTap: () async {
                               final ok = await state.restartDesktop();
                               if (!ok && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Plochu se nepodařilo restartovat'),
-                                    backgroundColor: DroidTheme.error,
+                                  SnackBar(
+                                    content: Text('The desktop could not be restarted'),
+                                    // Opaque theme surface; the error shows as a 1 px border next to the word.
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
+                                      side: BorderSide(color: LexonaTheme.error),
+                                    ),
                                   ),
                                 );
                               }
@@ -236,28 +240,32 @@ class HomeScreen extends StatelessWidget {
                             ? Icons.stop_circle_rounded
                             : Icons.desktop_mac_rounded,
                         title: state.isRunning
-                            ? 'Stop Server'
-                            : 'Launch Desktop',
+                            ? 'Stop server'
+                            : 'Launch desktop',
                         subtitle: state.isRunning
                             ? 'Shutdown Linux environment'
                             : 'Start ${state.selectedDE.toUpperCase()} desktop environment',
                         color: state.isRunning
-                            ? DroidTheme.error
-                            : DroidTheme.primary,
+                            ? LexonaTheme.error
+                            : LexonaTheme.primaryText,
                         gradient: state.isRunning
                             ? null
-                            : DroidTheme.primaryGradient,
+                            : LexonaTheme.primaryGradient,
                         onTap: () async {
                           if (state.isRunning) {
                             state.stopLinux();
                           } else {
                             if (!state.isDEInstalled) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'No Desktop Environment installed. Please complete setup first.',
+                                    'No desktop environment installed. Please complete setup first.',
                                   ),
-                                  backgroundColor: DroidTheme.error,
+                                  // Opaque theme surface; the error shows as a 1 px border next to the word.
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
+                                    side: BorderSide(color: LexonaTheme.error),
+                                  ),
                                 ),
                               );
                               return;
@@ -270,18 +278,18 @@ class HomeScreen extends StatelessWidget {
                       if (!state.hasRoot &&
                           !state.isRunning &&
                           state.serverRunning) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         _ActionCard(
                           icon: Icons.stop_circle_rounded,
-                          title: 'Stop Server',
+                          title: 'Stop server',
                           subtitle:
-                              'Plocha neběží; vypne celé Linux prostředí včetně terminálů',
-                          color: DroidTheme.error,
+                              'The desktop is not running; ends the whole Linux environment, terminals included',
+                          color: LexonaTheme.error,
                           onTap: () => state.stopLinux(),
                         ),
                       ],
 
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
 
                       // ── Terminal ──
                       _ActionCard(
@@ -289,7 +297,7 @@ class HomeScreen extends StatelessWidget {
                         title: 'Terminal',
                         subtitle:
                             'Open a Linux shell in the ${state.hasRoot ? 'Ubuntu chroot' : 'native Termux'} environment',
-                        color: DroidTheme.secondary,
+                        color: LexonaTheme.primaryText,
                         onTap: () {
                           if (state.hasRoot) {
                             state.useNativeTerminal();
@@ -302,7 +310,7 @@ class HomeScreen extends StatelessWidget {
 
                       if (!state.hasRoot &&
                           state.optionalApps['claude_code'] == true) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         _ActionCard(
                           icon: Icons.auto_awesome_rounded,
                           title: 'Claude Code',
@@ -314,7 +322,7 @@ class HomeScreen extends StatelessWidget {
 
                       if (!state.hasRoot &&
                           state.optionalApps['codex'] == true) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         _ActionCard(
                           icon: Icons.code_rounded,
                           title: 'Codex',
@@ -326,7 +334,7 @@ class HomeScreen extends StatelessWidget {
 
                       if (!state.hasRoot &&
                           state.optionalApps['proot_debian'] == true) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         _ActionCard(
                           icon: Icons.inventory_2_rounded,
                           title: 'Debian shell',
@@ -337,14 +345,14 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ],
 
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
 
                       _ActionCard(
                         icon: Icons.apps_rounded,
                         title: 'Add applications',
                         subtitle:
                             'Install applications or optional Debian compatibility',
-                        color: DroidTheme.primaryLight,
+                        color: LexonaTheme.primaryText,
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -354,7 +362,7 @@ class HomeScreen extends StatelessWidget {
                         },
                       ),
 
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                     ].animate(interval: 80.ms).fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.05, duration: 400.ms),
                   ),
                 ),
@@ -366,7 +374,7 @@ class HomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: Text(
                     'SYSTEM',
-                    style: DroidTheme.label,
+                    style: LexonaTheme.label,
                   ).animate().fadeIn(delay: 500.ms, duration: 400.ms),
                 ),
               ),
@@ -377,9 +385,9 @@ class HomeScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: DroidTheme.cardBg,
-                      borderRadius: BorderRadius.circular(DroidTheme.radiusMd),
-                      border: Border.all(color: DroidTheme.surfaceBorder),
+                      color: LexonaTheme.cardBg,
+                      borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
+                      border: Border.all(color: LexonaTheme.surfaceBorder),
                     ),
                     child: Column(
                       children: [
@@ -399,7 +407,7 @@ class HomeScreen extends StatelessWidget {
                             children: [
                               Expanded(child: _infoRow('GPU', state.gpuType)),
                               const SizedBox(width: 6),
-                              Icon(Icons.chevron_right_rounded, size: 18, color: DroidTheme.textMuted),
+                              Icon(Icons.chevron_right_rounded, size: 18, color: LexonaTheme.textMuted),
                             ],
                           ),
                         ),
@@ -426,7 +434,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         _divider(),
                         _infoRow(
-                          'Storage Free',
+                          'Storage free',
                           '${state.deviceInfo['availableStorageMB'] ?? 'N/A'} MB',
                         ),
                       ],
@@ -445,35 +453,17 @@ class HomeScreen extends StatelessWidget {
   // ── Status Card ──
 
   Widget _buildStatusCard(AppState state) {
-    final isDark = DroidTheme.isDark;
-
-    final activeGradient = isDark
-        ? const LinearGradient(
-            colors: [Color(0xFF0D2818), Color(0xFF0A1F14)],
-          )
-        : const LinearGradient(
-            colors: [Color(0xFFECFDF5), Color(0xFFE6F4EA)],
-          );
-
-    final activeBorderColor = isDark
-        ? DroidTheme.accent.withValues(alpha: 0.3)
-        : const Color(0xFFA7F3D0);
-
-    final activeTitleColor = isDark
-        ? DroidTheme.accent
-        : const Color(0xFF047857);
-
-    final activeSubtitleColor = isDark
-        ? const Color(0xFFA7F3D0)
-        : const Color(0xFF065F46);
+    final activeBorderColor = LexonaTheme.success;
+    final activeTitleColor = LexonaTheme.success;
+    final activeSubtitleColor = LexonaTheme.textSecondary;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: state.isRunning ? activeGradient : DroidTheme.cardGradient,
-        borderRadius: BorderRadius.circular(DroidTheme.radiusLg),
+        color: LexonaTheme.surface,
+        borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
         border: Border.all(
-          color: state.isRunning ? activeBorderColor : DroidTheme.surfaceBorder,
+          color: state.isRunning ? activeBorderColor : LexonaTheme.border,
         ),
       ),
       child: Row(
@@ -485,16 +475,8 @@ class HomeScreen extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: state.isRunning
-                  ? (isDark ? DroidTheme.accent : const Color(0xFF10B981))
-                  : DroidTheme.textDim,
-              boxShadow: state.isRunning
-                  ? [
-                      BoxShadow(
-                        color: DroidTheme.accent.withValues(alpha: 0.4),
-                        blurRadius: 10,
-                      ),
-                    ]
-                  : [],
+                  ? LexonaTheme.success
+                  : LexonaTheme.textMuted,
             ),
           ),
           const SizedBox(width: 14),
@@ -503,22 +485,22 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  state.isRunning ? 'Desktop Active' : 'Desktop Idle',
-                  style: DroidTheme.headingSm.copyWith(
+                  state.isRunning ? 'Desktop active' : 'Desktop idle',
+                  style: LexonaTheme.subheading.copyWith(
                     color: state.isRunning
                         ? activeTitleColor
-                        : DroidTheme.textPrimary,
+                        : LexonaTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   state.isRunning
                       ? '${state.selectedDE.toUpperCase()} · ${_distroLabel(state.installedDistro)}'
-                      : 'Tap "Launch Desktop" to start',
-                  style: DroidTheme.bodySm.copyWith(
+                      : 'Tap "Launch desktop" to start',
+                  style: LexonaTheme.bodySm.copyWith(
                     color: state.isRunning
                         ? activeSubtitleColor
-                        : DroidTheme.textMuted,
+                        : LexonaTheme.textMuted,
                   ),
                 ),
               ],
@@ -536,11 +518,11 @@ class HomeScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Text(label, style: DroidTheme.bodySm),
+          Text(label, style: LexonaTheme.bodySm),
           const Spacer(),
           Text(
             value,
-            style: DroidTheme.monoSm.copyWith(color: DroidTheme.textSecondary),
+            style: LexonaTheme.monoSm.copyWith(color: LexonaTheme.textSecondary),
           ),
         ],
       ),
@@ -550,7 +532,7 @@ class HomeScreen extends StatelessWidget {
   Widget _divider() {
     return Divider(
       height: 1,
-      color: DroidTheme.surfaceBorder.withValues(alpha: 0.5),
+      color: LexonaTheme.border,
     );
   }
 
@@ -565,7 +547,7 @@ class HomeScreen extends StatelessWidget {
       case 'kali':
         return 'Kali Linux';
       case 'termux-native':
-        return 'Termux Native';
+        return 'Termux native';
       default:
         return distro;
     }
@@ -582,9 +564,9 @@ class HomeScreen extends StatelessWidget {
         builder: (context, state, _) {
           return Container(
             decoration: BoxDecoration(
-              color: DroidTheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: DroidTheme.surfaceBorder),
+              color: LexonaTheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(LexonaTheme.radiusLg)),
+              border: Border.all(color: LexonaTheme.surfaceBorder),
             ),
             padding: EdgeInsets.fromLTRB(
               24,
@@ -597,7 +579,7 @@ class HomeScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Settings', style: DroidTheme.headingLg),
+                  Text('Settings', style: LexonaTheme.title),
                   const SizedBox(height: 20),
 
                   // App Theme Section
@@ -607,20 +589,20 @@ class HomeScreen extends StatelessWidget {
                         state.isDarkMode
                             ? Icons.dark_mode_rounded
                             : Icons.light_mode_rounded,
-                        color: DroidTheme.primary,
+                        color: LexonaTheme.primaryText,
                       ),
                       const SizedBox(width: 14),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('App Theme', style: DroidTheme.headingSm),
+                          Text('App theme', style: LexonaTheme.subheading),
                           Text(
                             state.themeMode == ThemeMode.system
-                                ? 'System Default'
+                                ? 'System default'
                                 : state.isDarkMode
-                                    ? 'Dark Theme'
-                                    : 'Light Theme',
-                            style: DroidTheme.bodySm,
+                                    ? 'Dark theme'
+                                    : 'Light theme',
+                            style: LexonaTheme.bodySm,
                           ),
                         ],
                       ),
@@ -657,11 +639,11 @@ class HomeScreen extends StatelessWidget {
 
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.battery_charging_full,
-                      color: DroidTheme.warning,
+                      color: LexonaTheme.warning,
                     ),
-                    title: const Text('Battery Optimization'),
+                    title: const Text('Battery optimization'),
                     subtitle: const Text('Disable to prevent session killing'),
                     onTap: () {
                       DroidDeskPlatform.requestBatteryOptimization();
@@ -670,9 +652,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.home_rounded,
-                      color: DroidTheme.primaryLight,
+                      color: LexonaTheme.primaryText,
                     ),
                     title: const Text('Set as default launcher'),
                     subtitle: const Text(
@@ -689,9 +671,9 @@ class HomeScreen extends StatelessWidget {
                       if (snapshot.data != true) return const SizedBox.shrink();
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
+                        leading: Icon(
                           Icons.home_outlined,
-                          color: DroidTheme.error,
+                          color: LexonaTheme.error,
                         ),
                         title: const Text('Stop using as default launcher'),
                         subtitle: const Text('Choose another Home app directly'),
@@ -704,11 +686,11 @@ class HomeScreen extends StatelessWidget {
                   ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.auto_awesome_rounded,
-                      color: DroidTheme.accent,
+                      color: LexonaTheme.primaryText,
                     ),
-                    title: const Text('Desktop Tools'),
+                    title: const Text('Desktop tools'),
                     subtitle: const Text('Manage dock apps and desktop backups'),
                     onTap: () {
                       Navigator.pop(sheetContext);
@@ -719,7 +701,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.refresh, color: DroidTheme.secondary),
+                    leading: Icon(Icons.refresh, color: LexonaTheme.primaryText),
                     title: const Text('Reinstall Linux'),
                     subtitle: const Text('Re-download and set up rootfs'),
                     onTap: () {
@@ -833,13 +815,11 @@ class _TerminalSheetState extends State<_TerminalSheet> {
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, state, _) {
-        final isDark = DroidTheme.isDark;
-
         return Container(
           decoration: BoxDecoration(
-            color: DroidTheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: DroidTheme.surfaceBorder),
+            color: LexonaTheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(LexonaTheme.radiusLg)),
+            border: Border.all(color: LexonaTheme.surfaceBorder),
           ),
           child: DraggableScrollableSheet(
             initialChildSize: 0.7,
@@ -859,7 +839,7 @@ class _TerminalSheetState extends State<_TerminalSheet> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: DroidTheme.textMuted.withValues(alpha: 0.4),
+                        color: LexonaTheme.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -872,19 +852,19 @@ class _TerminalSheetState extends State<_TerminalSheet> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.terminal,
                             size: 18,
-                            color: DroidTheme.primary,
+                            color: LexonaTheme.primaryText,
                           ),
                           const SizedBox(width: 8),
-                          Text('Terminal', style: DroidTheme.headingSm),
+                          Text('Terminal', style: LexonaTheme.subheading),
                           const Spacer(),
                           // Stop Command Button
                           IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.stop_circle_rounded,
-                              color: DroidTheme.error,
+                              color: LexonaTheme.error,
                               size: 20,
                             ),
                             onPressed: () {
@@ -893,7 +873,7 @@ class _TerminalSheetState extends State<_TerminalSheet> {
                                 '\n^C (Command interrupted)\n',
                               );
                             },
-                            tooltip: 'Interrupt Command (Ctrl+C)',
+                            tooltip: 'Interrupt command (Ctrl+C)',
                             splashRadius: 20,
                           ),
                           const SizedBox(width: 8),
@@ -903,18 +883,18 @@ class _TerminalSheetState extends State<_TerminalSheet> {
                                 : widget.state.hasRoot
                                 ? 'chroot · ${_distroLabel(widget.state.installedDistro)}'
                                 : 'native · Termux/TUR',
-                            style: DroidTheme.monoSm,
+                            style: LexonaTheme.monoSm,
                           ),
                         ],
                       ),
                     ),
 
-                    Divider(color: DroidTheme.surfaceBorder, height: 1),
+                    Divider(color: LexonaTheme.surfaceBorder, height: 1),
 
-                    // Output Viewport (Dark container in both light & dark mode for high terminal contrast)
+                    // Output viewport: terminal/log view on the background colour.
                     Expanded(
                       child: Container(
-                        color: isDark ? const Color(0xFF0A0E17) : const Color(0xFF0F172A),
+                        color: LexonaTheme.background,
                         child: ListView.builder(
                           controller: _scrollController,
                           padding: const EdgeInsets.all(12),
@@ -924,10 +904,10 @@ class _TerminalSheetState extends State<_TerminalSheet> {
                             final isCommand = line.startsWith('\$');
                             return SelectableText(
                               line,
-                              style: DroidTheme.mono.copyWith(
+                              style: LexonaTheme.monoSm.copyWith(
                                 color: isCommand
-                                    ? const Color(0xFF34D399) // Emerald prompt
-                                    : const Color(0xFFE2E8F0), // Crisp white text
+                                    ? LexonaTheme.primaryText
+                                    : LexonaTheme.textSecondary,
                                 height: 1.4,
                               ),
                             );
@@ -940,31 +920,31 @@ class _TerminalSheetState extends State<_TerminalSheet> {
                     Container(
                       padding: const EdgeInsets.fromLTRB(12, 8, 8, 16),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0D131F) : const Color(0xFF1E293B),
+                        color: LexonaTheme.surface,
                         border: Border(
-                          top: BorderSide(color: DroidTheme.surfaceBorder),
+                          top: BorderSide(color: LexonaTheme.surfaceBorder),
                         ),
                       ),
                       child: Row(
                         children: [
                           Text(
                             '\$ ',
-                            style: DroidTheme.mono.copyWith(
-                              color: const Color(0xFF34D399),
+                            style: LexonaTheme.mono.copyWith(
+                              color: LexonaTheme.primaryText,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Expanded(
                             child: TextField(
                               controller: _controller,
-                              style: DroidTheme.mono.copyWith(
+                              style: LexonaTheme.mono.copyWith(
                                 fontSize: 13,
-                                color: Colors.white,
+                                color: LexonaTheme.textPrimary,
                               ),
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 border: InputBorder.none,
                                 hintText: 'Enter command...',
-                                hintStyle: TextStyle(color: Color(0xFF94A3B8)),
+                                hintStyle: TextStyle(color: LexonaTheme.textMuted),
                                 isDense: true,
                                 contentPadding: EdgeInsets.zero,
                               ),
@@ -975,7 +955,7 @@ class _TerminalSheetState extends State<_TerminalSheet> {
                           IconButton(
                             onPressed: _runCommand,
                             icon: const Icon(Icons.send_rounded, size: 20),
-                            color: DroidTheme.primary,
+                            color: LexonaTheme.primaryText,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
                               minWidth: 36,
@@ -1031,47 +1011,42 @@ class _ActionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: gradient != null
-              ? LinearGradient(
-                  colors: [
-                    color.withValues(alpha: 0.15),
-                    color.withValues(alpha: 0.05),
-                  ],
-                )
-              : null,
-          color: gradient == null ? DroidTheme.cardBg : null,
-          borderRadius: BorderRadius.circular(DroidTheme.radiusMd),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          // Opaque card; the highlighted (main) action gets a teal 1 px border.
+          color: LexonaTheme.surface,
+          borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
+          border: Border.all(
+            color: gradient != null ? LexonaTheme.primary : LexonaTheme.border,
+          ),
         ),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
+                color: LexonaTheme.surfaceRaised,
+                borderRadius: BorderRadius.circular(LexonaTheme.radiusSm),
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: DroidTheme.headingSm),
+                  Text(title, style: LexonaTheme.subheading),
                   Text(
                     subtitle,
-                    style: DroidTheme.bodySm,
+                    style: LexonaTheme.caption,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: DroidTheme.textDim),
+            Icon(Icons.chevron_right_rounded, color: LexonaTheme.textMuted),
           ],
         ),
       ),

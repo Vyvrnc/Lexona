@@ -238,7 +238,7 @@ class DroidDeskService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Lexona")
             .setContentText(contentText)
-            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setSmallIcon(com.orailnoor.droiddesk.R.drawable.ic_stat_lexona)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setSilent(true)

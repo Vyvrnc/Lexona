@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 import 'package:droiddesk/services/platform_bridge.dart';
 
 /// Languages offered for the Linux apps (glibc locale -> name in that language).
@@ -45,15 +45,15 @@ class _LinuxLanguagePickerState extends State<LinuxLanguagePicker> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.translate_rounded, size: 18, color: DroidTheme.secondary),
+        Icon(Icons.translate_rounded, size: 18, color: LexonaTheme.primaryText),
         const SizedBox(width: 8),
-        Text('Linux apps:', style: DroidTheme.bodySm.copyWith(color: Colors.white70)),
+        Text('Linux apps:', style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary)),
         const SizedBox(width: 12),
         DropdownButton<String>(
           value: language,
-          dropdownColor: const Color(0xFF1E293B),
+          dropdownColor: LexonaTheme.surface,
           underline: const SizedBox.shrink(),
-          style: DroidTheme.bodyMd.copyWith(color: Colors.white),
+          style: LexonaTheme.body.copyWith(color: LexonaTheme.textPrimary),
           items: [
             for (final entry in linuxLanguages.entries)
               DropdownMenuItem(value: entry.key, child: Text(entry.value)),

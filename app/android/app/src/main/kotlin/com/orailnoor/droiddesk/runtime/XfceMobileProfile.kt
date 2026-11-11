@@ -8,7 +8,7 @@ import java.io.File
 object XfceMobileProfile {
     private const val TAG = "XfceMobileProfile"
     private const val PROFILE_MARKER = ".droiddesk-xfce-mobile-v7"
-    private const val WALLPAPER_ASSET = "droiddesk/ubuntu-touch-wallpaper.jpg"
+    private const val WALLPAPER_ASSET = "droiddesk/lexona-wallpaper.jpg"
 
     fun install(
         context: Context,

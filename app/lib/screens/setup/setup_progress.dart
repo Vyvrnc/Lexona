@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
-import 'package:droiddesk/theme/droid_theme.dart';
+import 'package:droiddesk/theme/lexona_theme.dart';
 import 'package:droiddesk/state/app_state.dart';
 import 'package:droiddesk/screens/home_screen.dart';
 import 'package:droiddesk/screens/gpu_support_screen.dart';
@@ -39,9 +39,9 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
           await showDialog<bool>(
             context: context,
             builder: (dialogContext) => AlertDialog(
-              icon: const Icon(
+              icon: Icon(
                 Icons.storage_rounded,
-                color: DroidTheme.warning,
+                color: LexonaTheme.warning,
                 size: 38,
               ),
               title: const Text('Low storage'),
@@ -78,9 +78,9 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
             context: context,
             barrierDismissible: false,
             builder: (dialogContext) => AlertDialog(
-              icon: const Icon(
+              icon: Icon(
                 Icons.admin_panel_settings_rounded,
-                color: DroidTheme.accent,
+                color: LexonaTheme.success,
                 size: 38,
               ),
               title: const Text('Root access detected'),
@@ -123,7 +123,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: DroidTheme.backgroundGradient,
+          gradient: LexonaTheme.backgroundGradient,
         ),
         child: SafeArea(
           // Scrolls when the window is short (ScreenMate One: split screen, and a system bar
@@ -134,7 +134,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: IntrinsicHeight(
                   child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
                 Align(
@@ -142,13 +142,13 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                   child: IconButton(
                     onPressed: () => state.toggleThemeMode(),
                     tooltip: state.isDarkMode
-                        ? 'Switch to Light Theme'
-                        : 'Switch to Dark Theme',
+                        ? 'Switch to light theme'
+                        : 'Switch to dark theme',
                     icon: Icon(
                       state.isDarkMode
                           ? Icons.light_mode_rounded
                           : Icons.dark_mode_rounded,
-                      color: DroidTheme.textMuted,
+                      color: LexonaTheme.textMuted,
                       size: 20,
                     ),
                   ),
@@ -167,24 +167,24 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                             phase.icon,
                             size: 36,
                             color: phase.error
-                                ? DroidTheme.error
-                                : DroidTheme.primary,
+                                ? LexonaTheme.error
+                                : LexonaTheme.primaryText,
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '${(phase.progress * 100).toInt()}%',
-                            style: DroidTheme.headingSm.copyWith(
+                            style: LexonaTheme.subheading.copyWith(
                               color: phase.error
-                                  ? DroidTheme.error
-                                  : DroidTheme.textPrimary,
+                                  ? LexonaTheme.error
+                                  : LexonaTheme.textPrimary,
                             ),
                           ),
                         ],
                       ),
                       progressColor: phase.error
-                          ? DroidTheme.error
-                          : DroidTheme.primary,
-                      backgroundColor: DroidTheme.surfaceBorder,
+                          ? LexonaTheme.error
+                          : LexonaTheme.primary,
+                      backgroundColor: LexonaTheme.surfaceRaised,
                       circularStrokeCap: CircularStrokeCap.round,
                       animateFromLastPercent: true,
                       animation: true,
@@ -203,7 +203,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                 // ── Phase Title ──
                 Text(
                   phase.title,
-                  style: DroidTheme.headingLg,
+                  style: LexonaTheme.title,
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
 
@@ -212,10 +212,10 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                 // ── Status Message ──
                 Text(
                   phase.message,
-                  style: DroidTheme.bodyMd.copyWith(
+                  style: LexonaTheme.body.copyWith(
                     color: phase.error
-                        ? DroidTheme.error
-                        : DroidTheme.textSecondary,
+                        ? LexonaTheme.error
+                        : LexonaTheme.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
@@ -243,12 +243,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                         _started = false;
                         _startSetup();
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: DroidTheme.error,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
+                      // Retry is the main action here: theme teal fill.
                       child: const Text('Retry'),
                     ),
                   ),
@@ -265,12 +260,6 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                               (route) => false,
                             );
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: DroidTheme.accent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -284,9 +273,9 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                       .animate()
                       .fadeIn(duration: 500.ms)
                       .scale(
-                        begin: const Offset(0.9, 0.9),
-                        duration: 500.ms,
-                        curve: Curves.elasticOut,
+                        begin: const Offset(0.95, 0.95),
+                        duration: 350.ms,
+                        curve: Curves.easeOut,
                       ),
                 ],
 
@@ -321,12 +310,12 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
           active: progress >= 0.08 && progress < 0.24,
         ),
         _ChecklistItem(
-          label: 'Install Desktop Essentials',
+          label: 'Install desktop essentials',
           done: progress >= 0.70,
           active: progress >= 0.24 && progress < 0.70,
         ),
         _ChecklistItem(
-          label: 'Finalize Desktop Essentials',
+          label: 'Finalize desktop essentials',
           done: state.isSetupComplete,
           active: progress >= 0.70 && !state.isSetupComplete,
         ),
@@ -370,16 +359,16 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
       height: 150,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF080D18),
-        border: Border.all(color: DroidTheme.surfaceBorder),
-        borderRadius: BorderRadius.circular(12),
+        color: LexonaTheme.background,
+        border: Border.all(color: LexonaTheme.border),
+        borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
       ),
       child: SingleChildScrollView(
         reverse: true,
         child: Text(
           cleanLog,
-          style: DroidTheme.monoSm.copyWith(
-            color: DroidTheme.textSecondary,
+          style: LexonaTheme.monoSm.copyWith(
+            color: LexonaTheme.textSecondary,
             height: 1.35,
           ),
         ),
@@ -405,7 +394,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                     child: item.done
                         ? Icon(
                             Icons.check_circle,
-                            color: DroidTheme.accent,
+                            color: LexonaTheme.success,
                             size: 20,
                           )
                         : item.active
@@ -414,12 +403,12 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: DroidTheme.primary,
+                              color: LexonaTheme.primary,
                             ),
                           )
                         : Icon(
                             Icons.circle_outlined,
-                            color: DroidTheme.textDim,
+                            color: LexonaTheme.textMuted,
                             size: 20,
                           ),
                   ),
@@ -427,20 +416,20 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                   Expanded(
                     child: Text(
                       item.label,
-                      style: DroidTheme.bodyMd.copyWith(
+                      style: LexonaTheme.body.copyWith(
                         color: item.done
-                            ? DroidTheme.textPrimary
+                            ? LexonaTheme.textPrimary
                             : item.active
-                            ? DroidTheme.textSecondary
-                            : DroidTheme.textDim,
+                            ? LexonaTheme.textSecondary
+                            : LexonaTheme.textMuted,
                       ),
                     ),
                   ),
                   if (item.progress != null)
                     Text(
                       '${(item.progress! * 100).toInt()}%',
-                      style: DroidTheme.monoSm.copyWith(
-                        color: DroidTheme.primary,
+                      style: LexonaTheme.monoSm.copyWith(
+                        color: LexonaTheme.primaryText,
                       ),
                     ),
                 ],
@@ -457,7 +446,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
   _PhaseInfo _getPhase(AppState state) {
     if (state.errorMessage != null) {
       return _PhaseInfo(
-        title: 'Setup Failed',
+        title: 'Setup failed',
         message: state.errorMessage!,
         progress: 0,
         icon: Icons.error_outline_rounded,
@@ -483,8 +472,8 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
       if (!state.hasRoot) {
         return _PhaseInfo(
           title: state.extractProgress < 0.08
-              ? 'Preparing Runtime'
-              : 'Installing Native Linux',
+              ? 'Preparing runtime'
+              : 'Installing native Linux',
           message: state.extractStatus.isNotEmpty
               ? state.extractStatus
               : 'Preparing native Termux environment...',
@@ -497,7 +486,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
         );
       }
       return _PhaseInfo(
-        title: state.isInstallingDE ? 'Installing Desktop' : 'Extracting',
+        title: state.isInstallingDE ? 'Installing desktop' : 'Extracting',
         message: state.extractStatus.isNotEmpty
             ? state.extractStatus
             : 'Extracting filesystem...',
@@ -512,7 +501,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
 
     if (state.isSetupComplete) {
       return _PhaseInfo(
-        title: 'Setup Complete!',
+        title: 'Setup complete!',
         message: 'Your Linux desktop is ready to launch.\n'
             'GPU: ${state.gpuType} (${gpuFamilyFor(state.gpuType).path}). '
             'What is tested on it: tap GPU on the home screen.',
@@ -525,7 +514,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
 
     // Default: not started yet
     return _PhaseInfo(
-      title: 'Setting Up',
+      title: 'Setting up',
       message: 'Initializing...',
       progress: 0,
       icon: Icons.settings_rounded,

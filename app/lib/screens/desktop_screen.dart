@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import '../state/app_state.dart';
-import '../theme/droid_theme.dart';
+import '../theme/lexona_theme.dart';
 
 class DesktopScreen extends StatefulWidget {
   final AppState state;
@@ -54,12 +54,14 @@ class _DesktopScreenState extends State<DesktopScreen> {
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
             child: FloatingActionButton.small(
-              backgroundColor: DroidTheme.cardGradient.colors.first.withValues(alpha: 0.8),
+              // Opaque surface over the X display (nothing translucent).
+              backgroundColor: LexonaTheme.surface,
+              foregroundColor: LexonaTheme.textPrimary,
               onPressed: () {
                 // Return to home screen
                 Navigator.of(context).pop();
               },
-              child: const Icon(Icons.close_rounded, color: Colors.white),
+              child: const Icon(Icons.close_rounded),
             ),
           ),
         ],
