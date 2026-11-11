@@ -11,4 +11,6 @@
             </intent-filter>
         </activity>
     </application>
+    <instrumentation android:name=".ProbeInstrumentation"
+        android:targetPackage="com.vyvrnc.execprobe" />
 </manifest>

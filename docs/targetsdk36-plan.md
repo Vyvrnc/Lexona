@@ -663,3 +663,20 @@ tests on the tablet with `TARGET_SDK=28`.
 Also found on the A16 (2026-11-11, targetSdk 28 build): the first setup stalls when the screen
 turns off and the phone locks (proot tracees stopped, no foreground service during setup). The
 setup needs a foreground service and a wake lock, independent of the targetSdk work.
+
+## Probe result: preload under linker64 (Galaxy A16, Android 16, 2026-11-11)
+
+exec-probe as instrumentation (`am instrument -w com.vyvrnc.execprobe/.ProbeInstrumentation`),
+non-debuggable APK, targetSdk 36, domain `u:r:untrusted_app:s0` (not `_27`), phone locked:
+- direct exec of an app-data file: EACCES (A, F); a spawned data child without a hook: 127 (H);
+- bionic program via `/system/bin/linker64`: works (E); glibc via `libld.so`: works, also a
+  glibc child (C, D);
+- an LD_PRELOAD library from app data loads under linker64, its constructor gets the shifted
+  argc/argv (I);
+- the hook's posix_spawn and execve rewrites to linker64 work (J, K), also for grandchildren (L)
+  and when the preload sits in `/system/bin/sh` (M); a preload from nativeLibraryDir works too (N).
+- Identity under linker64 without a fix: argv[0] = the program path (the original argv[0] is
+  lost), `/proc/self/exe` = `/apex/com.android.runtime/bin/linker64`, comm = `linker64`,
+  AT_EXECFN = `/system/bin/linker64`.
+
+The blocker from the review (finding 1) is cleared; the identity work of Phase 1 is needed.

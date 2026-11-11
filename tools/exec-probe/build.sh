@@ -30,6 +30,8 @@ T=/opt/android-sdk-linux/ndk/$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin
 p=/repo/tools/exec-probe; o=\$p/out; w=/tmp/w; mkdir -p \$w/classes
 \$T/aarch64-linux-android29-clang -O2 -pie -o \$o/assets/hello-bionic \$p/hello.c
 \$T/aarch64-linux-android29-clang -O2 -pie -o \$o/lib/arm64-v8a/libhello.so \$p/hello.c
+\$T/aarch64-linux-android29-clang -O2 -shared -fPIC -o \$o/assets/libpreload.so \$p/preload.c
+cp \$o/assets/libpreload.so \$o/lib/arm64-v8a/libpreload.so
 javac -source 11 -target 11 -classpath \$JAR -d \$w/classes \$(find \$p/src -name '*.java') 2>&1 | grep -v warning || true
 \$BT/d8 --min-api 29 --lib \$JAR --output \$w \$(find \$w/classes -name '*.class')
 \$BT/aapt2 link --manifest \$p/AndroidManifest.xml -I \$JAR -A \$o/assets -o \$w/base.apk
