@@ -12,6 +12,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.content.pm.ServiceInfo
+import android.util.Log
 import android.net.ConnectivityManager
 import android.net.LinkProperties
 import android.net.Network
@@ -170,16 +171,24 @@ class DroidDeskService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = buildNotification("Linux desktop is running")
 
-        ServiceCompat.startForeground(
-            this,
-            NOTIFICATION_ID,
-            notification,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            } else {
-                0
-            }
-        )
+        try {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                notification,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                } else {
+                    0
+                }
+            )
+        } catch (e: Exception) {
+            // Restarted from the background (START_STICKY) where Android refuses a foreground
+            // service: stop instead of crashing; the app starts it again when opened.
+            Log.w("DroidDeskService", "Foreground start refused: ${e.message}")
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         return START_STICKY
     }

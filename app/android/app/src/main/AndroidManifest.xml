@@ -8,7 +8,7 @@
 
     <!-- Keep Linux processes alive -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Notification for foreground service -->
@@ -101,7 +101,13 @@
             android:name=".service.DroidDeskService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="specialUse">
+            <!-- dataSync is stopped after 6 h a day from targetSdk 35; the Linux session runs
+                 as long as the user keeps it. -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Runs the user's Linux desktop session and its processes" />
+        </service>
 
         <meta-data
             android:name="flutterEmbedding"

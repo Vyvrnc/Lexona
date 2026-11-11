@@ -312,6 +312,9 @@ class MainActivity : FlutterActivity() {
                 // ── Native Termux desktop install (non-root fallback) ──
                 "installDesktopNative" -> {
                     val desktopEnv = call.argument<String>("de") ?: "xfce4"
+                    // Foreground service and wake lock for the install too: on the Galaxy A16 the
+                    // first setup stopped inside proot when the screen went off.
+                    startForegroundService()
                     thread {
                         linuxRuntime.setInstallLogSink { chunk ->
                             runOnUiThread {
@@ -879,10 +882,15 @@ class MainActivity : FlutterActivity() {
 
     private fun startForegroundService() {
         val intent = Intent(this, DroidDeskService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (e: Exception) {
+            // Android 12+ refuses foreground services started from the background.
+            Log.w(TAG, "Foreground service not started: ${e.message}")
         }
     }
 
