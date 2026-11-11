@@ -1850,7 +1850,10 @@ class LinuxRuntime(private val context: Context) {
             // Opt-in Debian glibc tools; setup is always an explicit user action.
             File(binDir, "droiddesk-glibc-native").let { command ->
                 val script = context.assets.open("droiddesk/droiddesk-glibc-native").bufferedReader().use { it.readText() }
-                command.writeText("#!${File(binDir, "bash").absolutePath}\n" + script.substringAfter('\n'))
+                // targetSdk >= 29: Android does not exec the patched ld.so from app data, so
+                // everything goes through proot until glibc-native runs from nativeLibraryDir.
+                val blocked = if (NativeExec.linkerExec(context)) "DD_NATIVE_BLOCKED=1\n" else ""
+                command.writeText("#!${File(binDir, "bash").absolutePath}\n" + blocked + script.substringAfter('\n'))
                 command.setExecutable(true, false)
             }
             val glibcShare = File(prefixDir, "opt/glibc-native/share").apply { mkdirs() }
@@ -4072,7 +4075,7 @@ class LinuxRuntime(private val context: Context) {
 
     private fun refreshNativeSetupInBackground() {
         val launcher = File(binDir, "droiddesk-glibc-native")
-        if (nativeSetupRunning || debianRootfsMarkers().none(File::exists) ||
+        if (NativeExec.linkerExec(context) || nativeSetupRunning || debianRootfsMarkers().none(File::exists) ||
             File(prefixDir, "opt/glibc-native/off").exists() || !launcher.canExecute()) return
         nativeSetupRunning = true
         Thread({

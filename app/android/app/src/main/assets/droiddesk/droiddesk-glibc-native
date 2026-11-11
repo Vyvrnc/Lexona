@@ -501,7 +501,8 @@ native_ready() {
        -f $R/etc/resolv.conf && -x $R/usr/bin/bash && -d $R/root ]]
 }
 
-native_enabled() { [[ ! -e $N/off && ${DD_NATIVE:-1} != 0 ]]; }
+# DD_NATIVE_BLOCKED: set by the app when Android does not exec ld.so from app data (targetSdk >= 29).
+native_enabled() { [[ ${DD_NATIVE_BLOCKED:-0} != 1 && ! -e $N/off && ${DD_NATIVE:-1} != 0 ]]; }
 
 native_switch() {
     mkdir -p "$N"
