@@ -62,7 +62,7 @@ class HomeScreen extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('DroidDesk', style: DroidTheme.headingSm),
+                          Text('Lexona', style: DroidTheme.headingSm),
                           Text(
                             state.isRunning ? 'Desktop Running' : 'Ready',
                             style: DroidTheme.bodySm.copyWith(
@@ -741,7 +741,7 @@ class HomeScreen extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Change default launcher?'),
         content: const Text(
-          'DroidDesk will stop opening automatically as your Home app. Android will ask you to choose another launcher.',
+          'Lexona will stop opening automatically as your Home app. Android will ask you to choose another launcher.',
         ),
         actions: [
           TextButton(

@@ -442,7 +442,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
         Text('Popular Linux applications', style: DroidTheme.headingMd),
         const SizedBox(height: 5),
         Text(
-          'Hand-picked apps tested for DroidDesk.',
+          'Hand-picked apps tested for Lexona.',
           style: DroidTheme.bodyMd,
         ),
         const SizedBox(height: 18),

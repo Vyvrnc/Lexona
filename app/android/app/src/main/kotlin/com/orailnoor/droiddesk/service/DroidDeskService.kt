@@ -216,7 +216,7 @@ class DroidDeskService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "DroidDesk Linux Service",
+                "Lexona Linux Service",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Keeps the Linux desktop environment running"
@@ -236,7 +236,7 @@ class DroidDeskService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("DroidDesk")
+            .setContentTitle("Lexona")
             .setContentText(contentText)
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setContentIntent(pendingIntent)

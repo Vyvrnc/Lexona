@@ -15,7 +15,7 @@
 # "pkg install chromium". Shim log: $TMPDIR/droiddesk-v4l2.log.
 # DroidDesk installs this script as $PREFIX/bin/chromium-cam.
 set -eu
-PREFIX=${PREFIX:-/data/user/0/com.orailnoor.droiddesk/files/usr}
+PREFIX=${PREFIX:-/data/user/0/io.github.vyvrnc.lexona/files/usr}
 TMPDIR=${TMPDIR:-$PREFIX/tmp}
 SHIM=$PREFIX/lib/libdroiddesk_v4l2.so
 PROFILE=${CHROMIUM_CAM_PROFILE:-$HOME/.config/chromium-cam}

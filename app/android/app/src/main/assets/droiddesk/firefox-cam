@@ -20,7 +20,7 @@
 # Logs: $TMPDIR/droiddesk-v4l2.log (shim), $TMPDIR/firefox-cam-moz.log* (Firefox camera
 # modules: CamerasParent, VideoEngine, webrtc_trace).
 set -eu
-PREFIX=${PREFIX:-/data/user/0/com.orailnoor.droiddesk/files/usr}
+PREFIX=${PREFIX:-/data/user/0/io.github.vyvrnc.lexona/files/usr}
 TMPDIR=${TMPDIR:-$PREFIX/tmp}
 SHIM=$PREFIX/lib/libdroiddesk_v4l2.so
 PROFILE=${FIREFOX_CAM_PROFILE:-$HOME/.mozilla-apps/camera-test}

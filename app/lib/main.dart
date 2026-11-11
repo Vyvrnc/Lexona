@@ -56,7 +56,7 @@ class _DroidDeskAppState extends State<DroidDeskApp> {
     SystemChrome.setSystemUIOverlayStyle(overlayStyle);
 
     return MaterialApp(
-      title: 'DroidDesk',
+      title: 'Lexona',
       debugShowCheckedModeBanner: false,
       theme: DroidTheme.lightThemeData,
       darkTheme: DroidTheme.darkThemeData,

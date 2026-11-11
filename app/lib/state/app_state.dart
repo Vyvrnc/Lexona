@@ -47,7 +47,7 @@ class AppState extends ChangeNotifier {
   Timer? _terminalNotifyTimer;
   int _terminalCharactersReceived = 0;
   final List<String> _terminalOutput = [
-    'DroidDesk Linux Terminal\nType commands below.\n',
+    'Lexona Linux Terminal\nType commands below.\n',
   ];
   List<String> get terminalOutput => _terminalOutput;
 
@@ -628,7 +628,7 @@ class AppState extends ChangeNotifier {
     _terminalNotifyTimer?.cancel();
     _terminalNotifyTimer = null;
     _terminalOutput.clear();
-    _terminalOutput.add('DroidDesk Linux Terminal\nType commands below.\n');
+    _terminalOutput.add('Lexona Linux Terminal\nType commands below.\n');
     notifyListeners();
   }
 

@@ -24,12 +24,12 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.orailnoor.droiddesk"
+        applicationId = "io.github.vyvrnc.lexona"
         minSdk = 28  // Downgraded to 28 to bypass W^X (Write XOR Execute) restrictions on app data
         targetSdk = 28 // API 28 completely disables the Android 10+ execve() block
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        manifestPlaceholders["appLabel"] = "DroidDesk"
+        manifestPlaceholders["appLabel"] = "Lexona"
 
         ndk {
             // ARM64 only — all modern Android phones
@@ -42,7 +42,7 @@ android {
         // never replaces or breaks the installation in daily use.
         debug {
             applicationIdSuffix = ".debug"
-            manifestPlaceholders["appLabel"] = "DroidDesk Dev"
+            manifestPlaceholders["appLabel"] = "Lexona Dev"
         }
         release {
             // GitHub-distributed testing builds intentionally use Android's

@@ -218,7 +218,7 @@ object CameraBridge {
         var session: Session? = null
         try {
             if (!ensurePermission(context)) {
-                write(output, "err no-permission DroidDesk may not use the camera (see the Android notification)")
+                write(output, "err no-permission Lexona may not use the camera (see the Android notification)")
                 return
             }
             val facing = request.facing
@@ -320,9 +320,9 @@ object CameraBridge {
             context, if (ask) 1 else 2, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val text = if (ask) {
-            "Linuxová aplikace chce použít kameru. Klepnutím povolíte DroidDesk přístup ke kameře, pak kameru v aplikaci zapněte znovu."
+            "Linuxová aplikace chce použít kameru. Klepnutím povolíte Lexoně přístup ke kameře, pak kameru v aplikaci zapněte znovu."
         } else {
-            "DroidDesk nemá oprávnění ke kameře. Klepnutím otevřete nastavení aplikace a v části Oprávnění povolte Fotoaparát."
+            "Lexona nemá oprávnění ke kameře. Klepnutím otevřete nastavení aplikace a v části Oprávnění povolte Fotoaparát."
         }
         val notification = Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_camera)
@@ -597,7 +597,7 @@ object CameraBridge {
                     override fun onDisconnected(camera: CameraDevice) {
                         camera.close()
                         if (imageReader !== reader) return // an older attempt (facing switch)
-                        if (device === camera || device == null) finishOpen("camera-error the camera was taken by another app or DroidDesk went to the background")
+                        if (device === camera || device == null) finishOpen("camera-error the camera was taken by another app or Lexona went to the background")
                     }
 
                     override fun onError(camera: CameraDevice, error: Int) {

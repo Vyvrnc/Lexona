@@ -923,7 +923,7 @@ class MainActivity : FlutterActivity() {
 
     private fun requestDefaultLauncher() {
         if (isDefaultLauncher()) {
-            Toast.makeText(this, "DroidDesk is already the default launcher", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Lexona is already the default launcher", Toast.LENGTH_SHORT).show()
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

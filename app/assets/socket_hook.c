@@ -17,7 +17,7 @@
 #include <android/log.h>
 
 #ifndef NEW_PREFIX
-#define NEW_PREFIX "/data/user/0/com.orailnoor.droiddesk/files/usr"
+#define NEW_PREFIX "/data/user/0/io.github.vyvrnc.lexona/files/usr"
 #endif
 
 /*

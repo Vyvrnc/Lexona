@@ -76,7 +76,7 @@ class WelcomeScreen extends StatelessWidget {
 
                 // ── Title ──
                 Text(
-                      'DroidDesk',
+                      'Lexona',
                       style: DroidTheme.headingXl.copyWith(
                         fontSize: 36,
                         letterSpacing: -1.0,
@@ -94,7 +94,7 @@ class WelcomeScreen extends StatelessWidget {
 
                 // ── Tagline ──
                 Text(
-                      'Full Linux Desktop on Android',
+                      'Linux desktop on Android',
                       style: DroidTheme.bodyLg.copyWith(
                         color: DroidTheme.textSecondary,
                       ),

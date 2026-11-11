@@ -28,16 +28,17 @@ import threading
 import time
 
 VERSION = 3
-APP_DATA = "/data/user/0/com.orailnoor.droiddesk/files"
+# The app's own files folder; Lexona since 2.0.0, DroidDesk before.
+APP_IDS = ("io.github.vyvrnc.lexona", "com.orailnoor.droiddesk")
 # In Debian the session keeps Termux's prefix as DD_SAVED_PREFIX.
 PREFIX_CANDIDATES = [os.environ.get("DROIDDESK_PREFIX", ""), os.environ.get("PREFIX", ""),
-                     os.environ.get("DD_SAVED_PREFIX", ""), APP_DATA + "/usr",
-                     "/data/data/com.orailnoor.droiddesk/files/usr"]
+                     os.environ.get("DD_SAVED_PREFIX", "")] + [
+    "/data/%s/%s/files/usr" % (root, app) for app in APP_IDS for root in ("user/0", "data")]
 
 
 def find_prefix():
     for p in PREFIX_CANDIDATES:
-        if p and os.path.isfile(os.path.join(p, "bin", "bash")) and "com.orailnoor.droiddesk" in p:
+        if p and os.path.isfile(os.path.join(p, "bin", "bash")) and any(app in p for app in APP_IDS):
             return p
     for p in PREFIX_CANDIDATES:
         if p and os.path.isfile(os.path.join(p, "bin", "bash")) and not p.startswith("/usr"):

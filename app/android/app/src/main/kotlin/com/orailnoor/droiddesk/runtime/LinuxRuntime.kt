@@ -672,7 +672,7 @@ class LinuxRuntime(private val context: Context) {
                         # missed Debian paths. Debian rg goes through the hook.
                         command -v rg >/dev/null && export USE_BUILTIN_RIPGREP=0
                         # Read, Edit, Write and Glob still see Android paths: tell Claude where Debian is.
-                        note="This Claude Code runs natively on Android (DroidDesk). Its Read, Edit, Write and Glob tools and the built-in grep and rg shell functions bypass the Debian path mapping: absolute Debian paths (/etc, /usr, /var, /opt, /root, /home) reach Android instead. For those tools put the rootfs path in front of the Debian path, e.g. ${'$'}{DD_ROOTFS}/etc/hosts. In the Bash tool Debian paths work; use command grep there."
+                        note="This Claude Code runs natively on Android (Lexona). Its Read, Edit, Write and Glob tools and the built-in grep and rg shell functions bypass the Debian path mapping: absolute Debian paths (/etc, /usr, /var, /opt, /root, /home) reach Android instead. For those tools put the rootfs path in front of the Debian path, e.g. ${'$'}{DD_ROOTFS}/etc/hosts. In the Bash tool Debian paths work; use command grep there."
                         set -- --append-system-prompt "${'$'}note" "${'$'}@"
                         links=${'$'}{DD_SAVED_PREFIX:-}/opt/glibc-native/path-links
                         [ ! -d "${'$'}links" ] || PATH=${'$'}PATH:${'$'}links
@@ -741,7 +741,7 @@ class LinuxRuntime(private val context: Context) {
                         # missed Debian paths. Debian rg goes through the hook.
                         command -v rg >/dev/null && export USE_BUILTIN_RIPGREP=0
                         # Read, Edit, Write and Glob still see Android paths: tell Claude where Debian is.
-                        note="This Claude Code runs natively on Android (DroidDesk). Its Read, Edit, Write and Glob tools and the built-in grep and rg shell functions bypass the Debian path mapping: absolute Debian paths (/etc, /usr, /var, /opt, /root, /home) reach Android instead. For those tools put the rootfs path in front of the Debian path, e.g. ${'$'}{DD_ROOTFS}/etc/hosts. In the Bash tool Debian paths work; use command grep there."
+                        note="This Claude Code runs natively on Android (Lexona). Its Read, Edit, Write and Glob tools and the built-in grep and rg shell functions bypass the Debian path mapping: absolute Debian paths (/etc, /usr, /var, /opt, /root, /home) reach Android instead. For those tools put the rootfs path in front of the Debian path, e.g. ${'$'}{DD_ROOTFS}/etc/hosts. In the Bash tool Debian paths work; use command grep there."
                         set -- --append-system-prompt "${'$'}note" "${'$'}@"
                         real=${'$'}(pwd -P); virt=${'$'}{real#"${'$'}DD_ROOTFS"}
                         p=${'$'}HOME/.claude/projects; mkdir -p "${'$'}p"
@@ -948,7 +948,7 @@ class LinuxRuntime(private val context: Context) {
                         # missed Debian paths. Debian rg goes through the hook.
                         command -v rg >/dev/null && export USE_BUILTIN_RIPGREP=0
                         # Read, Edit, Write and Glob still see Android paths: tell Claude where Debian is.
-                        note="This Claude Code runs natively on Android (DroidDesk). Its Read, Edit, Write and Glob tools and the built-in grep and rg shell functions bypass the Debian path mapping: absolute Debian paths (/etc, /usr, /var, /opt, /root, /home) reach Android instead. For those tools put the rootfs path in front of the Debian path, e.g. ${'$'}{DD_ROOTFS}/etc/hosts. In the Bash tool Debian paths work; use command grep there."
+                        note="This Claude Code runs natively on Android (Lexona). Its Read, Edit, Write and Glob tools and the built-in grep and rg shell functions bypass the Debian path mapping: absolute Debian paths (/etc, /usr, /var, /opt, /root, /home) reach Android instead. For those tools put the rootfs path in front of the Debian path, e.g. ${'$'}{DD_ROOTFS}/etc/hosts. In the Bash tool Debian paths work; use command grep there."
                         set -- --append-system-prompt "${'$'}note" "${'$'}@"
                         links=${'$'}{DD_SAVED_PREFIX:-}/opt/glibc-native/path-links
                         [ ! -d "${'$'}links" ] || PATH=${'$'}PATH:${'$'}links
@@ -1395,7 +1395,7 @@ class LinuxRuntime(private val context: Context) {
                 elif [ -S /tmp/.virgl_test ]; then
                     echo "Hardware OpenGL: on (virgl over ANGLE/Vulkan)"
                 else
-                    echo "Hardware OpenGL: on, starts with the next DroidDesk session (virgl server not running yet; log: /tmp/virgl-server.log)"
+                    echo "Hardware OpenGL: on, starts with the next Lexona session (virgl server not running yet; log: /tmp/virgl-server.log)"
                 fi
             elif [ ! -d /opt/mesa-kgsl ]; then
                 echo "Hardware OpenGL: not installed (run debian-setup)"
@@ -1676,7 +1676,7 @@ class LinuxRuntime(private val context: Context) {
             /usr/local/sbin/droiddesk-menu-sync
 
             echo "$DEBIAN_SETUP_VERSION" > /etc/droiddesk/setup-version
-            echo "DroidDesk Debian setup done"
+            echo "Lexona Debian setup done"
             DROIDDESK_DEBIAN_SETUP
             """.trimIndent() + "\n",
         )
@@ -1734,7 +1734,7 @@ class LinuxRuntime(private val context: Context) {
                             "if command -v python3 >/dev/null 2>&1; then\n" +
                             "    exec python3 \"${report.absolutePath}\" \"${'$'}@\"\n" +
                             "fi\n" +
-                            "# No python3 in Debian: run it as from the DroidDesk terminal.\n" +
+                            "# No python3 in Debian: run it as from the Lexona terminal.\n" +
                             "exec \"${File(binDir, "env").absolutePath}\" -i PREFIX=\"${prefixDir.absolutePath}\" " +
                             "HOME=\"${homeDir.absolutePath}\" TMPDIR=\"${tmpDir.absolutePath}\" " +
                             "PATH=\"${binDir.absolutePath}:/system/bin\" DISPLAY=\"${'$'}{DISPLAY:-:0}\" " +
@@ -4657,7 +4657,7 @@ class LinuxRuntime(private val context: Context) {
         onProgress: (Double, String) -> Unit,
     ): Boolean {
         if (!isSafePackageName(packageName) || isProtectedPackage(packageName)) {
-            onProgress(-1.0, "This package is required by DroidDesk")
+            onProgress(-1.0, "This package is required by Lexona")
             return false
         }
         onProgress(0.15, "Removing $packageName...")

@@ -274,7 +274,7 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text('Launch DroidDesk'),
+                              Text('Launch Lexona'),
                               SizedBox(width: 8),
                               Icon(Icons.rocket_launch_rounded, size: 20),
                             ],

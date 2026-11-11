@@ -16,7 +16,7 @@
 # Adreno does not need this: the native desktop already runs on Turnip + Zink there.
 # DroidDesk installs this script as $PREFIX/bin/droiddesk-native-gpu.
 set -u
-PREFIX=${PREFIX:-/data/user/0/com.orailnoor.droiddesk/files/usr}
+PREFIX=${PREFIX:-/data/user/0/io.github.vyvrnc.lexona/files/usr}
 TMPDIR=${TMPDIR:-${PREFIX%/usr}/tmp}
 CONF=$PREFIX/etc/droiddesk
 MARKER=$CONF/native-gpu-virgl

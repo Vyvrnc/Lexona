@@ -69,7 +69,7 @@ class ClipboardSync(
                         rememberAndroid(linuxText)
                         handler.post {
                             if (running.get()) {
-                                clipboard.setPrimaryClip(ClipData.newPlainText("DroidDesk", linuxText))
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Lexona", linuxText))
                             }
                         }
                     }

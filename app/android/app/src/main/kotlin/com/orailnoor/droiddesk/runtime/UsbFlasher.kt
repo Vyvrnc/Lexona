@@ -194,7 +194,7 @@ class UsbFlasher(
     }
 
     private fun checkCancelled() {
-        if (isCancelled()) throw java.io.IOException("cancelled: DroidDesk is shutting down")
+        if (isCancelled()) throw java.io.IOException("cancelled: Lexona is shutting down")
     }
 
     private fun withBlockDevice(

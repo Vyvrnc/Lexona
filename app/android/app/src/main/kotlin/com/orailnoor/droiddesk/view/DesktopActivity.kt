@@ -774,7 +774,7 @@ class DesktopActivity : Activity() {
         }.onFailure { Log.w(TAG, "Loading logo unavailable", it) }
 
         content.addView(TextView(this).apply {
-            text = "DroidDesk"
+            text = "Lexona"
             textSize = 28f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
