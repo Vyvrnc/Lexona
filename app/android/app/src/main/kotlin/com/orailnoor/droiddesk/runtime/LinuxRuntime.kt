@@ -561,7 +561,7 @@ class LinuxRuntime(private val context: Context) {
                 "${'$'}{droiddesk_dri[@]}" \
                 --env DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session" \
                 --env PROOT_TMP_DIR="${tmpDir.absolutePath}/proot" \
-                --env PROOT_LOADER="${File(prefixDir, "libexec/proot/loader").absolutePath}" \
+                --env PROOT_LOADER="${prootLoaderPath()}" \
                 --env PROOT_LOADER_32="${File(prefixDir, "libexec/proot/loader32").absolutePath}" -- \
                 env DISPLAY="${'$'}DISPLAY" TERM="${'$'}{TERM:-xterm-256color}" bash -l
             """.trimIndent() + "\n",
@@ -586,7 +586,7 @@ class LinuxRuntime(private val context: Context) {
                 "${'$'}{droiddesk_dri[@]}" \
                 --env DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session" \
                 --env PROOT_TMP_DIR="${tmpDir.absolutePath}/proot" \
-                --env PROOT_LOADER="${File(prefixDir, "libexec/proot/loader").absolutePath}" \
+                --env PROOT_LOADER="${prootLoaderPath()}" \
                 --env PROOT_LOADER_32="${File(prefixDir, "libexec/proot/loader32").absolutePath}" -- \
                 bash -s -- "${'$'}mode" <<'DROIDDESK_DEBIAN_APPS'
             mode="${'$'}1"
@@ -725,7 +725,7 @@ class LinuxRuntime(private val context: Context) {
                 "${'$'}{droiddesk_dri[@]}" \
                 --env DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session" \
                 --env PROOT_TMP_DIR="${tmpDir.absolutePath}/proot" \
-                --env PROOT_LOADER="${File(prefixDir, "libexec/proot/loader").absolutePath}" \
+                --env PROOT_LOADER="${prootLoaderPath()}" \
                 --env PROOT_LOADER_32="${File(prefixDir, "libexec/proot/loader32").absolutePath}" -- \
                 env DISPLAY="${'$'}DISPLAY" TERM="${'$'}{TERM:-xterm-256color}" \
                 bash -lc 'mkdir -p ~/projekty/Claude; cd ~/projekty/Claude || cd ~; PATH="${'$'}HOME/.local/bin:${'$'}PATH"
@@ -807,7 +807,7 @@ class LinuxRuntime(private val context: Context) {
                 "${'$'}{droiddesk_dri[@]}" \
                 --env DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session" \
                 --env PROOT_TMP_DIR="${tmpDir.absolutePath}/proot" \
-                --env PROOT_LOADER="${File(prefixDir, "libexec/proot/loader").absolutePath}" \
+                --env PROOT_LOADER="${prootLoaderPath()}" \
                 --env PROOT_LOADER_32="${File(prefixDir, "libexec/proot/loader32").absolutePath}" -- \
                 env DISPLAY="${'$'}DISPLAY" TERM="${'$'}{TERM:-xterm-256color}" \
                 bash -lc 'mkdir -p ~/projekty/Claude; cd ~/projekty/Claude || cd ~; exec codex --no-daemon "${'$'}@"' codex "${'$'}@"
@@ -1025,7 +1025,7 @@ class LinuxRuntime(private val context: Context) {
                 "${'$'}{droiddesk_dri[@]}" \
                 --env DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session" \
                 --env PROOT_TMP_DIR="${tmpDir.absolutePath}/proot" \
-                --env PROOT_LOADER="${File(prefixDir, "libexec/proot/loader").absolutePath}" \
+                --env PROOT_LOADER="${prootLoaderPath()}" \
                 --env PROOT_LOADER_32="${File(prefixDir, "libexec/proot/loader32").absolutePath}" -- \
                 env DISPLAY="${'$'}DISPLAY" TERM="${'$'}{TERM:-xterm-256color}" \
                 bash -lc 'cd ~; exec "${'$'}@"' debian-run "${'$'}@"
@@ -1058,7 +1058,7 @@ class LinuxRuntime(private val context: Context) {
                 "${'$'}{droiddesk_dri[@]}" \
                 --env DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session" \
                 --env PROOT_TMP_DIR="${tmpDir.absolutePath}/proot" \
-                --env PROOT_LOADER="${File(prefixDir, "libexec/proot/loader").absolutePath}" \
+                --env PROOT_LOADER="${prootLoaderPath()}" \
                 --env PROOT_LOADER_32="${File(prefixDir, "libexec/proot/loader32").absolutePath}" -- \
                 bash -s <<'DROIDDESK_DEBIAN_SETUP'
             set -e
@@ -3392,6 +3392,14 @@ class LinuxRuntime(private val context: Context) {
     /** The session environment for the in-app terminal (TerminalActivity). */
     fun terminalEnvironment(): Map<String, String> = getTermuxEnv()
 
+    /**
+     * proot's loader (a static program proot execs for every guest program). At targetSdk >= 29
+     * it must come from nativeLibraryDir: the copy of Termux proot 5.1.107's loader in jniLibs.
+     */
+    private fun prootLoaderPath(): String =
+        if (NativeExec.linkerExec(context)) "${context.applicationInfo.nativeLibraryDir}/libproot-loader.so"
+        else File(prefixDir, "libexec/proot/loader").absolutePath
+
     /** ProcessBuilder for a program, through linker64 when the app may not exec it (NativeExec). */
     private fun nativeProcess(vararg command: String) = ProcessBuilder(NativeExec.command(context, command.toList()))
 
@@ -3407,7 +3415,11 @@ class LinuxRuntime(private val context: Context) {
         env["PREFIX"] = prefixDir.absolutePath
         env["TMPDIR"] = tmpDir.absolutePath
         // targetSdk >= 29: the socket hook starts data-dir programs through linker64 (NativeExec).
-        if (NativeExec.linkerExec(context)) env["DROIDDESK_LINKER_EXEC"] = "1"
+        if (NativeExec.linkerExec(context)) {
+            env["DROIDDESK_LINKER_EXEC"] = "1"
+            // proot-distro's proot reads it from its own environment.
+            env["PROOT_LOADER"] = prootLoaderPath()
+        }
         env["DROIDDESK_NATIVE_LIB_DIR"] = context.applicationInfo.nativeLibraryDir
         // termux-exec (in the bootstrap) must not wrap a second time.
         env["TERMUX_EXEC__SYSTEM_LINKER_EXEC__MODE"] = "disable"
