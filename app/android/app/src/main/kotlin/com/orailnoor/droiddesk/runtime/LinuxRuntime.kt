@@ -5350,6 +5350,33 @@ class LinuxRuntime(private val context: Context) {
         }
     }
 
+    /**
+     * Stop server: everything Linux of this app, not only the session. Daemons that the session
+     * started are reparented to init and kept running (PulseAudio, xfconfd, gvfsd, dconf, the
+     * terminal's shells), so "Stop server" left them behind and had to be tapped twice. The app's
+     * own Android processes (its package name as the command line) stay. Returns how many ended.
+     */
+    fun killRemainingProcesses(): Int {
+        val myUid = android.os.Process.myUid()
+        val myPid = android.os.Process.myPid()
+        val pkg = context.packageName
+        fun linuxPids(): List<Int> = File("/proc").listFiles()?.mapNotNull { dir ->
+            val pid = dir.name.toIntOrNull() ?: return@mapNotNull null
+            if (pid == myPid) return@mapNotNull null
+            val uid = runCatching { android.system.Os.stat(dir.path).st_uid }.getOrNull() ?: return@mapNotNull null
+            if (uid != myUid) return@mapNotNull null
+            val cmd = runCatching { File(dir, "cmdline").readText().substringBefore('\u0000') }.getOrDefault("")
+            if (cmd.isEmpty() || cmd.startsWith(pkg)) null else pid
+        } ?: emptyList()
+        val first = linuxPids()
+        first.forEach { runCatching { android.os.Process.sendSignal(it, 15) } }
+        val deadline = System.currentTimeMillis() + 2000
+        while (System.currentTimeMillis() < deadline && linuxPids().isNotEmpty()) Thread.sleep(100)
+        linuxPids().forEach { runCatching { android.os.Process.sendSignal(it, 9) } }
+        Log.i(TAG, "Stop server: ended ${first.size} Linux processes")
+        return first.size
+    }
+
     fun stopSession() {
         Log.i(TAG, "Stopping Linux session...")
         sessionProcess?.let {

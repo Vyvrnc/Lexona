@@ -325,8 +325,10 @@ class DroidDeskPlatform {
     return await _channel.invokeMethod<bool>('restartDesktop') ?? false;
   }
 
-  static Future<void> stopLinux() async {
-    await _channel.invokeMethod('stopLinux');
+  /// Ends the session and every Linux process of the app; returns how many processes ended.
+  static Future<int> stopLinux() async {
+    final ended = await _channel.invokeMethod('stopLinux');
+    return ended is int ? ended : 0;
   }
 
   static Future<void> launchDesktopActivity() async {

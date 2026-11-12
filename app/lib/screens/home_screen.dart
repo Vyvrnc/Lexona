@@ -201,7 +201,15 @@ class HomeScreen extends StatelessWidget {
                             subtitle:
                                 'Ends XFCE to save power; the terminal and Claude Code keep running',
                             color: LexonaTheme.primaryText,
-                            onTap: () => state.stopDesktop(),
+                            busyText: state.busyAction == 'stop-desktop'
+                                ? 'Stopping the desktop…'
+                                : null,
+                            onTap: () async {
+                              final ok = await state.stopDesktop();
+                              if (context.mounted) {
+                                _notice(context, ok ? 'Desktop stopped' : 'The desktop could not be stopped', error: !ok);
+                              }
+                            },
                           ),
                         ),
 
@@ -217,19 +225,13 @@ class HomeScreen extends StatelessWidget {
                                 ? 'The desktop ended. Starts XFCE again; app windows stay'
                                 : 'Restarts the panel, desktop and window manager; app windows stay',
                             color: LexonaTheme.primaryText,
+                            busyText: state.busyAction == 'restart-desktop'
+                                ? 'Restarting the desktop…'
+                                : null,
                             onTap: () async {
                               final ok = await state.restartDesktop();
-                              if (!ok && context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('The desktop could not be restarted'),
-                                    // Opaque theme surface; the error shows as a 1 px border next to the word.
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
-                                      side: BorderSide(color: LexonaTheme.error),
-                                    ),
-                                  ),
-                                );
+                              if (context.mounted) {
+                                _notice(context, ok ? 'Desktop restarted' : 'The desktop could not be restarted', error: !ok);
                               }
                             },
                           ),
@@ -251,9 +253,12 @@ class HomeScreen extends StatelessWidget {
                         gradient: state.isRunning
                             ? null
                             : LexonaTheme.primaryGradient,
+                        busyText: state.busyAction == 'stop-server'
+                            ? 'Stopping Linux: desktop, terminals, background programs…'
+                            : null,
                         onTap: () async {
                           if (state.isRunning) {
-                            state.stopLinux();
+                            await _stopServer(context, state);
                           } else {
                             if (!state.isDEInstalled) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -285,7 +290,10 @@ class HomeScreen extends StatelessWidget {
                           subtitle:
                               'The desktop is not running; ends the whole Linux environment, terminals included',
                           color: LexonaTheme.error,
-                          onTap: () => state.stopLinux(),
+                          busyText: state.busyAction == 'stop-server'
+                              ? 'Stopping Linux: terminals and background programs…'
+                              : null,
+                          onTap: () => _stopServer(context, state),
                         ),
                       ],
 
@@ -1059,6 +1067,30 @@ class _TerminalSheetState extends State<_TerminalSheet> {
 
 // ── Small Action Card widget ──
 
+/// A short result line at the bottom; errors get the 1 px error border (design language).
+void _notice(BuildContext context, String text, {bool error = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(text),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(LexonaTheme.radiusMd),
+        side: BorderSide(color: error ? LexonaTheme.error : LexonaTheme.border),
+      ),
+    ),
+  );
+}
+
+/// Stop server with visible progress (the card's spinner) and a result line.
+Future<void> _stopServer(BuildContext context, AppState state) async {
+  final ended = await state.stopLinux();
+  if (!context.mounted) return;
+  if (ended < 0) {
+    _notice(context, 'Linux could not be stopped', error: true);
+  } else {
+    _notice(context, ended > 0 ? 'Linux stopped ($ended programs ended)' : 'Linux stopped');
+  }
+}
+
 class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -1067,6 +1099,9 @@ class _ActionCard extends StatelessWidget {
   final Gradient? gradient;
   final VoidCallback onTap;
 
+  /// Shown while this card's action runs: spinner instead of the chevron, taps ignored.
+  final String? busyText;
+
   const _ActionCard({
     required this.icon,
     required this.title,
@@ -1074,12 +1109,14 @@ class _ActionCard extends StatelessWidget {
     required this.color,
     this.gradient,
     required this.onTap,
+    this.busyText,
   });
 
   @override
   Widget build(BuildContext context) {
+    final busy = busyText != null;
     return GestureDetector(
-      onTap: onTap,
+      onTap: busy ? null : onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -1108,15 +1145,22 @@ class _ActionCard extends StatelessWidget {
                 children: [
                   Text(title, style: LexonaTheme.subheading),
                   Text(
-                    subtitle,
-                    style: LexonaTheme.caption,
+                    busyText ?? subtitle,
+                    style: busy ? LexonaTheme.caption.copyWith(color: color) : LexonaTheme.caption,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: LexonaTheme.textMuted),
+            if (busy)
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: color),
+              )
+            else
+              Icon(Icons.chevron_right_rounded, color: LexonaTheme.textMuted),
           ],
         ),
       ),

@@ -506,36 +506,58 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> stopDesktop() async {
+  /// The action in progress on the home screen ('stop-desktop', 'restart-desktop',
+  /// 'stop-server'), null when idle: its card shows a spinner and ignores taps.
+  String? _busyAction;
+  String? get busyAction => _busyAction;
+
+  void _setBusy(String? action) {
+    _busyAction = action;
+    notifyListeners();
+  }
+
+  Future<bool> stopDesktop() async {
+    _setBusy('stop-desktop');
     try {
       await DroidDeskPlatform.stopDesktop();
       await refreshStatus();
+      return true;
     } catch (e) {
       _errorMessage = 'Failed to stop the desktop: $e';
-      notifyListeners();
+      return false;
+    } finally {
+      _setBusy(null);
     }
   }
 
   Future<bool> restartDesktop() async {
+    _setBusy('restart-desktop');
     try {
       final ok = await DroidDeskPlatform.restartDesktop();
       await refreshStatus();
       return ok;
     } catch (e) {
       _errorMessage = 'Failed to restart the desktop: $e';
-      notifyListeners();
       return false;
+    } finally {
+      _setBusy(null);
     }
   }
 
-  Future<void> stopLinux() async {
+  /// Ends the desktop and every Linux process (terminals included); returns how many ended,
+  /// -1 on error. The status is read back, so no stale "Stop server" card stays.
+  Future<int> stopLinux() async {
+    _setBusy('stop-server');
     try {
-      await DroidDeskPlatform.stopLinux();
+      final ended = await DroidDeskPlatform.stopLinux();
       _isRunning = false;
-      notifyListeners();
+      await refreshStatus();
+      return ended;
     } catch (e) {
       _errorMessage = 'Failed to stop: $e';
-      notifyListeners();
+      return -1;
+    } finally {
+      _setBusy(null);
     }
   }
 

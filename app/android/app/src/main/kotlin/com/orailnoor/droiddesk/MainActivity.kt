@@ -705,7 +705,12 @@ class MainActivity : FlutterActivity() {
                         linuxRuntime.stopSession()
                         stopService(Intent(this@MainActivity, X11ServerService::class.java))
                         stopForegroundService()
-                        runOnUiThread { result.success(true) }
+                        val ended = if (chrootRuntime.hasRoot()) 0 else linuxRuntime.killRemainingProcesses()
+                        // The status the app reads next must not show the service still running.
+                        val until = System.currentTimeMillis() + 3000
+                        while (com.orailnoor.droiddesk.service.DroidDeskService.running &&
+                            System.currentTimeMillis() < until) Thread.sleep(100)
+                        runOnUiThread { result.success(ended) }
                     }
                 }
 
