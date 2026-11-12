@@ -6,7 +6,7 @@ or size not listed here adds it to the theme and to this document first.
 
 ## Identity
 - **Name**: Lexona. **Subtitle**, always next to the name where there is room:
-  "Lexona – Linux desktop on Android".
+  "Lexona – Linux experience on Android".
 - **Mascot**: a teal chameleon. It changes colour and fits any screen: phone, foldable, tablet
   or monitor.
   - App icon: the chameleon on a monitor (`lexona-teal`).

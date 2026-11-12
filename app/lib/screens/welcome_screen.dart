@@ -84,7 +84,7 @@ class WelcomeScreen extends StatelessWidget {
 
                 // ── Tagline ──
                 Text(
-                      'Linux desktop on Android',
+                      'Linux experience on Android',
                       style: LexonaTheme.bodyLg,
                     )
                     .animate()

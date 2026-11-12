@@ -2,11 +2,10 @@
   <img src="brand/lexona-hero.png" alt="Lexona" width="640">
 </p>
 
-# Lexona – Linux desktop on Android
+# Lexona – Linux experience on Android
 
-**Lexona** (**L**inux **EX**perience **ON** **A**ndroid) runs a full XFCE desktop on an Android
-phone or tablet, with no root and no separate Termux install. Use it on the phone's screen, on a
-tablet, or on a monitor through Samsung DeX or USB-C display output. Unplug and your whole setup
+**Lexona** runs a full XFCE desktop on an Android phone or tablet, with no root and no separate
+Termux install. Use it on the phone's screen, on a tablet, or on a monitor through Samsung DeX or USB-C display output. Unplug and your whole setup
 comes with you.
 
 - A native Linux userspace (Termux packages) for the desktop, plus an optional Debian container

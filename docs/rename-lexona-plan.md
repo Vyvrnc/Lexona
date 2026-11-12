@@ -2,7 +2,7 @@
 
 ## Decision
 The app is called **Lexona** (**L**inux **EX**perience **ON** **A**ndroid). Its subtitle, used
-next to the name everywhere: **"Lexona – Linux desktop on Android"**.
+next to the name everywhere: **"Lexona – Linux experience on Android"**.
 
 Why Lexona:
 - unique, with no collision in Linux/Android software;
