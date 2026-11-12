@@ -447,7 +447,8 @@ class HomeScreen extends StatelessWidget {
                           'Storage free',
                           '${state.deviceInfo['availableStorageMB'] ?? 'N/A'} MB',
                         ),
-                        if (state.deviceInfo['phantomLimit'] == true) ...[
+                        // Always there: the lean desktop is reachable with the limit off too.
+                        ...[
                           _divider(),
                           InkWell(
                             onTap: () => Navigator.of(context).push(
@@ -457,13 +458,16 @@ class HomeScreen extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               child: Row(
                                 children: [
-                                  Icon(Icons.warning_amber_rounded, size: 18, color: LexonaTheme.warning),
-                                  const SizedBox(width: 8),
+                                  if (state.deviceInfo['phantomLimit'] == true)
+                                    Icon(Icons.warning_amber_rounded, size: 18, color: LexonaTheme.warning),
+                                  if (state.deviceInfo['phantomLimit'] == true) const SizedBox(width: 8),
                                   Expanded(
-                                    child: Text(
-                                      'Child process limit is on: Android may stop Linux programs',
-                                      style: LexonaTheme.body.copyWith(color: LexonaTheme.warning),
-                                    ),
+                                    child: state.deviceInfo['phantomLimit'] == true
+                                        ? Text(
+                                            'Child process limit is on: Android may stop Linux programs',
+                                            style: LexonaTheme.body.copyWith(color: LexonaTheme.warning),
+                                          )
+                                        : Text('Process limit and lean desktop', style: LexonaTheme.bodySm),
                                   ),
                                   Icon(Icons.chevron_right_rounded, size: 18, color: LexonaTheme.textMuted),
                                 ],
