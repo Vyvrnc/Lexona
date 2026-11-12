@@ -38,7 +38,14 @@ identifiers. The Linux Foundation wants a sublicence for product names containin
 | Runtime paths | `/data/user/0/com.orailnoor.droiddesk/...` | follow the new applicationId | the app derives paths from its own `filesDir`; fix hardcoded fallbacks in 4 assets (chromium-cam, firefox-cam, droiddesk-native-gpu, droiddesk-gpu-report) |
 
 ## Moving from DroidDesk to Lexona (new applicationId)
-A new package cannot read the old app's data. Plan:
+Decision 2026-11-12: no in-app export/import (nobody but us used DroidDesk Fold). The move is
+done once per device with `tools/migrate-droiddesk/` (inventory.sh and export.sh in DroidDesk's
+terminal, import.sh in Lexona's; the archive is gpg-encrypted with a one-time passphrase and
+deleted after the import; directories are merged, old Lexona files kept as *.pre-migrate-TIME).
+Done on the Tab S10 FE. Not moved: gnome-keyring (its password comes from DroidDesk's Android
+Keystore key), so Claude Code signs in again; its binary is reinstalled from the catalog.
+
+The original plan, kept for reference:
 1. A last DroidDesk release gets **Export to Lexona**. It writes one archive to shared storage
    (Download/lexona-migration-<date>.tar):
    - Debian `/root` (projects, `~/.claude`, `~/.codex`, configs);
