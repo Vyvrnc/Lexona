@@ -143,21 +143,30 @@ if [ -d "$meta" ]; then
         install_each() {  # install_each "CMD" LIST: one batch, then one by one on failure
             local cmd=$1 list=$2 p failed=()
             [ -s "$list" ] || return 0
+            # The installer's own output stays visible (it can take long) and goes to a log.
+            echo "installing: $(tr '\n' ' ' < "$list")"
             # shellcheck disable=SC2046
-            $cmd $(cat "$list") >/dev/null 2>&1 && { echo "installed: $(wc -l < "$list")"; return 0; }
-            while read -r p; do $cmd "$p" >/dev/null 2>&1 || failed+=("$p"); done < "$list"
+            $cmd $(cat "$list") 2>&1 | tee -a "$keep/install.log" && { echo "installed: $(wc -l < "$list")"; return 0; }
+            echo "batch failed, one by one (log: $keep/install.log)"
+            while read -r p; do
+                echo "-- $p"
+                $cmd "$p" >> "$keep/install.log" 2>&1 < /dev/null || failed+=("$p")
+            done < "$list"
             [ ${#failed[@]} -eq 0 ] || echo "not installed (not in the repositories? reinstall by hand): ${failed[*]}"
             return 0
         }
         if [ -f "$meta/termux-manual.txt" ]; then
             missing "$meta/termux-manual.txt" "apt-mark showmanual" > "$keep/termux-missing.txt"
             echo "Termux packages to install: $(wc -l < "$keep/termux-missing.txt")"
-            install_each "pkg install -y" "$keep/termux-missing.txt"
+            # apt-get, not pkg: dpkg's conffile questions (hidden behind the output) would wait
+            # for an answer; confdef/confold keep the current files without asking.
+            [ -s "$keep/termux-missing.txt" ] && { apt-get update -q 2>&1 | tail -1 || true; }
+            install_each "env DEBIAN_FRONTEND=noninteractive apt-get install -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold" "$keep/termux-missing.txt"
         fi
         if [ -f "$meta/debian-manual.txt" ]; then
             missing "$meta/debian-manual.txt" "debian-run apt-mark showmanual" > "$keep/debian-missing.txt"
             echo "Debian packages to install: $(wc -l < "$keep/debian-missing.txt")"
-            install_each "debian-run apt-get install -y -q" "$keep/debian-missing.txt"
+            install_each "debian-run env DEBIAN_FRONTEND=noninteractive apt-get install -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold" "$keep/debian-missing.txt"
         fi
     else
         echo "Package lists in $keep (reinstall: rerun with --meta-only --install)"
