@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Lexona ink (LexonaTheme.darkBackground). The launch window and the space under Flutter
+         use it in light and dark system mode: a light starting window stayed over the app as a
+         white veil after a cold start (Galaxy A16, light mode). -->
+    <color name="lexona_ink">#FF0B132B</color>
+</resources>

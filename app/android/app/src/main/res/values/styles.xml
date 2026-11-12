@@ -9,7 +9,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
     <style name="NormalTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">?android:colorBackground</item>
+        <item name="android:windowBackground">@color/lexona_ink</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
