@@ -222,7 +222,8 @@ class MainActivity : FlutterActivity() {
                             linuxRuntime.getGraphicsMode()
                         },
                         "totalRamMB" to getTotalRam(),
-                        "availableStorageMB" to getAvailableStorage()
+                        "availableStorageMB" to getAvailableStorage(),
+                        "phantomLimit" to phantomProcessLimitOn(),
                     ))
                 }
 
@@ -946,6 +947,27 @@ class MainActivity : FlutterActivity() {
             }
             startActivity(intent)
         }
+    }
+
+    /**
+     * Android 12+ kills an app's child processes beyond 32 ("Trimming phantom processes",
+     * every 5 minutes, oldest first). On the Galaxy A16 the desktop alone is ~27 processes;
+     * with 10 more the in-app terminal's shell and the Debian bus were killed. Off when the
+     * developer option "Disable child process restrictions" (Android 14+) or its flag override
+     * is set; max_phantom_processes itself is not readable by apps.
+     */
+    private fun phantomProcessLimitOn(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+        val key = "settings_enable_monitor_phantom_procs"
+        val global = runCatching { android.provider.Settings.Global.getString(contentResolver, key) }.getOrNull()
+        val override = runCatching {
+            Class.forName("android.os.SystemProperties")
+                .getMethod("get", String::class.java)
+                .invoke(null, "persist.sys.fflag.override.$key") as String
+        }.getOrNull()
+        // The override wins: on the Fold 7 it stayed "true" with the developer option set and
+        // Android kept trimming (docs/backlog.md).
+        return if (!override.isNullOrEmpty()) override != "false" else global != "false"
     }
 
     private fun isDefaultLauncher(): Boolean {
