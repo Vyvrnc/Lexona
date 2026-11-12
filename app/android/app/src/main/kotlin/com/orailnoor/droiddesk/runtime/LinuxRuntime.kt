@@ -3941,9 +3941,11 @@ class LinuxRuntime(private val context: Context) {
     private fun killStaleVirglServers(patched: File) {
         File("/proc").listFiles()?.forEach { dir ->
             val pid = dir.name.toIntOrNull() ?: return@forEach
-            val argv0 = runCatching { File(dir, "cmdline").readBytes() }.getOrNull()
-                ?.takeWhile { it != 0.toByte() }?.toByteArray()?.toString(Charsets.UTF_8) ?: return@forEach
-            if (argv0 == patched.absolutePath) {
+            val argv = runCatching { File(dir, "cmdline").readText() }.getOrNull()
+                ?.split('\u0000') ?: return@forEach
+            // targetSdk >= 29: started as "linker64 <program> …" (NativeExec).
+            val program = if (argv.firstOrNull()?.endsWith("/linker64") == true) argv.getOrNull(1) else argv.firstOrNull()
+            if (program == patched.absolutePath) {
                 Log.i(TAG, "virgl: killing a stale server, pid $pid")
                 runCatching { android.os.Process.killProcess(pid) }
             }
