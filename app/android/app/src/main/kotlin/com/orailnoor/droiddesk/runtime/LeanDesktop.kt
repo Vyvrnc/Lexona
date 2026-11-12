@@ -44,15 +44,20 @@ object LeanDesktop {
     /** XDG autostart entries a part starts with the desktop. */
     private val autostart = mapOf("notifications" to listOf("xfce4-notifyd"))
 
-    /** pkill arguments for a part's programs still running from before it was turned off. */
+    /**
+     * pkill arguments for a part's programs still running from before it was turned off. The
+     * -f patterns start with a bracket: the desktop's start script (bash -c TEXT) carries them in
+     * its own command line, and a plain pattern ended the start script itself (Galaxy A16).
+     */
     private val programs = mapOf(
-        "gvfs" to listOf("-x gvfsd", "-x gvfsd-trash", "-x gvfsd-metadata", "-f libexec/gvfsd-"),
+        "gvfs" to listOf("-x gvfsd", "-x gvfsd-trash", "-x gvfsd-metadata", "-f '[l]ibexec/gvfsd-'"),
         "thumbnails" to listOf("-x tumblerd"),
         "notifications" to listOf("-x xfce4-notifyd"),
-        "usbtray" to listOf("-f droiddesk-usb-tray.py"),
+        "usbtray" to listOf("-f '[d]roiddesk-usb-tray.py'"),
         // proot ends with its last traced program.
         "debianbus" to listOf(
-            "-f droiddesk-session-bus", "-f 'path=/tmp/dbus-debian'", "-f 'gnome-keyring-daemon --foreground'",
+            "-f '[d]roiddesk-session-bus'", "-f '[p]ath=/tmp/dbus-debian'",
+            "-f '[g]nome-keyring-daemon --foreground'",
         ),
     )
 

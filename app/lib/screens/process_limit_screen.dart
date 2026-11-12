@@ -193,14 +193,15 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
     final saves = option['processes'] is int ? option['processes'] as int : 0;
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
-      value: option['off'] == true,
+      // On = the part runs, as everywhere else in Android; off saves its programs.
+      value: option['off'] != true,
       title: Text(option['title']?.toString() ?? '', style: LexonaTheme.body),
       subtitle: Text(
-        '${option['detail'] ?? ''}${saves > 0 ? '\nTurned off: $saves fewer program${saves == 1 ? '' : 's'}' : ''}',
+        '${option['detail'] ?? ''}${saves > 0 ? '\nOff: $saves fewer program${saves == 1 ? '' : 's'}' : ''}',
         style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary),
       ),
-      onChanged: (off) async {
-        await DroidDeskPlatform.setLeanOption(option['id'].toString(), off);
+      onChanged: (on) async {
+        await DroidDeskPlatform.setLeanOption(option['id'].toString(), !on);
         if (!mounted) return;
         setState(() => _leanChanged = true);
         _refresh();
