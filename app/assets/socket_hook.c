@@ -943,7 +943,7 @@ static int traced(void) {
 
 /* 1: dynamic bionic ELF (PT_INTERP names linker64), 2: other ELF, 3: "#!" script, 0: other,
  * 4: ELF whose PT_INTERP is in app data (glibc-native mirrors: $PLIB/ld.so), copied to interp_out,
- * 5: dynamic bionic Go program. */
+ * 5: dynamic bionic Go program, 6: static program (no PT_INTERP). */
 static int exec_kind(int fd, char *head, size_t head_size, char *interp_out, size_t interp_size) {
     ssize_t n = pread(fd, head, head_size - 1, 0);
     if (n < 4) return 0;
@@ -975,7 +975,9 @@ static int exec_kind(int fd, char *head, size_t head_size, char *interp_out, siz
         }
         return 2;
     }
-    return 2;
+    /* No PT_INTERP: a static program (Go/musl/Linux downloads). Only an executable one (ET_EXEC or
+       PIE ET_DYN); shared libraries never get here through exec. */
+    return 6;
 }
 
 /*
@@ -1014,10 +1016,12 @@ static int make_exec_plan(const char *path, char *const argv[], struct exec_plan
             plan->path = plan->interp[depth];
             return 0;
         }
-        if (kind == 5) {
+        if (kind == 5 || kind == 6) {
             /* sh proot-lexona PROGRAM ARGS…: proot (ptrace) also catches the raw execve of Go,
-               starting its children through the loader. Plain linker64 when proot is missing or
-               already tracing this process. */
+               starting its children through the loader, and its loader maps static programs,
+               which neither the kernel (app data) nor linker64 run here. Plain linker64 for Go
+               when proot is missing or already tracing this process (proot runs a static
+               program's execve itself then). */
             if (!traced() &&
                 snprintf(plan->interp[depth], sizeof(plan->interp[depth]), "%s/bin/proot-lexona", hook_prefix) <
                     (int) sizeof(plan->interp[depth]) &&
@@ -1031,6 +1035,7 @@ static int make_exec_plan(const char *path, char *const argv[], struct exec_plan
                 plan->path = "/system/bin/sh";
                 return 0;
             }
+            if (kind == 6) break;
             kind = 1;
         }
         if (kind == 1) {

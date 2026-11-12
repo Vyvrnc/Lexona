@@ -31,7 +31,7 @@ chk "python /proc/self/exe" python3 -c 'import os,sys;assert os.readlink("/proc/
 chk "pipes, xargs, find -exec" bash -c 'ls / | xargs -n1 echo >/dev/null && find "$PREFIX/bin" -maxdepth 1 -name ls -exec {} / \; >/dev/null'
 lim "child after env -i (loses the hook)" env -i PATH="$PATH" bash -c 'ls / >/dev/null'
 cp "$DROIDDESK_NATIVE_LIB_DIR/libdroiddesk_eth.so" "$w/static-bin"; chmod +x "$w/static-bin"
-lim "static ELF in app data" "$w/static-bin" help
+chk "static ELF in app data (through proot)" bash -c "\"$w/static-bin\" help 2>&1 | grep -qi eth"
 a=$(ms bash -c 'for i in $(seq 200); do "$PREFIX/bin/true"; done'); b=$(ms bash -c 'for i in $(seq 200); do /system/bin/true; done')
 log "INFO exec of 200 programs: app data (linker64) ${a} ms, /system/bin ${b} ms"
 
