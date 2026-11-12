@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DroidDesk GPU report: what the GPU does on this device, as one Markdown file to send us.
+"""Lexona GPU report: what the GPU does on this device, as one Markdown file to send us.
 
 Runs from the DroidDesk terminal (Termux side) or from Debian (claude-debian, debian-run).
 It only reads state and starts test programs; it changes no settings.
@@ -352,11 +352,11 @@ def main():
     args = ap.parse_args()
 
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M")
-    out_path = args.out or os.path.join(os.path.expanduser("~"), "droiddesk-gpu-report-%s.md" % stamp)
+    out_path = args.out or os.path.join(os.path.expanduser("~"), "lexona-gpu-report-%s.md" % stamp)
     summary, raw = [], []
     say = lambda s: print(s, flush=True)
 
-    say("DroidDesk GPU report v%d, writing %s" % (VERSION, out_path))
+    say("Lexona GPU report v%d, writing %s" % (VERSION, out_path))
     say("Running from: %s, Termux prefix: %s" % ("Termux" if IN_TERMUX else "Debian", PREFIX or "not found"))
     if PREFIX:
         termux_env()
@@ -460,7 +460,7 @@ def main():
             summary.append("- Browsers: none found")
 
     # Write
-    lines = ["# DroidDesk GPU report", "",
+    lines = ["# Lexona GPU report", "",
              "Generated %s by droiddesk-gpu-report v%d (from %s)." % (
                  datetime.datetime.now().isoformat(timespec="seconds"), VERSION, "Termux" if IN_TERMUX else "Debian"),
              "", "## Summary", ""] + summary

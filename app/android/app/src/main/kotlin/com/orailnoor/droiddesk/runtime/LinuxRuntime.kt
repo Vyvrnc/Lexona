@@ -2033,6 +2033,24 @@ class LinuxRuntime(private val context: Context) {
                 """.trimIndent() + "\n",
             )
         }.onFailure { Log.w(TAG, "Failed to install droiddesk-usb: ${it.message}") }
+        linkLexonaCommands()
+    }
+
+    /**
+     * Lexona names for the commands (docs/rename-lexona-plan.md): lexona-* next to every
+     * droiddesk-* in Termux's bin and Debian's /usr/local/bin. Relative links, so the scripts,
+     * panel launchers and docs that call the old names keep working; nothing is overwritten.
+     */
+    private fun linkLexonaCommands() {
+        val dirs = listOf(binDir, File(debianRootfs(baseDir), "usr/local/bin"))
+        for (dir in dirs) {
+            dir.listFiles()?.filter { it.name.startsWith("droiddesk-") && !it.name.endsWith(".py") }?.forEach { old ->
+                val alias = File(dir, "lexona-" + old.name.removePrefix("droiddesk-"))
+                if (alias.exists() || runCatching { android.system.Os.readlink(alias.path) }.isSuccess) return@forEach
+                runCatching { android.system.Os.symlink(old.name, alias.path) }
+                    .onFailure { Log.w(TAG, "lexona alias ${alias.name}: ${it.message}") }
+            }
+        }
     }
 
     private fun writeXfceTweaks() {

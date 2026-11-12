@@ -57,7 +57,7 @@ const _xclipse = GpuFamily(
   name: 'Xclipse (Exynos)',
   path: 'virgl over ANGLE/Vulkan (experimental, opt-in)',
   defaultState: 'Off by default: software rendering (llvmpipe). Turn on with '
-      '"droiddesk-native-gpu on" in the terminal and restart the desktop.',
+      '"lexona-native-gpu on" in the terminal and restart the desktop.',
   checks: [
     GpuCheck('Desktop and Termux apps (OpenGL)', GpuStatus.caveat,
         'With the opt-in: OpenGL 2.1 / GLES 3.1 on virgl; without it: software, OpenGL 4.6', _tab),
@@ -67,7 +67,7 @@ const _xclipse = GpuFamily(
         'Worked in an older test after a virgl fix; not retested on fold.106',
         'Tab S10 FE, 2026-10-28'),
     GpuCheck('Debian apps (OpenGL)', GpuStatus.caveat,
-        'With "droiddesk-gpu on": virgl with OpenGL 4.3. Heavy 3D is faster, light scenes slower '
+        'With "lexona-gpu on": virgl with OpenGL 4.3. Heavy 3D is faster, light scenes slower '
             'than software (glxgears 192 vs 622 FPS); glxinfo itself fails with an X error',
         _tab),
     GpuCheck('Vulkan', GpuStatus.software, 'Software only (lavapipe)', _tab),
@@ -83,7 +83,7 @@ const _mali = GpuFamily(
   name: 'Mali (MediaTek, Exynos)',
   path: 'virgl over ANGLE/Vulkan (experimental, opt-in)',
   defaultState: 'Off by default: software rendering (llvmpipe). Turn on with '
-      '"droiddesk-native-gpu on" in the terminal and restart the desktop.',
+      '"lexona-native-gpu on" in the terminal and restart the desktop.',
   checks: [
     GpuCheck('Desktop and Termux apps (OpenGL)', GpuStatus.caveat,
         'With the opt-in: OpenGL 2.1 on virgl; without it: software, OpenGL 4.6', _a16),
@@ -185,7 +185,7 @@ class GpuSupportScreen extends StatelessWidget {
                 Text('Test your device', style: LexonaTheme.heading),
                 const SizedBox(height: 8),
                 Text(
-                  'With the desktop running, run droiddesk-gpu-report in the terminal (or ask Claude '
+                  'With the desktop running, run lexona-gpu-report in the terminal (or ask Claude '
                   'Code or Codex to run it). It tests OpenGL, Vulkan and WebGL in your browsers and '
                   'writes a report to send us as a GitHub issue. It changes no settings.',
                   style: LexonaTheme.body,
@@ -196,7 +196,7 @@ class GpuSupportScreen extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () => _copy(context, 'droiddesk-gpu-report'),
+                      onPressed: () => _copy(context, 'lexona-gpu-report'),
                       icon: const Icon(Icons.copy_rounded, size: 16),
                       label: const Text('Copy command'),
                     ),
