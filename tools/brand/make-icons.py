@@ -89,11 +89,11 @@ def main():
 
 
 def wallpaper(mascot, width=3840, height=2160):
-    """Desktop wallpaper: ink with a soft teal glow right of the centre, the mascot small in the
-    lower right corner, the left side calm for the desktop icons."""
+    """Desktop wallpaper: ink with a soft teal glow in the centre, the mascot small at the
+    bottom centre, the sides calm for the desktop icons and the dock."""
     small = (width // 8, height // 8)
     glow = Image.new("RGB", small)
-    cx, cy, radius = small[0] * 0.68, small[1] * 0.45, small[0] * 0.55
+    cx, cy, radius = small[0] * 0.5, small[1] * 0.5, small[0] * 0.55
     pixels = glow.load()
     for y in range(small[1]):
         for x in range(small[0]):
@@ -104,11 +104,10 @@ def wallpaper(mascot, width=3840, height=2160):
     image = glow.resize((width, height), Image.BICUBIC).convert("RGBA")
     corner = on_canvas(mascot, round(height * 0.16), 1.0)
     # xfdesktop zooms the image to fill the screen and crops the rest: on a 16:10 tablet the
-    # mascot at the right edge was cut off. Keep it inside what a 4:3 screen still shows
-    # (12.5 % to 87.5 % of the width), lower right.
-    right = round(width * 0.855)
+    # mascot at the right edge was cut off, and a phone in portrait shows only the middle
+    # quarter of the width. So the mascot sits at the bottom centre, visible on every shape.
     bottom = round(height * 0.92)
-    image.alpha_composite(corner, (right - corner.width, bottom - corner.height))
+    image.alpha_composite(corner, ((width - corner.width) // 2, bottom - corner.height))
     return image.convert("RGB")
 
 

@@ -510,12 +510,11 @@ class DesktopActivity : Activity() {
         }
         this.captureButton = captureButton
 
-        val buttonRow = LinearLayout(this).apply {
+        // The middle buttons scroll sideways when the row is wider than the window (a phone in
+        // portrait cut "Myš" and "−" off, Galaxy A16); the drag handle and "−" stay in reach.
+        val scrollingButtons = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(dragHandle, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
-            ))
             addView(keyboardButton, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
             ))
@@ -530,6 +529,21 @@ class DesktopActivity : Activity() {
             ))
             addView(captureButton, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
+            ))
+        }
+        val scroller = android.widget.HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            addView(scrollingButtons)
+        }
+        val buttonRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(dragHandle, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
+            ))
+            addView(scroller, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(), 1f,
             ))
             addView(hideButton, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, (42 * density).toInt(),
