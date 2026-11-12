@@ -83,9 +83,6 @@ class LinuxRuntime(private val context: Context) {
         // <Mesa version>-<build revision>; -2 adds softpipe so zink can present
         // without kopper (the kopper path flickers without DRI3).
         private const val MESA_KGSL_VERSION = "26.2.6-1"
-        // tools/droiddesk-eth, published as release droiddesk-eth-<version>.
-        private const val DROIDDESK_ETH_VERSION = "2"
-        private const val DROIDDESK_ETH_SHA256 = "daf82991ecc5189b14e12b4a344ad32f0a9d72914a7e1f96a66ea851186511c0"
         // Bump when debian-setup gains something existing installs need (rerun at session start).
         // 12: libxcb-keysyms1, Mesa library check, GPU self-test (fold.69).
         // 13: gpu-run Vulkan-only mode with lavapipe fallback, clearer self-test detail (fold.70).
@@ -1896,34 +1893,15 @@ class LinuxRuntime(private val context: Context) {
                 )
                 cameraCommand.setExecutable(true, false)
             }
-            // droiddesk-eth (Ethernet adapter taken over for diagnostics): a static Go binary from
-            // the GitHub release, fetched on first use (tools/droiddesk-eth, pinned by sha256).
-            // The daemon belongs on the Termux side: in Debian proot it would end with the shell.
-            val droiddeskEthUrl = "https://github.com/Vyvrnc/DroidDesk-Fold/releases/download/" +
-                "droiddesk-eth-$DROIDDESK_ETH_VERSION/droiddesk-eth-$DROIDDESK_ETH_VERSION-arm64"
+            // droiddesk-eth (Ethernet adapter taken over for diagnostics): a static Go binary in the
+            // APK (jniLibs/libdroiddesk_eth.so, built from tools/droiddesk-eth). A static program in
+            // the app's data dir does not run at targetSdk >= 29, not even through linker64; files in
+            // nativeLibraryDir do. The daemon belongs on the Termux side: in Debian proot it would
+            // end with the shell.
             File(binDir, "droiddesk-eth").let { ethCommand ->
                 ethCommand.writeText(
                     "#!${File(binDir, "bash").absolutePath}\n" +
-                        "ver=$DROIDDESK_ETH_VERSION\n" +
-                        "dir=\"${prefixDir.absolutePath}/libexec/droiddesk-eth\"\n" +
-                        "bin=\"${'$'}dir/droiddesk-eth-${'$'}ver\"\n" +
-                        "if [ ! -x \"${'$'}bin\" ]; then\n" +
-                        "    mkdir -p \"${'$'}dir\"\n" +
-                        "    echo \"droiddesk-eth: stahuji program (verze ${'$'}ver, 5 MB)…\" >&2\n" +
-                        "    part=\"${'$'}bin.part.${'$'}${'$'}\"\n" +
-                        // Explicit CA bundle: Termux curl has /data/data/com.termux compiled in, which only
-                        // the socket hook maps (not when the wrapper is called from Debian proot).
-                        "    if curl -fsSL --cacert \"${File(prefixDir, "etc/tls/cert.pem").absolutePath}\" -o \"${'$'}part\" \"$droiddeskEthUrl\" &&\n" +
-                        "        echo \"$DROIDDESK_ETH_SHA256  ${'$'}part\" | sha256sum -c - >/dev/null 2>&1; then\n" +
-                        "        chmod 755 \"${'$'}part\" && mv -f \"${'$'}part\" \"${'$'}bin\"\n" +
-                        "        for old in \"${'$'}dir\"/droiddesk-eth-[0-9]*; do case \"${'$'}old\" in \"${'$'}bin\"|*.part.*) ;; *) rm -f \"${'$'}old\" ;; esac; done\n" +
-                        "    else\n" +
-                        "        rm -f \"${'$'}part\"\n" +
-                        "        echo \"droiddesk-eth: stažení se nepovedlo (potřebuje internet jen poprvé)\" >&2\n" +
-                        "        exit 1\n" +
-                        "    fi\n" +
-                        "fi\n" +
-                        "exec \"${'$'}bin\" \"${'$'}@\"\n",
+                        "exec \"${context.applicationInfo.nativeLibraryDir}/libdroiddesk_eth.so\" \"${'$'}@\"\n",
                 )
                 ethCommand.setExecutable(true, false)
             }
@@ -1967,23 +1945,7 @@ class LinuxRuntime(private val context: Context) {
                     wrapper.writeText(
                         "#!/bin/sh\n" +
                             "# droiddesk-eth: the Ethernet adapter taken over for diagnostics (same binary as Termux).\n" +
-                            "ver=$DROIDDESK_ETH_VERSION\n" +
-                            "dir=\"${prefixDir.absolutePath}/libexec/droiddesk-eth\"\n" +
-                            "bin=\"${'$'}dir/droiddesk-eth-${'$'}ver\"\n" +
-                            "if [ ! -x \"${'$'}bin\" ]; then\n" +
-                            "    mkdir -p \"${'$'}dir\"\n" +
-                            "    echo \"droiddesk-eth: stahuji program (verze ${'$'}ver, 5 MB)…\" >&2\n" +
-                            "    part=\"${'$'}bin.part.${'$'}${'$'}\"\n" +
-                        "    if curl -fsSL -o \"${'$'}part\" \"$droiddeskEthUrl\" &&\n" +
-                            "        echo \"$DROIDDESK_ETH_SHA256  ${'$'}part\" | sha256sum -c - >/dev/null 2>&1; then\n" +
-                            "        chmod 755 \"${'$'}part\" && mv -f \"${'$'}part\" \"${'$'}bin\"\n" +
-                            "        for old in \"${'$'}dir\"/droiddesk-eth-[0-9]*; do case \"${'$'}old\" in \"${'$'}bin\"|*.part.*) ;; *) rm -f \"${'$'}old\" ;; esac; done\n" +
-                            "    else\n" +
-                            "        rm -f \"${'$'}part\"\n" +
-                            "        echo \"droiddesk-eth: stažení se nepovedlo (potřebuje internet jen poprvé)\" >&2\n" +
-                            "        exit 1\n" +
-                            "    fi\n" +
-                            "fi\n" +
+                            "bin=\"${context.applicationInfo.nativeLibraryDir}/libdroiddesk_eth.so\"\n" +
                             "if [ \"${'$'}1\" = start ]; then\n" +
                             "    echo \"droiddesk-eth: v Debianu démon skončí se shellem; trvale ho spusť z terminálu plochy nebo z okna Sítě\" >&2\n" +
                             "fi\n" +

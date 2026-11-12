@@ -26,7 +26,7 @@ import kotlin.concurrent.thread
  * descriptor, which this bridge passes over a Unix socket (SCM_RIGHTS). The
  * Linux side wraps it with libusb_wrap_sys_device (droiddesk-usb in Debian).
  *
- * Protocol, one line per request on the abstract socket "droiddesk.usb":
+ * Protocol, one line per request on the abstract socket "lexona.usb":
  *   list              -> one tab-separated line per device, then an empty line
  *                        name, vid, pid, mass storage (1/0), manufacturer, product, held (1/0),
  *                        serial ports (0 = not a supported USB serial adapter), Ethernet mode
@@ -53,7 +53,7 @@ import kotlin.concurrent.thread
  */
 object UsbBridge {
     private const val TAG = "UsbBridge"
-    private const val SOCKET_NAME = "droiddesk.usb"
+    private const val SOCKET_NAME = "lexona.usb"
     private const val ACTION_PERMISSION = "com.orailnoor.droiddesk.USB_PERMISSION"
     private const val PERMISSION_TIMEOUT_S = 60L
 

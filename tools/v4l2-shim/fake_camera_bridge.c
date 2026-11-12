@@ -5,7 +5,7 @@
  * the machine-readable counter (rows 0-1). Lets test-bionic.sh / test-glibc.sh exercise
  * frame_source_bridge.c without Android.
  *
- *   fake_camera_bridge [socket-name]          default droiddesk.camera
+ *   fake_camera_bridge [socket-name]          default lexona.camera
  *
  * One stream at a time; a second "open" gets "err busy". FAKE_CAMERA_ANSWER=<code> makes
  * every open fail with "err <code> test" (fallback test). Builds with the NDK and gcc.

@@ -519,7 +519,15 @@ func cmdRun(args []string) {
 	if err != nil {
 		fail("chybí proxychains4 (Debian: apt install proxychains4, Termux: pkg install proxychains-ng)")
 	}
-	err = syscall.Exec(proxychains, append([]string{"proxychains4", "-q", "-f", path}, args...), os.Environ())
+	argv := append([]string{"proxychains4", "-q", "-f", path}, args...)
+	// Lexona at targetSdk >= 29 (DROIDDESK_LINKER_EXEC=1): Android does not execute files from the
+	// app's data dir, and Go's exec bypasses the socket hook that would add the system linker.
+	if os.Getenv("DROIDDESK_LINKER_EXEC") == "1" && (strings.HasPrefix(proxychains, "/data/user/") ||
+		strings.HasPrefix(proxychains, "/data/data/")) {
+		argv = append([]string{"proxychains4", proxychains}, argv[1:]...)
+		proxychains = "/system/bin/linker64"
+	}
+	err = syscall.Exec(proxychains, argv, os.Environ())
 	fail("spuštění proxychains4 selhalo: %v", err)
 }
 

@@ -12,7 +12,7 @@ Firefox (firefox-cam) sees two cameras, "DroidDesk – přední kamera" (/dev/vi
 import socket
 import sys
 
-SOCKET = "\0droiddesk.camera"
+SOCKET = "\0lexona.camera"
 
 
 def main():

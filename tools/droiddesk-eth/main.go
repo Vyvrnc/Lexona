@@ -1,7 +1,7 @@
 // droiddesk-eth: a userspace network stack on an Ethernet adapter the DroidDesk app took over.
 //
 // Android gives the USB adapter to the app (no root, no kernel interface for Linux), the app
-// carries raw Ethernet frames over the "droiddesk.usb" socket and this program runs TCP/IP on
+// carries raw Ethernet frames over the "lexona.usb" socket and this program runs TCP/IP on
 // them (gVisor netstack) plus raw tools that need to see the wire: capture, ARP scan, watch.
 package main
 

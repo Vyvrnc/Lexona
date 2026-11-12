@@ -40,7 +40,7 @@ import kotlin.concurrent.thread
  * uses the default network for everything else; droiddesk-net run and the PAC file
  * use it. TCP only: UDP and fixed ports go through "forward".
  *
- * Protocol, one line per request on the abstract socket "droiddesk.net":
+ * Protocol, one line per request on the abstract socket "lexona.net":
  *   status              -> "net\t<iface>\t<transport>\t<addresses>\t<validated>\t<default>\t<enabled>\t<port>\t<state>",
  *                          "router\t<port>\t<state>", "rule\t<cidr>\t<iface>", then an empty line
  *   enable <iface> | disable <iface>         -> "ok" / "err <reason>"
@@ -51,7 +51,7 @@ import kotlin.concurrent.thread
  */
 object NetBridge {
     private const val TAG = "NetBridge"
-    private const val SOCKET_NAME = "droiddesk.net"
+    private const val SOCKET_NAME = "lexona.net"
     private const val PREFS = "droiddesk_net"
     const val ROUTER_PORT = 1080
     private const val CONNECT_TIMEOUT_MS = 10_000

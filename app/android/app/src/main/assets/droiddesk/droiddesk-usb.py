@@ -43,7 +43,7 @@ import subprocess
 import sys
 import time
 
-SOCKET = "\0droiddesk.usb"
+SOCKET = "\0lexona.usb"
 
 
 def connect():

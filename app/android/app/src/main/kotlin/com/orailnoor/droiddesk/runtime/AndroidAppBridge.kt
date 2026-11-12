@@ -23,7 +23,7 @@ import kotlin.concurrent.thread
  */
 object AndroidAppBridge {
     private const val TAG = "AndroidAppBridge"
-    private const val SOCKET_NAME = "droiddesk.android-app-launcher"
+    private const val SOCKET_NAME = "lexona.android-app-launcher"
 
     @Volatile private var server: LocalServerSocket? = null
 

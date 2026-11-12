@@ -122,7 +122,7 @@ def handle(conn):
 
 
 server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-server.bind("\0droiddesk.usb")
+server.bind("\0lexona.usb")
 server.listen(8)
 log("listening")
 while True:

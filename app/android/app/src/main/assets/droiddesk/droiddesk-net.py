@@ -26,7 +26,7 @@ import signal
 import socket
 import sys
 
-SOCKET = "\0droiddesk.net"
+SOCKET = "\0lexona.net"
 ROUTER_PORT = 1080
 
 

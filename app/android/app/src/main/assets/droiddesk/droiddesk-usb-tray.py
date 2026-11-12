@@ -54,7 +54,7 @@ DAV = os.path.join(HERE, "droiddesk-usb-dav.py")
 SERIAL = os.path.join(HERE, "droiddesk-serial.py")
 BOOKMARKS = os.path.expanduser("~/.config/gtk-3.0/bookmarks")
 BOOKMARK_PREFIX = "USB – "
-INSTANCE = "\0droiddesk.usb-tray"
+INSTANCE = "\0lexona.usb-tray"
 ICON = "drive-removable-media"
 # DROIDDESK_USB_ORIGIN: operations started here notify through their progress window already.
 ENV = dict(os.environ, PYTHONUTF8="1", DROIDDESK_USB_ORIGIN="tray")

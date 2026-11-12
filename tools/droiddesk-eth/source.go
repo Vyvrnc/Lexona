@@ -26,7 +26,8 @@ type FrameSource interface {
 	Close() error
 }
 
-const bridgeSocket = "@droiddesk.usb"
+// Lexona's USB bridge (DroidDesk Fold used @droiddesk.usb; both apps can run side by side).
+const bridgeSocket = "@lexona.usb"
 
 // usbDevice is one line of the app's "list" answer.
 type usbDevice struct {
@@ -63,7 +64,7 @@ func listUSB() ([]usbDevice, error) {
 	}
 }
 
-var errNoApp = errors.New("aplikace DroidDesk neběží (chybí USB most @droiddesk.usb)")
+var errNoApp = errors.New("aplikace Lexona neběží (chybí USB most @lexona.usb)")
 
 // bridgeSource is the app's USB bridge: after the "eth" handshake the socket carries frames
 // as a 2-byte big-endian length followed by the frame.

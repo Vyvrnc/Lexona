@@ -143,7 +143,7 @@ tcpdump -n -r /tmp/second.pcap 2>/dev/null | grep -q "ICMP echo request"; check 
 $ETH stop; check $? "stop"
 $ETH status >/dev/null; [ $? -eq 3 ]; check $? "status after stop says not running"
 
-echo "=== fake app bridge (@droiddesk.usb), daemon as nobody"
+echo "=== fake app bridge (@lexona.usb), daemon as nobody"
 mkdir -p /tmp/nobody && chown nobody /tmp/nobody
 AS_NOBODY="setpriv --reuid=nobody --regid=nogroup --clear-groups env TMPDIR=/tmp/nobody"
 fake() { FAKE_LIST=$1 python3 /src/test/fake_bridge.py dd1 > /tmp/fake-$1.log 2>&1 & FAKE=$!; sleep 0.5; }

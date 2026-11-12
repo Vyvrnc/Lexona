@@ -33,7 +33,7 @@
 #include <unistd.h>
 
 #define VPATH "/dev/droiddesk-blk"
-#define SOCKET_NAME "droiddesk.usb"
+#define SOCKET_NAME "lexona.usb"
 #define MAX_FDS 32
 #define MAX_REQUEST (1 << 20) /* the bridge's limit per request */
 /* Read cache: SLOTS windows, least recently used goes first, so FAT/inode tables stay

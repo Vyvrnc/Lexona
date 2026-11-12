@@ -59,7 +59,7 @@ V4L2_TEST_SOURCE=bridge LD_PRELOAD=$P /tmp/v4l2_capture_test 3 $O/glibc-bridge >
 CAP=$!
 sleep 1
 echo "-- second client while streaming:"
-busy=$(echo "open v=1 width=640 height=480 fps=30 format=I420 facing=front" | socat -t4 - ABSTRACT-CONNECT:droiddesk.camera)
+busy=$(echo "open v=1 width=640 height=480 fps=30 format=I420 facing=front" | socat -t4 - ABSTRACT-CONNECT:lexona.camera)
 echo "   $busy"
 case "$busy" in "err busy"*) ;; *) fail=1 ;; esac
 wait $CAP || fail=1

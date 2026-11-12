@@ -2,7 +2,7 @@
  * DroidDesk camera bridge, protocol version 1 (the app's CameraBridge <-> the shim's
  * frame_source_bridge.c, and the test server fake_camera_bridge.c).
  *
- * Transport: abstract Unix stream socket "droiddesk.camera" (env DROIDDESK_CAMERA_SOCKET
+ * Transport: abstract Unix stream socket "lexona.camera" (env DROIDDESK_CAMERA_SOCKET
  * overrides the name). Text lines ending in '\n', key=value fields separated by spaces.
  *
  * Client -> server
@@ -41,7 +41,7 @@
 
 #include <stdint.h>
 
-#define DDCAM_SOCKET_NAME "droiddesk.camera"
+#define DDCAM_SOCKET_NAME "lexona.camera"
 #define DDCAM_VERSION 1
 #define DDCAM_MAGIC 0x4D434444u /* "DDCM" little-endian */
 #define DDCAM_MAX_SLOTS 8

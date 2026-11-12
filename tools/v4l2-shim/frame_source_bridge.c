@@ -1,6 +1,6 @@
 /*
  * Camera frame source for libdroiddesk_v4l2.so: frames from the DroidDesk app's CameraBridge
- * (Camera2) through the abstract socket @droiddesk.camera and a shared-memory ring.
+ * (Camera2) through the abstract socket @lexona.camera and a shared-memory ring.
  * Protocol and memory layout: camera_bridge_protocol.h.
  *
  * start() only connects and sends "open" (it runs under the shim's lock, so it must not

@@ -46,7 +46,7 @@ import kotlin.concurrent.thread
  * libdroiddesk_v4l2.so, a fake /dev/video0, which asks this bridge for frames. The camera
  * runs only while such a client streams; one client at a time.
  *
- * Protocol v1 on the abstract socket "droiddesk.camera", text lines (full description in
+ * Protocol v1 on the abstract socket "lexona.camera", text lines (full description in
  * tools/v4l2-shim/camera_bridge_protocol.h):
  *   open v=1 width=W height=H fps=F format=I420 [facing=front|back] [rotate=D] [mirror=0|1]
  *       -> "ok v=1 width=… slots=3 slot_stride=… data_offset=4096 size=… camera=… facing=…
@@ -70,7 +70,7 @@ import kotlin.concurrent.thread
  */
 object CameraBridge {
     private const val TAG = "CameraBridge"
-    private const val SOCKET_NAME = "droiddesk.camera"
+    private const val SOCKET_NAME = "lexona.camera"
     private const val PREFS = "droiddesk_camera"
     private const val SLOTS = 3
     private const val DATA_OFFSET = 4096
