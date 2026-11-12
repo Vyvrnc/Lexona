@@ -558,6 +558,16 @@ int lstat64(const char *p, struct stat64 *s) { REAL(lstat64, int, const char *, 
 int fstatat(int d, const char *p, struct stat *s, int f) { REAL(fstatat, int, int, const char *, struct stat *, int); return real_fstatat(d, mapd(d, p, f & AT_SYMLINK_NOFOLLOW), s, f); }
 int fstatat64(int d, const char *p, struct stat64 *s, int f) { REAL(fstatat64, int, int, const char *, struct stat64 *, int); return real_fstatat64(d, mapd(d, p, f & AT_SYMLINK_NOFOLLOW), s, f); }
 int statx(int d, const char *p, int f, unsigned m, struct statx *s) { REAL(statx, int, int, const char *, int, unsigned, struct statx *); return real_statx(d, mapd(d, p, f & AT_SYMLINK_NOFOLLOW), f, m, s); }
+/* Programs built against glibc < 2.33 call stat through __xstat & co. (still exported as compat
+ * symbols). Flutter's Linux engine does: Skia's font scan of /usr/share/fonts got ENOENT for every
+ * subdirectory, so RustDesk showed no text natively (Fold 7). On 64-bit Linux the versioned
+ * struct is struct stat itself, so these go through the hooks above. */
+int __xstat(int v, const char *p, struct stat *s) { (void)v; return stat(p, s); }
+int __lxstat(int v, const char *p, struct stat *s) { (void)v; return lstat(p, s); }
+int __xstat64(int v, const char *p, struct stat64 *s) { (void)v; return stat64(p, s); }
+int __lxstat64(int v, const char *p, struct stat64 *s) { (void)v; return lstat64(p, s); }
+int __fxstatat(int v, int d, const char *p, struct stat *s, int f) { (void)v; return fstatat(d, p, s, f); }
+int __fxstatat64(int v, int d, const char *p, struct stat64 *s, int f) { (void)v; return fstatat64(d, p, s, f); }
 int access(const char *p, int m) { REAL(access, int, const char *, int); return real_access(map(p, 0), m); }
 int euidaccess(const char *p, int m) { REAL(euidaccess, int, const char *, int); return real_euidaccess(map(p, 0), m); }
 int eaccess(const char *p, int m) { REAL(eaccess, int, const char *, int); return real_eaccess(map(p, 0), m); }

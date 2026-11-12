@@ -356,6 +356,17 @@ int main(int argc, char **argv) {
     }
     struct stat s; struct statfs fs;
     check(!stat("/etc/native-test", &s) && s.st_size == 7, "stat");
+    {
+        /* Binaries built against glibc < 2.33 (Flutter's engine) call __xstat; the preloaded hook
+           must map it like stat. RTLD_DEFAULT finds the preload's definition first. */
+        int (*xstat)(int, const char *, struct stat *) =
+            (int (*)(int, const char *, struct stat *))dlsym(RTLD_DEFAULT, "__xstat");
+        int (*lxstat)(int, const char *, struct stat *) =
+            (int (*)(int, const char *, struct stat *))dlsym(RTLD_DEFAULT, "__lxstat");
+        struct stat t;
+        check(xstat && !xstat(0, "/etc/native-test", &t) && t.st_size == 7, "__xstat mapping (old glibc ABI)");
+        check(lxstat && !lxstat(0, "/etc/absolute-file", &t) && S_ISLNK(t.st_mode), "__lxstat mapping keeps the link");
+    }
     check(!euidaccess("/usr/share/X11/xkb", R_OK | X_OK), "XKB euidaccess mapping");
     check(!eaccess("/usr/share/X11/xkb", R_OK | X_OK), "XKB eaccess mapping");
     check(!faccessat(AT_FDCWD, "/usr/share/X11/xkb", R_OK | X_OK, AT_EACCESS),
