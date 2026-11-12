@@ -159,6 +159,7 @@ class DesktopActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.orailnoor.droiddesk.x11.MouseDiag.init(this)
         linuxRuntime = LinuxRuntime(this)
         chrootRuntime = ChrootRuntime(this)
         shouldStartSession = intent.getBooleanExtra("startSession", false)

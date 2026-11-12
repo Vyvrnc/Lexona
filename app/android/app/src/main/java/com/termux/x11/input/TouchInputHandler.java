@@ -299,8 +299,11 @@ public class TouchInputHandler {
         // Regular touchpads and Dex touchpad (in captured mode) send events as finger too,
         // but they should be handled as touchscreens with trackpad mode.
         if (mTouchpadHandler != null && ((event.getToolType(event.getActionIndex()) == MotionEvent.TOOL_TYPE_FINGER &&
-                (event.getSource() & InputDevice.SOURCE_TOUCHPAD) == InputDevice.SOURCE_TOUCHPAD) || isDexEvent(event)))
+                (event.getSource() & InputDevice.SOURCE_TOUCHPAD) == InputDevice.SOURCE_TOUCHPAD) || isDexEvent(event))) {
+            if (view.hasPointerCapture())
+                com.orailnoor.droiddesk.x11.MouseDiag.routed("touchpad-handler", event);
             return mTouchpadHandler.handleTouchEvent(view0, view, event);
+        }
 
         if (view0 != view) {
             int[] view0Location = new int[2];
@@ -631,8 +634,11 @@ public class TouchInputHandler {
                     default:
                         break;
                 }
+                float rawX = distanceX, rawY = distanceY;
                 distanceX *= mInjector.capturedPointerSpeedFactor;
                 distanceY *= mInjector.capturedPointerSpeedFactor;
+                com.orailnoor.droiddesk.x11.MouseDiag.record("touchpad", e2, rawX, rawY,
+                        mInjector.capturedPointerSpeedFactor, 1f, distanceX, distanceY);
             }
 
 
@@ -906,8 +912,11 @@ public class TouchInputHandler {
                     // acceleration does not apply to these moves. Density floor 2; the speed
                     // per screen comes from DisplayProfile.
                     float density = Math.max(mMetrics.density, 2f);
+                    float rawX = x, rawY = y;
                     x *= mInjector.capturedPointerSpeedFactor * density;
                     y *= mInjector.capturedPointerSpeedFactor * density;
+                    com.orailnoor.droiddesk.x11.MouseDiag.record("captured", e, rawX, rawY,
+                            mInjector.capturedPointerSpeedFactor, density, x, y);
 
                     mInjector.sendCursorMove(x, y, true);
                     if (axis_relative_x && mTouchpadHandler != null)
