@@ -20,6 +20,22 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Lexona 2.0.5 candidate on the Galaxy A16 (2026-11-12)
+
+Process limit screen, tested with the limit on (Android's default) and restored afterwards:
+- Shows the state and the Linux programs (23 with the desktop). Developer options open from
+  the button; Samsung's switch ("Vypnout omezení podřízených procesů") set the override to
+  false and the screen showed "off" on return.
+- lexona-unlimit from Lexona's terminal with Settings in a pop-up window: paired over Wireless
+  debugging, set monitor=false / max_phantom_processes=2147483647 and verified; a second run
+  (--undo) connected with the port only (no new pairing) and restored null/null. Termux's adb
+  has no mDNS, so the port is typed.
+- Lean desktop, all six parts off: 12 Linux programs instead of 23; desktop up, no Trash icon,
+  no USB icon. Back on: 23 again. Found and fixed on the way: pkill -f ended the desktop's
+  own start script (bracketed patterns now), gvfsd came up over D-Bus (blocked now), inverted
+  switches, the screen unreachable with the limit off, the unlimit window restarting itself.
+- Not tested on a device: Android -> Linux clipboard (901dd70).
+
 ## Open for 2.0.5 (found on the Fold 7, 2026-11-12)
 
 - **Android -> Linux clipboard**: worked in older DroidDesk Fold (xclip poller), not in Lexona.
