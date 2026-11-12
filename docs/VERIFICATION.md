@@ -20,6 +20,37 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Lexona 2.0.2 (2026-11-12, candidate)
+
+Full functional test on the Galaxy A16 (`tools/device-test/full.sh --heavy` in the app's terminal
+and `tools/device-test/lifecycle.sh` over adb; build cb35254, the release adds only text): 44 PASS,
+1 LIMIT, 1 SKIP.
+- Exec: bash identity, `#!/usr/bin/env` scripts (new), Python subprocess and fork+execv,
+  `/proc/self/exe`, pipes/xargs/find -exec, static programs in app data through proot (new),
+  Go programs starting children through proot (new: `gh` alias 0.4 s). 200 execs of app-data
+  programs (linker64) 4.9 s against 5.1 s for /system/bin: no overhead from the system linker.
+- Termux: pkg install, git clone over HTTPS, ssh-keygen, pip, clang compiling and running a C
+  program in `$HOME`.
+- Debian: native glibc, glibc to Termux programs, proot route, apt install (hello, python3,
+  mesa-utils), Debian python3 natively, Debian OpenGL with `lexona-gpu on` (virgl on the Mali).
+- Desktop: XFCE processes, xfce4-terminal, Thunar, Mousepad, Ristretto windows, screenshot, X
+  clipboard both ways (Android to X when the desktop comes to the front), Firefox headless page.
+- Android: shared storage, audio playback, network bridge, DNS/HTTPS, USB, serial and camera
+  bridges reachable on the new lexona.* sockets, droiddesk-eth from the APK.
+- Lifecycle: app in the background 120 s, rotation, session notification, force-stop leaves no
+  Linux process behind, launcher bridge listening, no droiddesk.* sockets (runs next to
+  DroidDesk). Screen off 60 s kept the session too, but locked the PIN-protected phone, so the
+  start after force-stop was not checked.
+- Linux processes of the desktop: 23 (was 25: no gpg-agent, no Thunar daemon). With Android's
+  limit on, a clang + apt run killed xfce4-session, PulseAudio and the Debian bus after 5 min;
+  the full run was done with the limit off and the setting restored afterwards.
+- LIMIT (same at targetSdk 28): a program started with `env -i` loses the hook and
+  LD_LIBRARY_PATH, so it cannot start further Termux programs.
+- SKIP: Claude Code on the clean install (its installer is the user's to run).
+
+Not tested: USB devices (none at hand), Chromium, Electron mirrors, Wine/Box64, camera with the
+permission granted, microphone, DeX/mouse right button, Fold 7, Tab S10 FE.
+
 ## Lexona 2.0.1 (2026-11-12)
 
 Tested on Galaxy A16 (adb, by hand on the screen):

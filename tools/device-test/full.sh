@@ -78,7 +78,7 @@ chk "Ristretto window" xdotool search --onlyvisible --class ristretto
 chk "screenshot of the desktop" bash -c "xfce4-screenshooter -f -s $w/shot.png && test \$(stat -c %s $w/shot.png) -gt 20000"
 cp "$w/shot.png" "$out/desktop.png" 2>/dev/null
 for app in xfce4-terminal thunar mousepad ristretto; do pkill -x "$app"; done
-chk "X clipboard (xclip)" bash -c 'echo lexona-clip | xclip -selection clipboard && test "$(xclip -o -selection clipboard)" = lexona-clip'
+chk "X clipboard (xclip)" bash -c 'echo lexona-clip | xclip -selection clipboard >/dev/null 2>&1 && test "$(xclip -o -selection clipboard)" = lexona-clip'
 chk "Firefox headless page load" bash -c "timeout 90 firefox --headless --screenshot $w/ff.png https://example.org >/dev/null 2>&1; test -s $w/ff.png"
 
 log "== Android integration"

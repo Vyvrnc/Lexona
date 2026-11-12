@@ -1066,7 +1066,7 @@ class LinuxRuntime(private val context: Context) {
         val timeZone = java.util.TimeZone.getDefault().id
         // The language chosen in the installer (Android's by default).
         val localeName = desktopLanguage()
-        val mesaKgslUrl = "https://github.com/Vyvrnc/DroidDesk-Fold/releases/download/" +
+        val mesaKgslUrl = "https://github.com/Vyvrnc/Lexona/releases/download/" +
             "mesa-kgsl-$MESA_KGSL_VERSION/mesa-kgsl-$MESA_KGSL_VERSION-arm64.tar.xz"
         val mesaKgslSha256 = MESA_KGSL_SHA256
         val setupScript = File(binDir, "debian-setup")

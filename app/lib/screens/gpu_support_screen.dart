@@ -94,7 +94,8 @@ const _mali = GpuFamily(
     GpuCheck('WebGL in Firefox', GpuStatus.works,
         'With the opt-in: WebGL 2, about 34 FPS on the test page', _a16),
     GpuCheck('WebGL in Chromium', GpuStatus.untested, 'No result yet', ''),
-    GpuCheck('Debian apps (OpenGL)', GpuStatus.untested, 'No result yet', ''),
+    GpuCheck('Debian apps (OpenGL)', GpuStatus.works,
+        'With "lexona-gpu on": virgl, glxgears through gpu-run (native glibc)', _a16),
     GpuCheck('Video decoding', GpuStatus.software, 'Videos play, decoded by the CPU', ''),
   ],
 );
@@ -123,7 +124,7 @@ GpuFamily gpuFamilyFor(String gpuName) {
 class GpuSupportScreen extends StatelessWidget {
   const GpuSupportScreen({super.key});
 
-  static const _issues = 'https://github.com/Vyvrnc/DroidDesk-Fold/issues';
+  static const _issues = 'https://github.com/Vyvrnc/Lexona/issues';
 
   @override
   Widget build(BuildContext context) {
