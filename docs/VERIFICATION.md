@@ -20,6 +20,30 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Open for 2.0.5 (found on the Fold 7, 2026-11-12)
+
+- **Android -> Linux clipboard**: worked in older DroidDesk Fold (xclip poller), not in Lexona.
+  Candidate fix 901dd70 (any text clip, coerceToText); not yet tested on a device.
+- **apt hangs in a Claude Code session started from Lexona**: the session runs under proot
+  (TracerPid = linker64 .../proot, via droiddesk-tmux-host -> debian-run); a child apt forks
+  stays in `t` (ptrace_stop), a nested debian-run times out, and `exec /system/bin/sh` from
+  the Termux environment under that tracer fails with EPERM (bad interpreter).
+- **Termux postinsts that set `LD_PRELOAD=''`** (lv2: `pip3 install pygments rdflib`) drop the
+  socket hook: no network, no exec from the data dir at targetSdk 36; lv2, lilv, sratom,
+  pipewire and chromium stayed unconfigured. Workaround: install the pip packages first.
+- **Captured mouse slow outside DeX**: diagnosis with the MouseDiag log still pending.
+- Phantom processes: list the desktop's processes on the Fold (27) and trim (at-spi, gvfs,
+  tumbler, wrapper scripts without exec); check Android's developer option
+  "Disable child process restrictions".
+
+## Lexona 2.0.4 (2026-11-12)
+
+Released without a whole-build device test (the A16 was offline). Stop server with feedback
+and a kill of leftovers, Chromium in the catalog (execve of /proc/self/exe), the Claude symbol
+for Claude Code, phantom-limit warning, migration scripts. The migration from DroidDesk Fold
+was then run on the Fold 7 with Lexona 2.0.4 installed: homes, launchers and proot-list moved;
+the import script needed fixes (2b7ae11, 4799c38, a4a955b).
+
 ## Lexona 2.0.3 (2026-11-12)
 
 Released without a whole-build device test (the A16 was offline); adds an opt-in
