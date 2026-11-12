@@ -3485,6 +3485,11 @@ class LinuxRuntime(private val context: Context) {
         env["COLORTERM"] = "truecolor"
         // The chosen language (installer); Debian apps follow it, Termux XFCE has no translations.
         env["LANG"] = desktopLanguage()
+        // Bionic knows only C and C.UTF-8 for these. bash-completion sets them locally and on
+        // restore bash fell back to LANG (cs_CZ.UTF-8): a dozen setlocale warnings at every
+        // terminal start. Proot-distro does not pass them into Debian, which keeps its locale.
+        env["LC_CTYPE"] = "C.UTF-8"
+        env["LC_COLLATE"] = "C.UTF-8"
 
         env["DISPLAY"] = ":0"
         env["XDG_RUNTIME_DIR"] = tmpDir.absolutePath
