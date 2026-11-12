@@ -17,7 +17,17 @@ object XfceMobileProfile {
         wallpaperPathInSession: String = wallpaperFile.absolutePath,
     ): Boolean {
         val marker = File(homeDir, PROFILE_MARKER)
-        if (marker.exists()) return true
+        if (marker.exists()) {
+            // The app's own wallpaper file follows app updates (a user's own wallpaper lives
+            // elsewhere and is untouched): the mascot moved inward in 2.0 (16:10 tablets cut it).
+            runCatching {
+                val shipped = context.assets.open(WALLPAPER_ASSET).use { it.readBytes() }
+                if (wallpaperFile.isFile && !wallpaperFile.readBytes().contentEquals(shipped)) {
+                    wallpaperFile.writeBytes(shipped)
+                }
+            }
+            return true
+        }
 
         return try {
             wallpaperFile.parentFile?.mkdirs()

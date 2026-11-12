@@ -103,8 +103,12 @@ def wallpaper(mascot, width=3840, height=2160):
             pixels[x, y] = (round(11 + (15 - 11) * t), round(19 + (76 - 19) * t), round(43 + (92 - 43) * t))
     image = glow.resize((width, height), Image.BICUBIC).convert("RGBA")
     corner = on_canvas(mascot, round(height * 0.16), 1.0)
-    margin = round(height * 0.05)
-    image.alpha_composite(corner, (width - corner.width - margin, height - corner.height - margin))
+    # xfdesktop zooms the image to fill the screen and crops the rest: on a 16:10 tablet the
+    # mascot at the right edge was cut off. Keep it inside what a 4:3 screen still shows
+    # (12.5 % to 87.5 % of the width), lower right.
+    right = round(width * 0.855)
+    bottom = round(height * 0.92)
+    image.alpha_composite(corner, (right - corner.width, bottom - corner.height))
     return image.convert("RGB")
 
 

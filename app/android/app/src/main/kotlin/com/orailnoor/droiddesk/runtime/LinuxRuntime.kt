@@ -5110,6 +5110,17 @@ class LinuxRuntime(private val context: Context) {
             # on the network play or record past the IP ACL.
             echo "DIAG: PulseAudio sinks: ${'$'}(timeout 2 pactl list short sinks 2>/dev/null | cut -f2 | tr '\n' ' ')"
 
+            # xfce4-session starts its ssh agent as "gpg-agent --sh --daemon" and waits for it
+            # in its main thread. A gpg-agent left from an earlier session (reparented to init,
+            # so stopping the server missed it) that stopped answering blocked that call, xfwm4
+            # then waited for the session manager and the desktop stayed black (Tab S10 FE,
+            # 2026-11-12). Keep an agent that answers, kill one that does not.
+            if pgrep -x gpg-agent >/dev/null 2>&1 &&
+                ! timeout 3 gpg-connect-agent /bye >/dev/null 2>&1; then
+                echo "DIAG: killing a gpg-agent that does not answer"
+                pkill -9 -x gpg-agent >/dev/null 2>&1 || true
+            fi
+
             echo "DIAG: Launching $desktopCommand natively on DISPLAY=:0 ..."
             exec $desktopCommand
         """.trimIndent()
