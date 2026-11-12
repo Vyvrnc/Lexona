@@ -298,6 +298,8 @@ object TerminalSessions {
         val runtime = LinuxRuntime(context.applicationContext)
         // droiddesk-usb/-serial/-net/-eth of this app version, also without a desktop start.
         runCatching { runtime.writeDeviceTools() }.onFailure { Log.w(TAG, "Device tools: ${it.message}") }
+        // This app version's exec hook, also before the first desktop start after an update.
+        runCatching { runtime.ensureSocketHookPrebuilt() }.onFailure { Log.w(TAG, "Socket hook: ${it.message}") }
         // etc/profile from this Android user's real paths (user 10 on Android Automotive).
         runCatching { runtime.repairLoginFiles() }.onFailure { Log.w(TAG, "Login files: ${it.message}") }
         // Debian's session bus and keyring (Electron apps, libsecret), also without a desktop.

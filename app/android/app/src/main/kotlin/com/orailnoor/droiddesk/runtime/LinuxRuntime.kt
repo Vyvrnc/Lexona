@@ -2462,7 +2462,8 @@ class LinuxRuntime(private val context: Context) {
         Log.i(TAG, "Bootstrap extraction complete")
     }
 
-    private fun ensureSocketHookPrebuilt() {
+    /** The APK's hook into $PREFIX/lib when it differs (app update); terminals call it too. */
+    fun ensureSocketHookPrebuilt() {
         try {
             val libDir = File(prefixDir, "lib")
             libDir.mkdirs()
@@ -3331,6 +3332,14 @@ class LinuxRuntime(private val context: Context) {
         val hookSo = File(prefixDir, "lib/libsocket_hook.so")
         val buildMarker = File(prefixDir, "lib/.socket_hook_build")
         File(prefixDir, "lib").mkdirs()
+        // targetSdk >= 29: the prebuilt hook from jniLibs is the one. A hook built here with
+        // Termux's clang went stale: newer builds failed (clang's -cc1 re-exec under linker64)
+        // and the old one kept overriding the APK's fixes (Galaxy A16, 2.0.6).
+        if (NativeExec.linkerExec(context)) {
+            buildMarker.delete()
+            ensureSocketHookPrebuilt()
+            return
+        }
 
         try {
             context.assets.open("flutter_assets/assets/socket_hook.c").use { input ->

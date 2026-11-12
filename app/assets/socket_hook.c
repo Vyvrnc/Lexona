@@ -1001,6 +1001,14 @@ static int make_exec_plan(const char *path, char *const argv[], struct exec_plan
        switch as its program; the real program is self_exe (identity_fix). */
     int changed = 0;
     if (is_self_exe_link(path)) { cur_path = self_exe; changed = 1; }
+    /* "./script", "bin/tool": relative to the working directory, which is in app data as often
+       as not; without this every such exec got EACCES (Galaxy A16). */
+    else if (path[0] != '/' && strchr(path, '/')) {
+        char cwd[512];
+        if (getcwd(cwd, sizeof(cwd)) &&
+            snprintf(plan->found, sizeof(plan->found), "%s/%s", cwd, path) < (int) sizeof(plan->found))
+            cur_path = plan->found;
+    }
     for (int depth = 0; depth < PLAN_DEPTH; depth++) {
         if (!under_app_data(cur_path)) break;
         int fd = real_open(cur_path, O_RDONLY | O_CLOEXEC);
