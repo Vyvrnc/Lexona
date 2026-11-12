@@ -733,8 +733,19 @@ Phase 6, rest (night 2026-11-12):
   when the limit applies (developer option or adb fix, docs/backlog.md item 3). The limit is
   the same at targetSdk 28; specialUse does not protect child processes.
 
-Open: phase 5 (glibc native via libld.so), FGS `microphone` type, mouse right button, remove
-SmokeInstrumentation before a release.
+Phase 5 (night 2026-11-12), simpler than planned: Android executes a file in nativeLibraryDir
+also through a symlink in app data (raw execve test on the A16; a file in app data itself gets
+EACCES). So `$PLIB/ld.so` is a link to the APK's `libld.so` (renewed on every call), pathhook's
+loader logic stays, and no userland-exec stub is needed. tools/glibc-native/build-loader.sh
+builds libld.so and the matching glibc set from Debian trixie libc6 2.41-12+deb13u4. pathhook
+starts Termux programs and proot through linker64 (proot's loader from nativeLibraryDir) and
+treats PT_INTERP `$PLIB/ld.so` (mirrors) as glibc; the socket hook starts such ELF files as
+`LOADER --argv0 ARGV0 PROGRAM`. Result on the A16: setup, `ls`, glibc to Termux `uname`, the
+identity (`readlink /proc/self/exe`, comm), apt through proot; `debian-run true` 0.33 s against
+0.98 s through proot. Not tested yet: Claude Code's rg re-exec, Electron mirrors.
+
+Open: Claude Code and Electron mirrors natively, FGS `microphone` type, mouse right button,
+remove SmokeInstrumentation before a release.
 
 ## Lessons from Local Desktop (localdesktop/localdesktop 43082a8, GPLv3, targetSdk 36)
 

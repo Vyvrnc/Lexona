@@ -36,7 +36,13 @@ Tested on Galaxy A16 and Tab S10 FE (adb, clean install, by hand on the screen):
 - Firefox 159 (Termux) on the A16 with virgl: WebGL 2 about 34 FPS on the GPU kit test page,
   after the socket hook resolves symlinks in /proc/self/exe (before: "Couldn't load XPCOM").
 
-Not tested: Chromium and Debian OpenGL on Mali; Fold 7; a mouse's right button (BACK).
+- glibc-native at targetSdk 36 (A16): the APK's libld.so and glibc 2.41-12+deb13u4; Debian
+  programs natively, glibc to Termux programs, apt through proot; `debian-run true` 0.33 s
+  (0.98 s through proot).
+- Phantom processes (A16, limit on): with 37 processes Android killed the two oldest after
+  5 minutes; the home screen warns about the limit.
+
+Not tested: Claude Code and Electron mirrors natively at targetSdk 36; Chromium and Debian OpenGL on Mali; Fold 7; a mouse's right button (BACK).
 
 ## 1.0.1-fold.108 (2026-11-02)
 
