@@ -66,6 +66,7 @@ setup() {
     uv=$(resolve "$R/usr/lib/aarch64-linux-gnu/libuv.so.1")
     [[ -f $ld && -f $libc ]] || fail 'Chybí Debian glibc. Nejdříve nainstalujte Debian v aplikaci.'
     mkdir -p "$PLIB" "$N/bin" "$N/lib"
+    if [[ -n ${DD_LOADER:-} ]]; then setup_shipped "$uv"; return; fi
     signature=$({ sha256sum "$ld" "$libc" "$SHARE/patch-glibc.py" "$SHARE/pathhook.so"; [[ ! -f $uv ]] || sha256sum "$uv"; } | sha256sum)
     if [[ -f $N/stamp && $(< "$N/stamp") == "$signature" && -f $PLIB/ld.so && -f $PLIB/libc.so.6 && -f $N/lib/pathhook.so ]] && { [[ ! -f $uv ]] || [[ -f $PLIB/libuv.so.1 ]]; }; then
         setup_data
@@ -90,6 +91,45 @@ setup() {
     rmdir "$stage"
     setup_data
     printf 'Nativní glibc je připravena.\n'
+}
+
+# targetSdk >= 29 (the app sets DD_LOADER): Android executes only files from the APK's
+# nativeLibraryDir, so the loader is the APK's patched libld.so and $PLIB/ld.so a link to it;
+# libc and the rest of glibc come from the same build (assets, tools/glibc-native/build-loader.sh).
+# The link is renewed on every call: nativeLibraryDir changes with each app update.
+link_loader() {
+    [[ -n ${DD_LOADER:-} && -f $DD_LOADER ]] || return 0
+    [[ $(readlink "$PLIB/ld.so" 2>/dev/null) == "$DD_LOADER" ]] || ln -sfn "$DD_LOADER" "$PLIB/ld.so"
+}
+
+setup_shipped() {
+    local uv=$1 signature stage
+    [[ -f $DD_LOADER && -f $SHARE/glibc/libc.so.6 ]] || fail 'V instalaci aplikace chybí glibc pro nativní běh.'
+    signature=$({ sha256sum "$DD_LOADER" "$SHARE"/glibc/* "$SHARE/pathhook.so"; [[ ! -f $uv ]] || sha256sum "$uv" "$SHARE/patch-glibc.py"; } | sha256sum)
+    if [[ -f $N/stamp && $(< "$N/stamp") == "$signature" && -f $PLIB/libc.so.6 && -f $N/lib/pathhook.so ]] && { [[ ! -f $uv ]] || [[ -f $PLIB/libuv.so.1 ]]; }; then
+        link_loader
+        setup_data
+        printf 'Nativní glibc je aktuální.\n'
+        return
+    fi
+    stage=$(mktemp -d "$N/.setup.XXXXXX")
+    if [[ -f $uv ]] && ! python3 "$SHARE/patch-glibc.py" libuv "$uv" "$stage/libuv.so.1"; then
+        rm -rf "$stage"
+        fail 'Úprava libuv selhala; instalace nebyla aktualizována.'
+    fi
+    cp "$SHARE"/glibc/*.so* "$stage/"
+    cp "$SHARE/pathhook.so" "$stage/pathhook.so"
+    chmod 755 "$stage/pathhook.so"
+    rm -f "$PLIB/ld.so"
+    mv -f "$stage"/*.so* "$PLIB/" 2>/dev/null || true
+    mv -f "$PLIB/pathhook.so" "$N/lib/pathhook.so"
+    [[ -f $uv ]] || rm -f "$PLIB/libuv.so.1"
+    link_loader
+    printf '%s\n' "$signature" > "$stage/stamp"
+    mv -f "$stage/stamp" "$N/stamp"
+    rmdir "$stage"
+    setup_data
+    printf 'Nativní glibc je připravena (glibc %s z aplikace).\n' "$(cat "$SHARE/glibc/VERSION" 2>/dev/null)"
 }
 
 load_library_paths() {
@@ -427,6 +467,8 @@ electron_mirror_into() {
     local env_file=$dst/.dd-env env_text
     env_text="DD_ROOTFS=$R"$'\n'"DD_TMP=$T"$'\n'"DD_PLIB=$PLIB"$'\n'"DD_LIBPATH=$LIBPATH"$'\n'
     env_text+="DD_NATIVE_ACTIVE=1"$'\n'"DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbus-debian"$'\n'
+    [[ -z ${DROIDDESK_LINKER_EXEC:-} ]] || env_text+="DD_SAVED_DROIDDESK_LINKER_EXEC=$DROIDDESK_LINKER_EXEC"$'\n'
+    [[ -z ${DROIDDESK_NATIVE_LIB_DIR:-} ]] || env_text+="DD_SAVED_DROIDDESK_NATIVE_LIB_DIR=$DROIDDESK_NATIVE_LIB_DIR"$'\n'
     if [[ ! -f $env_file || $(< "$env_file")$'\n' != "$env_text" ]]; then
         printf '%s' "$env_text" > "$env_file.new" && mv -f "$env_file.new" "$env_file" || return 2
     fi
@@ -440,6 +482,11 @@ run_native() {
     local saved_preload=${LD_PRELOAD-} saved_library=${LD_LIBRARY_PATH-} saved_path=${PATH-}
     local timezone variable locale
     local -a desktop=() extra=() saved=("DD_SAVED_PREFIX=$PREFIX")
+    # targetSdk >= 29: pathhook starts Termux programs and proot through linker64 and takes
+    # proot's loader from nativeLibraryDir; bionic children get these back (socket hook).
+    for variable in DROIDDESK_LINKER_EXEC DROIDDESK_NATIVE_LIB_DIR; do
+        [[ -z ${!variable:-} ]] || saved+=("DD_SAVED_$variable=${!variable}")
+    done
     # Prefix expansion enumerates names in this shell. Indirect attribute
     # expansion filters exported variables without compgen subprocesses/pipes.
     read -r -a extra <<< "${DD_NATIVE_PASS:-}"
@@ -501,7 +548,8 @@ native_ready() {
        -f $R/etc/resolv.conf && -x $R/usr/bin/bash && -d $R/root ]]
 }
 
-# DD_NATIVE_BLOCKED: set by the app when Android does not exec ld.so from app data (targetSdk >= 29).
+# DD_NATIVE_BLOCKED: set by the app when Android does not exec ld.so from app data (targetSdk >= 29)
+# and the APK has no libld.so; with one it sets DD_LOADER instead.
 native_enabled() { [[ ${DD_NATIVE_BLOCKED:-0} != 1 && ! -e $N/off && ${DD_NATIVE:-1} != 0 ]]; }
 
 native_switch() {
@@ -939,6 +987,7 @@ selftest() {
 }
 
 command=${1:-}; [[ $# == 0 ]] || shift
+[[ ! -d $PLIB ]] || link_loader
 case $command in
     setup) setup ;;
     patch) ready; need_python; need_patchelf; [[ $# -gt 0 ]] || fail 'Použití: droiddesk-glibc-native patch PROGRAM...'; for binary in "$@"; do if [[ -d $(source_path "$binary") ]]; then mirror_app "$binary"; else patch_one "$binary"; fi; done ;;

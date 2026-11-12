@@ -66,6 +66,16 @@ static int ld_option(const char *a) {
            !strcmp(a, "--verify") || !strcmp(a, "--help") || !strcmp(a, "--version") ||
            !strcmp(a, "--list-tunables") || !strcmp(a, "--list-diagnostics");
 }
+/* targetSdk >= 29 (the app saved DROIDDESK_LINKER_EXEC=1): Android does not execute files in
+ * the app's data directory. Termux programs start as "linker64 PROGRAM", proot's loader comes
+ * from nativeLibraryDir, and $DD_PLIB/ld.so is a link to the APK's libld.so. */
+static int linker_exec(void) {
+    const char *v = getenv("DD_SAVED_DROIDDESK_LINKER_EXEC");
+    return v && v[0] == '1';
+}
+static int in_app_data(const char *path) {
+    return path && (!strncmp(path, "/data/user/", 11) || !strncmp(path, "/data/data/", 11));
+}
 static int is_loader(const char *path) {
     const char *plib = getenv("DD_PLIB");
     char want[PATH_MAX];
@@ -118,6 +128,23 @@ __attribute__((constructor(101))) static void restore_mirror_env(void) {
     path[n] = 0;
     char *slash = strrchr(path, '/');
     if (!slash) return;
+    /* targetSdk >= 29: mirrors start as "$DD_PLIB/ld.so [options] PROGRAM", so /proc/self/exe
+     * is the APK's libld.so; the program is the first non-option word of the command line. */
+    if (!strcmp(slash + 1, "libld.so")) {
+        int cfd = (int)raw_syscall(SYS_openat, AT_FDCWD, "/proc/self/cmdline", O_RDONLY | O_CLOEXEC);
+        if (cfd < 0) return;
+        char cmd[8192];
+        ssize_t got = 0, rr;
+        while (got < (ssize_t)sizeof cmd - 1 && (rr = read(cfd, cmd + got, sizeof cmd - 1 - (size_t)got)) > 0) got += rr;
+        close(cfd);
+        if (got <= 0) return;
+        cmd[got] = 0;
+        char *a = cmd + strlen(cmd) + 1, *end = cmd + got;
+        while (a < end && ld_option(a)) a += strlen(a) + 1 + (ld_option_with_value(a) ? strlen(a + strlen(a) + 1) + 1 : 0);
+        if (a >= end || *a != '/' || strlen(a) >= sizeof path - 16) return;
+        strcpy(path, a);
+        slash = strrchr(path, '/');
+    }
     strcpy(slash + 1, ".dd-env");
     int fd = (int)raw_syscall(SYS_openat, AT_FDCWD, path, O_RDONLY | O_CLOEXEC);
     if (fd < 0) return;
@@ -1025,8 +1052,11 @@ static int prepare_proot(const char *target, char *const argv[], char *const env
         snprintf(program_dir, sizeof program_dir, "%.*s", (int)(slash - target), target);
         if (!*program_dir) strcpy(program_dir, "/");
     }
+    const char *native_lib = getenv("DD_SAVED_DROIDDESK_NATIVE_LIB_DIR");
+    int via_linker = linker_exec() && native_lib && *native_lib;
     if (snprintf(proot, sizeof proot, "%s/bin/proot", prefix) >= (int)sizeof proot ||
-        snprintf(loader, sizeof loader, "%s/libexec/proot/loader", prefix) >= (int)sizeof loader ||
+        (via_linker ? snprintf(loader, sizeof loader, "%s/libproot-loader.so", native_lib)
+                    : snprintf(loader, sizeof loader, "%s/libexec/proot/loader", prefix)) >= (int)sizeof loader ||
         access(proot, X_OK)) { errno = ENOENT; return -1; }
     int outside = !virtual_path(cwd, root, tmp, vcwd);
     if (outside) strcpy(vcwd, cwd);
@@ -1037,11 +1067,13 @@ static int prepare_proot(const char *target, char *const argv[], char *const env
     const char *a0base = strrchr(argv0, '/');
     /* Multicall programs (BusyBox) select by argv[0]; env cannot set it, bash's exec -a can. */
     int keep_argv0 = strcmp(a0base ? a0base + 1 : argv0, base ? base + 1 : program) != 0;
-    char **v = calloc(n + envs + 40, sizeof *v);
+    char **v = calloc(n + envs + 41, sizeof *v);
     if (!v) { free_vector(program_env); errno = ENOMEM; return -1; }
     size_t k = 0;
     int ok = 1;
 #define ADD(s) do { if (ok && !(v[k++] = strdup(s))) ok = 0; } while (0)
+    /* linker64 [argv0] PROGRAM ARGS: proot keeps its own name as argv[0]. */
+    if (via_linker) ADD(proot);
     ADD(proot); ADD("-L"); ADD("--link2symlink"); ADD("--sysvipc"); ADD("--kill-on-exit");
     /* Quiet: "proot info: vpid 1: terminated with signal 13" after apt-cache ... | head. */
     ADD("--verbose=-1");
@@ -1086,7 +1118,7 @@ static int prepare_proot(const char *target, char *const argv[], char *const env
     char dir[PATH_MAX];
     snprintf(dir, sizeof dir, "%s/proot", tmp);
     raw_syscall(SYS_mkdirat, AT_FDCWD, dir, 0700);
-    c->file = strdup(proot);
+    c->file = strdup(via_linker ? "/system/bin/linker64" : proot);
     if (!c->file) { errno = ENOMEM; return -1; }
     return 0;
 }
@@ -1132,7 +1164,10 @@ static int prepare(const char *file, char *const argv[], char *const env[], stru
         int rc = prepare(s, (char *const *)v, env, c, depth + 1);
         int e = errno; free(v); errno = e; return rc;
     }
-    int glibc = !strcmp(interp, "/lib/ld-linux-aarch64.so.1") || !strcmp(interp, "/lib64/ld-linux-x86-64.so.2");
+    /* is_loader: patchelf'd mirrors name $DD_PLIB/ld.so; they cannot be executed directly at
+     * targetSdk >= 29 either, so they start through the loader like every glibc program. */
+    int glibc = !strcmp(interp, "/lib/ld-linux-aarch64.so.1") || !strcmp(interp, "/lib64/ld-linux-x86-64.so.2") ||
+                is_loader(interp);
     int bionic = !strcmp(interp, "/system/bin/linker64") || !strcmp(interp, "/system/bin/linker");
     if (kind == 1 && !glibc && !bionic && !is_loader(target)) {
         if (!prepare_proot(target, argv, env, c, 0)) return 0;
@@ -1160,8 +1195,18 @@ static int prepare(const char *file, char *const argv[], char *const env[], stru
     } else {
         /* Patched copies carry this hook in DT_NEEDED. Android binaries restore
          * the saved Termux loader variables and PATH, including custom envp. */
-        c->file = strdup(target);
-        c->argv = copy_vector((const char *const *)argv, n);
+        if (bionic && linker_exec() && in_app_data(target)) {
+            /* linker64 ARGV0 PROGRAM ARGS; the Termux socket hook restores argv[0] and comm. */
+            const char **v = calloc(n + 3, sizeof(*v)); if (!v) return -1;
+            size_t k = 0;
+            v[k++] = n ? argv[0] : target; v[k++] = target;
+            for (size_t i = 1; i < n; ++i) v[k++] = argv[i];
+            c->file = strdup("/system/bin/linker64");
+            c->argv = copy_vector(v, k); free(v);
+        } else {
+            c->file = strdup(target);
+            c->argv = copy_vector((const char *const *)argv, n);
+        }
     }
     return c->file && c->argv ? 0 : -1;
 }

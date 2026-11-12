@@ -451,6 +451,7 @@ body = textwrap.dedent(body).lstrip('\n').replace("${'$'}", '$')
 body = body.replace('${tmpDir.absolutePath}', str(tmp)).replace('${binDir.absolutePath}', str(prefix / 'bin'))
 body = re.sub(r'\$\{File\(binDir, "([^"]+)"\)\.absolutePath\}', lambda m: str(prefix / 'bin' / m[1]), body)
 body = re.sub(r'\$\{File\(prefixDir, "([^"]+)"\)\.absolutePath\}', lambda m: str(prefix / m[1]), body)
+body = body.replace('${prootLoaderPath()}', str(prefix / 'libexec/proot/loader'))  # the targetSdk 28 path
 (prefix / 'bin/debian-run').write_text(body + '\n')
 # Later checks replace debian-run with stubs; the protocol check restores this copy.
 (prefix / 'debian-run.generated').write_text(body + '\n')
@@ -459,6 +460,7 @@ body = textwrap.dedent(body).lstrip('\n').replace("${'$'}", '$')
 body = body.replace('${tmpDir.absolutePath}', str(tmp)).replace('${binDir.absolutePath}', str(prefix / 'bin'))
 body = re.sub(r'\$\{File\(binDir, "([^"]+)"\)\.absolutePath\}', lambda m: str(prefix / 'bin' / m[1]), body)
 body = re.sub(r'\$\{File\(prefixDir, "([^"]+)"\)\.absolutePath\}', lambda m: str(prefix / m[1]), body)
+body = body.replace('${prootLoaderPath()}', str(prefix / 'libexec/proot/loader'))  # the targetSdk 28 path
 (prefix / 'bin/debian-tmux').write_text(body + '\n')
 (prefix / 'bin/debian-tmux').chmod(0o755)
 # Isolate the actual host body and redirect its passwd access to a test fixture.

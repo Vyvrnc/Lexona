@@ -895,8 +895,9 @@ static int under_app_data(const char *path) {
     return path && (strncmp(path, "/data/user/", 11) == 0 || strncmp(path, "/data/data/", 11) == 0);
 }
 
-/* 1: dynamic bionic ELF (PT_INTERP names linker64), 2: other ELF, 3: "#!" script, 0: other. */
-static int exec_kind(int fd, char *head, size_t head_size) {
+/* 1: dynamic bionic ELF (PT_INTERP names linker64), 2: other ELF, 3: "#!" script, 0: other,
+ * 4: ELF whose PT_INTERP is in app data (glibc-native mirrors: $PLIB/ld.so), copied to interp_out. */
+static int exec_kind(int fd, char *head, size_t head_size, char *interp_out, size_t interp_size) {
     ssize_t n = pread(fd, head, head_size - 1, 0);
     if (n < 4) return 0;
     head[n] = '\0';
@@ -920,7 +921,12 @@ static int exec_kind(int fd, char *head, size_t head_size) {
         char interp[256];
         if (size == 0 || size >= sizeof(interp) || pread(fd, interp, size, (off_t) off) != (ssize_t) size) return 2;
         interp[size] = '\0';
-        return strstr(interp, "linker64") ? 1 : 2;
+        if (strstr(interp, "linker64")) return 1;
+        if (under_app_data(interp) && interp_out && strlen(interp) < interp_size) {
+            strcpy(interp_out, interp);
+            return 4;
+        }
+        return 2;
     }
     return 2;
 }
@@ -946,8 +952,21 @@ static int make_exec_plan(const char *path, char *const argv[], struct exec_plan
         int fd = real_open(cur_path, O_RDONLY | O_CLOEXEC);
         if (fd < 0) break;
         char head[512];
-        int kind = exec_kind(fd, head, sizeof(head));
+        int kind = exec_kind(fd, head, sizeof(head), plan->interp[depth], sizeof(plan->interp[depth]));
         close(fd);
+        if (kind == 4) {
+            /* LOADER --argv0 ARGV0 PROGRAM ARGS…, what the kernel would do with PT_INTERP; the
+               loader is a link into nativeLibraryDir, which Android lets apps execute. */
+            int k = 0;
+            plan->argv[k++] = plan->interp[depth];
+            plan->argv[k++] = (char *) "--argv0";
+            plan->argv[k++] = cur[0] ? cur[0] : (char *) cur_path;
+            plan->argv[k++] = (char *) cur_path;
+            for (int i = 1; i < PLAN_ARGS - 4 && cur[0] && cur[i]; i++) plan->argv[k++] = cur[i];
+            plan->argv[k] = NULL;
+            plan->path = plan->interp[depth];
+            return 0;
+        }
         if (kind == 1) {
             /* linker64 [original argv0] path args…: the started program finds the original
                argv0 in /proc/self/cmdline (identity_fix below). */

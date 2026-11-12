@@ -1850,14 +1850,27 @@ class LinuxRuntime(private val context: Context) {
             // Opt-in Debian glibc tools; setup is always an explicit user action.
             File(binDir, "droiddesk-glibc-native").let { command ->
                 val script = context.assets.open("droiddesk/droiddesk-glibc-native").bufferedReader().use { it.readText() }
-                // targetSdk >= 29: Android does not exec the patched ld.so from app data, so
-                // everything goes through proot until glibc-native runs from nativeLibraryDir.
-                val blocked = if (NativeExec.linkerExec(context)) "DD_NATIVE_BLOCKED=1\n" else ""
-                command.writeText("#!${File(binDir, "bash").absolutePath}\n" + blocked + script.substringAfter('\n'))
+                // targetSdk >= 29: Android does not exec the patched ld.so from app data. The APK
+                // ships it as libld.so (tools/glibc-native/build-loader.sh) and $PLIB/ld.so links
+                // to it; without it everything goes through proot.
+                val loader = nativeLoader()
+                val header = when {
+                    !NativeExec.linkerExec(context) -> ""
+                    loader != null -> "DD_LOADER=${loader.absolutePath}\n"
+                    else -> "DD_NATIVE_BLOCKED=1\n"
+                }
+                command.writeText("#!${File(binDir, "bash").absolutePath}\n" + header + script.substringAfter('\n'))
                 command.setExecutable(true, false)
             }
             val glibcShare = File(prefixDir, "opt/glibc-native/share").apply { mkdirs() }
             copyAssetAtomically("droiddesk/glibc-native/patch-glibc.py", File(glibcShare, "patch-glibc.py"))
+            // The glibc build that matches the APK's libld.so (only used at targetSdk >= 29).
+            if (NativeExec.linkerExec(context)) runCatching {
+                val shipped = File(glibcShare, "glibc").apply { mkdirs() }
+                context.assets.list("droiddesk/glibc-native/glibc")?.forEach { name ->
+                    copyAssetAtomically("droiddesk/glibc-native/glibc/$name", File(shipped, name))
+                }
+            }.onFailure { Log.w(TAG, "Shipped glibc: ${it.message}") }
             runCatching {
                 copyAssetAtomically("droiddesk/glibc-native/pathhook.so", File(glibcShare, "pathhook.so"))
             }.onFailure { Log.w(TAG, "Optional glibc-native hook asset is unavailable; run tools/glibc-native/build.sh", it) }
@@ -4098,9 +4111,14 @@ class LinuxRuntime(private val context: Context) {
         }, "default-look").apply { isDaemon = true }.start()
     }
 
+    /** The APK's patched glibc loader (targetSdk >= 29 runs glibc-native through it), if present. */
+    private fun nativeLoader(): File? =
+        File(context.applicationInfo.nativeLibraryDir, "libld.so").takeIf { it.isFile }
+
     private fun refreshNativeSetupInBackground() {
         val launcher = File(binDir, "droiddesk-glibc-native")
-        if (NativeExec.linkerExec(context) || nativeSetupRunning || debianRootfsMarkers().none(File::exists) ||
+        if ((NativeExec.linkerExec(context) && nativeLoader() == null) || nativeSetupRunning ||
+            debianRootfsMarkers().none(File::exists) ||
             File(prefixDir, "opt/glibc-native/off").exists() || !launcher.canExecute()) return
         nativeSetupRunning = true
         Thread({
