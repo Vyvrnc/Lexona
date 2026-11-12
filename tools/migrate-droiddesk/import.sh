@@ -108,6 +108,15 @@ for d in "$R/root/.claude" "$R/root/.config" "$R/root/.local/bin" "$HOME/.config
         sed -i "s#$old#$new#g" "$f" && echo "paths rewritten: $f"
     done
 done
+# Firefox profiles keep absolute paths in their small config files (extensions.json,
+# compatibility.ini, prefs.js); databases and caches are left alone.
+for d in "$HOME/.config/mozilla" "$HOME/.mozilla" "$R/root/.mozilla"; do
+    [ -d "$d" ] || continue
+    { grep -rlI --include='*.json' --include='*.ini' --include='*.js' --exclude-dir=storage \
+        --exclude-dir=cache2 "$old" "$d" 2>/dev/null || true; } | while read -r f; do
+        sed -i "s#$old#$new#g" "$f" && echo "paths rewritten: $f"
+    done
+done
 relink "$R/root"
 relink "$HOME"
 
