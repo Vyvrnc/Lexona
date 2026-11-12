@@ -742,9 +742,10 @@ starts Termux programs and proot through linker64 (proot's loader from nativeLib
 treats PT_INTERP `$PLIB/ld.so` (mirrors) as glibc; the socket hook starts such ELF files as
 `LOADER --argv0 ARGV0 PROGRAM`. Result on the A16: setup, `ls`, glibc to Termux `uname`, the
 identity (`readlink /proc/self/exe`, comm), apt through proot; `debian-run true` 0.33 s against
-0.98 s through proot. Not tested yet: Claude Code's rg re-exec, Electron mirrors.
+0.98 s through proot; Claude Code 2.1.322 natively, its ripgrep re-exec works. Not tested
+yet: Electron mirrors.
 
-Open: Claude Code and Electron mirrors natively, FGS `microphone` type, mouse right button,
+Open: Electron mirrors natively, FGS `microphone` type, mouse right button,
 remove SmokeInstrumentation before a release.
 
 ## Lessons from Local Desktop (localdesktop/localdesktop 43082a8, GPLv3, targetSdk 36)

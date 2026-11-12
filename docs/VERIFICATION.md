@@ -42,7 +42,10 @@ Tested on Galaxy A16 and Tab S10 FE (adb, clean install, by hand on the screen):
 - Phantom processes (A16, limit on): with 37 processes Android killed the two oldest after
   5 minutes; the home screen warns about the limit.
 
-Not tested: Claude Code and Electron mirrors natively at targetSdk 36; Chromium and Debian OpenGL on Mali; Fold 7; a mouse's right button (BACK).
+- Claude Code 2.1.322 natively at targetSdk 36 (A16, installed from the app catalog): `claude
+  --version` 0.5 s, its embedded ripgrep through the argv0 "rg" re-exec finds files.
+
+Not tested: Electron mirrors natively at targetSdk 36; Chromium and Debian OpenGL on Mali; Fold 7; a mouse's right button (BACK).
 
 ## 1.0.1-fold.108 (2026-11-02)
 
