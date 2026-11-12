@@ -30,6 +30,9 @@ class SmokeInstrumentation : Instrumentation() {
             runtime.setupBootstrap()
             runtime.extractBootstrapIfNeeded(context)
             report.append("bootstrapped=").append(runtime.isBootstrapped()).append('\n')
+            // The launchers of this app version, as the terminal writes them.
+            runCatching { runtime.writeDeviceTools() }
+                .onFailure { report.append("device tools: ").append(it.message).append('\n') }
             report.append(runtime.executeCommand(command)).append('\n')
         } catch (e: Throwable) {
             report.append("FAILED ").append(e).append('\n')

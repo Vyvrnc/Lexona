@@ -122,176 +122,200 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LexonaTheme.backgroundGradient,
-        ),
+        decoration: BoxDecoration(gradient: LexonaTheme.backgroundGradient),
         child: SafeArea(
-          // Scrolls when the window is short (ScreenMate One: split screen, and a system bar
-          // drawn over the app without an inset cut "Launch DroidDesk" in half).
-          child: LayoutBuilder(
-            builder: (context, constraints) => SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    onPressed: () => state.toggleThemeMode(),
-                    tooltip: state.isDarkMode
-                        ? 'Switch to light theme'
-                        : 'Switch to dark theme',
-                    icon: Icon(
-                      state.isDarkMode
-                          ? Icons.light_mode_rounded
-                          : Icons.dark_mode_rounded,
-                      color: LexonaTheme.textMuted,
-                      size: 20,
-                    ),
-                  ),
-                ),
-                const Spacer(flex: 1),
-
-                // ── Circular Progress ──
-                CircularPercentIndicator(
-                      radius: 80,
-                      lineWidth: 6,
-                      percent: phase.progress.clamp(0.0, 1.0),
-                      center: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            phase.icon,
-                            size: 36,
-                            color: phase.error
-                                ? LexonaTheme.error
-                                : LexonaTheme.primaryText,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${(phase.progress * 100).toInt()}%',
-                            style: LexonaTheme.subheading.copyWith(
-                              color: phase.error
-                                  ? LexonaTheme.error
-                                  : LexonaTheme.textPrimary,
-                            ),
-                          ),
-                        ],
+          child: Column(
+            children: [
+              Expanded(
+                // Scrolls when the window is short (ScreenMate One: split screen, and a system bar
+                // drawn over the app without an inset cut "Launch DroidDesk" in half).
+                child: LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                      progressColor: phase.error
-                          ? LexonaTheme.error
-                          : LexonaTheme.primary,
-                      backgroundColor: LexonaTheme.surfaceRaised,
-                      circularStrokeCap: CircularStrokeCap.round,
-                      animateFromLastPercent: true,
-                      animation: true,
-                      animationDuration: 500,
-                    )
-                    .animate()
-                    .scale(
-                      begin: const Offset(0.8, 0.8),
-                      duration: 500.ms,
-                      curve: Curves.easeOut,
-                    )
-                    .fadeIn(duration: 500.ms),
-
-                const SizedBox(height: 32),
-
-                // ── Phase Title ──
-                Text(
-                  phase.title,
-                  style: LexonaTheme.title,
-                  textAlign: TextAlign.center,
-                ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
-
-                const SizedBox(height: 12),
-
-                // ── Status Message ──
-                Text(
-                  phase.message,
-                  style: LexonaTheme.body.copyWith(
-                    color: phase.error
-                        ? LexonaTheme.error
-                        : LexonaTheme.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
-
-                const SizedBox(height: 48),
-
-                // ── Steps Checklist ──
-                _buildChecklist(state),
-
-                if (state.setupLog.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  _buildInstallLog(state.setupLog),
-                ],
-
-                const Spacer(flex: 1),
-
-                // ── Action Buttons ──
-                if (phase.error) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        state.clearError();
-                        _started = false;
-                        _startSetup();
-                      },
-                      // Retry is the main action here: theme teal fill.
-                      child: const Text('Retry'),
-                    ),
-                  ),
-                ] else if (phase.complete) ...[
-                  SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
-                                builder: (_) => const HomeScreen(),
-                              ),
-                              (route) => false,
-                            );
-                          },
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                      child: IntrinsicHeight(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
                             children: [
-                              Text('Launch Lexona'),
-                              SizedBox(width: 8),
-                              Icon(Icons.rocket_launch_rounded, size: 20),
+                              Align(
+                                alignment: Alignment.topRight,
+                                child: IconButton(
+                                  onPressed: () => state.toggleThemeMode(),
+                                  tooltip: state.isDarkMode
+                                      ? 'Switch to light theme'
+                                      : 'Switch to dark theme',
+                                  icon: Icon(
+                                    state.isDarkMode
+                                        ? Icons.light_mode_rounded
+                                        : Icons.dark_mode_rounded,
+                                    color: LexonaTheme.textMuted,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                              const Spacer(flex: 1),
+
+                              // ── Circular Progress ──
+                              CircularPercentIndicator(
+                                    radius: 80,
+                                    lineWidth: 6,
+                                    percent: phase.progress.clamp(0.0, 1.0),
+                                    center: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          phase.icon,
+                                          size: 36,
+                                          color: phase.error
+                                              ? LexonaTheme.error
+                                              : LexonaTheme.primaryText,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${(phase.progress * 100).toInt()}%',
+                                          style: LexonaTheme.subheading
+                                              .copyWith(
+                                                color: phase.error
+                                                    ? LexonaTheme.error
+                                                    : LexonaTheme.textPrimary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    progressColor: phase.error
+                                        ? LexonaTheme.error
+                                        : LexonaTheme.primary,
+                                    backgroundColor: LexonaTheme.surfaceRaised,
+                                    circularStrokeCap: CircularStrokeCap.round,
+                                    animateFromLastPercent: true,
+                                    animation: true,
+                                    animationDuration: 500,
+                                  )
+                                  .animate()
+                                  .scale(
+                                    begin: const Offset(0.8, 0.8),
+                                    duration: 500.ms,
+                                    curve: Curves.easeOut,
+                                  )
+                                  .fadeIn(duration: 500.ms),
+
+                              const SizedBox(height: 32),
+
+                              // ── Phase Title ──
+                              Text(
+                                phase.title,
+                                style: LexonaTheme.title,
+                                textAlign: TextAlign.center,
+                              ).animate().fadeIn(
+                                delay: 200.ms,
+                                duration: 400.ms,
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // ── Status Message ──
+                              Text(
+                                phase.message,
+                                style: LexonaTheme.body.copyWith(
+                                  color: phase.error
+                                      ? LexonaTheme.error
+                                      : LexonaTheme.textSecondary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ).animate().fadeIn(
+                                delay: 300.ms,
+                                duration: 400.ms,
+                              ),
+
+                              const SizedBox(height: 48),
+
+                              // ── Steps Checklist ──
+                              _buildChecklist(state),
+
+                              if (state.setupLog.isNotEmpty) ...[
+                                const SizedBox(height: 20),
+                                _buildInstallLog(state.setupLog),
+                              ],
+
+                              const Spacer(flex: 1),
+
+                              const SizedBox(height: 24),
                             ],
                           ),
                         ),
-                      )
-                      .animate()
-                      .fadeIn(duration: 500.ms)
-                      .scale(
-                        begin: const Offset(0.95, 0.95),
-                        duration: 350.ms,
-                        curve: Curves.easeOut,
                       ),
-                ],
-
-                // Room for a bottom bar that overlaps the window without an inset.
-                const SizedBox(height: 96),
-              ],
-            ),
+                    ),
                   ),
                 ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _actionButtons(context, state, phase),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  /// Retry or Launch, pinned below the scrolling content: on a small phone (Galaxy A16) the
+  /// log pushed it past the bottom edge.
+  List<Widget> _actionButtons(
+    BuildContext context,
+    AppState state,
+    _PhaseInfo phase,
+  ) => [
+    if (phase.error) ...[
+      SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton(
+          onPressed: () {
+            state.clearError();
+            _started = false;
+            _startSetup();
+          },
+          // Retry is the main action here: theme teal fill.
+          child: const Text('Retry'),
+        ),
+      ),
+    ] else if (phase.complete) ...[
+      SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  (route) => false,
+                );
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Launch Lexona'),
+                  SizedBox(width: 8),
+                  Icon(Icons.rocket_launch_rounded, size: 20),
+                ],
+              ),
+            ),
+          )
+          .animate()
+          .fadeIn(duration: 500.ms)
+          .scale(
+            begin: const Offset(0.95, 0.95),
+            duration: 350.ms,
+            curve: Curves.easeOut,
+          ),
+    ],
+  ];
 
   Widget _buildChecklist(AppState state) {
     final isChroot = state.hasRoot;
@@ -502,7 +526,8 @@ class _SetupProgressScreenState extends State<SetupProgressScreen> {
     if (state.isSetupComplete) {
       return _PhaseInfo(
         title: 'Setup complete!',
-        message: 'Your Linux desktop is ready to launch.\n'
+        message:
+            'Your Linux desktop is ready to launch.\n'
             'GPU: ${state.gpuType} (${gpuFamilyFor(state.gpuType).path}). '
             'What is tested on it: tap GPU on the home screen.',
         progress: 1.0,

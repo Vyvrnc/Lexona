@@ -68,7 +68,27 @@ class TerminalActivity : Activity() {
             ))
         }
         setContentView(root)
+        applyEdgeToEdgeInsets(root)
         attach()
+    }
+
+    /**
+     * targetSdk >= 35 draws edge to edge and ignores SOFT_INPUT_ADJUST_RESIZE: without this the
+     * first line sat under the status bar and the keyboard covered the extra keys (Galaxy A16,
+     * Tab S10 FE). Older targets keep the system's own fitting and resize.
+     */
+    private fun applyEdgeToEdgeInsets(root: View) {
+        if (applicationInfo.targetSdkVersion < 35 || android.os.Build.VERSION.SDK_INT < 30) return
+        root.setOnApplyWindowInsetsListener { view, insets ->
+            val bars = insets.getInsets(
+                android.view.WindowInsets.Type.systemBars() or
+                    android.view.WindowInsets.Type.displayCutout() or
+                    android.view.WindowInsets.Type.ime(),
+            )
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            android.view.WindowInsets.CONSUMED
+        }
+        root.requestApplyInsets()
     }
 
     override fun onResume() {
