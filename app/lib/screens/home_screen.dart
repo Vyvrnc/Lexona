@@ -321,6 +321,7 @@ class HomeScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         _ActionCard(
                           icon: Icons.auto_awesome_rounded,
+                          image: 'assets/icons/claude.png',
                           title: 'Claude Code',
                           subtitle: 'Claude Code in a terminal, without the desktop',
                           color: const Color(0xFFD97757),
@@ -1102,8 +1103,12 @@ class _ActionCard extends StatelessWidget {
   /// Shown while this card's action runs: spinner instead of the chevron, taps ignored.
   final String? busyText;
 
+  /// An asset image (an app's own logo) instead of the icon.
+  final String? image;
+
   const _ActionCard({
     required this.icon,
+    this.image,
     required this.title,
     required this.subtitle,
     required this.color,
@@ -1136,7 +1141,9 @@ class _ActionCard extends StatelessWidget {
                 color: LexonaTheme.surfaceRaised,
                 borderRadius: BorderRadius.circular(LexonaTheme.radiusSm),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: image != null
+                  ? Padding(padding: const EdgeInsets.all(8), child: Image.asset(image!))
+                  : Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(

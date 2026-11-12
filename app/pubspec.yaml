@@ -33,6 +33,7 @@ flutter:
 
   assets:
     - assets/icons/logo.png
+    - assets/icons/claude.png
     - assets/bootstrap-aarch64.zip
     - assets/socket_hook.c
 

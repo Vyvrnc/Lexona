@@ -455,6 +455,7 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
           Icons.auto_awesome_rounded,
           Color(0xFFD97757),
           optional: true,
+          image: 'assets/icons/claude.png',
         ),
       if (!state.hasRoot)
         const _FeaturedApp(
@@ -534,7 +535,9 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
               color: LexonaTheme.surfaceRaised,
               borderRadius: BorderRadius.circular(LexonaTheme.radiusSm),
             ),
-            child: Icon(app.icon, color: app.color),
+            child: app.image != null
+                ? Padding(padding: const EdgeInsets.all(8), child: Image.asset(app.image!))
+                : Icon(app.icon, color: app.color),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -906,6 +909,9 @@ class _FeaturedApp {
   final Color color;
   final bool optional;
 
+  /// An asset image (the app's own logo) instead of the icon.
+  final String? image;
+
   const _FeaturedApp(
     this.packageName,
     this.name,
@@ -913,5 +919,6 @@ class _FeaturedApp {
     this.icon,
     this.color, {
     this.optional = false,
+    this.image,
   });
 }

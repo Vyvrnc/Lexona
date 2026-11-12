@@ -465,6 +465,13 @@ class LinuxRuntime(private val context: Context) {
     /** "Claude Code" in the XFCE menu: a terminal attached to the claude-tmux session (the app's terminal uses the same one). */
     private fun writeClaudeMenuEntry() {
         runCatching {
+            // The Claude symbol (Anthropic's trademark, identifying the launcher), from the APK.
+            val icon = File(homeDir, ".local/share/icons/hicolor/scalable/apps/claude-code.svg")
+            val svg = context.assets.open("droiddesk/icons/claude-code.svg").use { it.readBytes() }
+            if (!icon.isFile || !icon.readBytes().contentEquals(svg)) {
+                icon.parentFile?.mkdirs()
+                icon.writeBytes(svg)
+            }
             val entry = File(homeDir, ".local/share/applications/claude-code.desktop")
             val text = """
                 [Desktop Entry]
@@ -472,7 +479,7 @@ class LinuxRuntime(private val context: Context) {
                 Name=Claude Code
                 Comment=Claude Code (Anthropic) v Debianu
                 Exec=xfce4-terminal --disable-server --title "Claude Code" -x ${File(binDir, "claude-tmux").absolutePath}
-                Icon=utilities-terminal
+                Icon=${icon.absolutePath}
                 Categories=Development;
                 Terminal=false
             """.trimIndent() + "\n"
