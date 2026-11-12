@@ -33,7 +33,11 @@ Tested on Galaxy A16 (adb, by hand on the screen):
   microphone, then the All files access page; setup about 20 min; "Launch Lexona" fully on
   screen; home screen warns about the child process limit, its dialog opens; first desktop in
   17 s. Smoke test 13/13 of what a clean install has (Claude Code, Firefox, glxinfo and the
-  virgl opt-in are not part of it).
+  virgl opt-in are not part of it). Then `pkg install firefox mesa-demos` (one transient
+  "index files failed to download" from the mirror, fine on retry), `lexona-native-gpu on`,
+  Stop desktop (XFCE gone, terminal stays), Launch again (13 s, virgl server up): smoke test
+  17/17 without Claude Code; GPU kit: virgl on Mali-G57, Mesa 26.2.7, glxgears 118 FPS,
+  Firefox WebGL 2 ok at 32 FPS.
 
 Not tested: Tab S10 FE and Fold 7 (not at hand).
 
