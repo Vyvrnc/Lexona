@@ -1,5 +1,6 @@
 #!/bin/bash
-# One-time move from DroidDesk Fold to Lexona, step 2 of 2. Run in Lexona's terminal (storage
+# One-time move from DroidDesk Fold to Lexona, step 2 of 2. Run in Lexona's terminal, in the
+# foreground until it ends (storage
 # access granted) after export.sh in DroidDesk:
 #   LX_PASS=<same passphrase> bash /sdcard/Download/lexona-migrate/import.sh [--install]
 # --install also reinstalls the packages installed by hand in DroidDesk (Termux and Debian).
@@ -19,8 +20,8 @@ stamp=$(date +%Y%m%d-%H%M%S)
 work=$(mktemp -d "$TMPDIR/lexona-import.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
-gpg --batch --quiet --no-symkey-cache --pinentry-mode loopback --passphrase-file <(printf %s "$LX_PASS") \
-    -d "$in" | tar -xf - -C "$work"
+nice -n 19 gpg --batch --quiet --no-symkey-cache --pinentry-mode loopback --passphrase-file <(printf %s "$LX_PASS") \
+    -d "$in" | nice -n 19 tar -xf - -C "$work"
 
 place() {  # place SRC_DIR DEST_DIR: imported entries win; Lexona's own files stay
     local src=$1 dest=$2 e name

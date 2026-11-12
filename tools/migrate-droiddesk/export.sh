@@ -1,5 +1,6 @@
 #!/bin/bash
-# One-time move from DroidDesk Fold to Lexona, step 1 of 2. Run in DroidDesk's terminal:
+# One-time move from DroidDesk Fold to Lexona, step 1 of 2. Run in DroidDesk's terminal and keep
+# DroidDesk in the foreground until it ends (Android may kill a busy app in the background):
 #   LX_PASS=<one-time passphrase> [LX_EXCLUDE="projekty apps .wine*"] [LX_SIZE=1] bash /sdcard/Download/lexona-migrate/export.sh
 # Packs the user data of Debian's /root and of the Termux home into one archive in shared storage,
 # encrypted with LX_PASS (it holds SSH keys and Claude Code's history; other apps with storage
@@ -57,7 +58,8 @@ if [ "${LX_SIZE:-0}" = 1 ]; then
     echo "Archive size: $(( $(tar -cf - "${args[@]}" 2>/dev/null | wc -c) / 1048576 )) MB (before compression and encryption)"
     exit 0
 fi
-tar -cf - "${args[@]}" | gpg --batch --yes --quiet --no-symkey-cache --pinentry-mode loopback \
+# nice: on the Fold 7 the first run (tar+gpg at full CPU) got DroidDesk killed in the background.
+nice -n 19 tar -cf - "${args[@]}" | nice -n 19 gpg --batch --yes --quiet --no-symkey-cache --pinentry-mode loopback \
     --passphrase-file <(printf %s "$LX_PASS") --symmetric --cipher-algo AES256 -o "$out"
 chmod 600 "$out" 2>/dev/null || true
 echo "Packed: debian ${debian[*]:-none}; termux ${termux[*]:-none}"
