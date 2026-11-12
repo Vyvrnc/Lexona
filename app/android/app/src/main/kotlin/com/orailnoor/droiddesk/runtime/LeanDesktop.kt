@@ -33,6 +33,8 @@ object LeanDesktop {
 
     /** D-Bus names a part's programs are started by. */
     private val dbusNames = mapOf(
+        // GIO_USE_VFS=local is not enough: gvfsd still came up over D-Bus (Galaxy A16).
+        "gvfs" to listOf("org.gtk.vfs.Daemon", "org.gtk.vfs.Metadata"),
         "thumbnails" to listOf(
             "org.freedesktop.thumbnails.Thumbnailer1",
             "org.freedesktop.thumbnails.Manager1",
