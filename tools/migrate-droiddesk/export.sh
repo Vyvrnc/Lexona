@@ -17,12 +17,22 @@ R=$PREFIX/var/lib/proot-distro/containers/debian/rootfs
 [ -d "$R" ] || R=$PREFIX/var/lib/proot-distro/installed-rootfs/debian
 mkdir -p "$dir"
 
+# Newer Firefox and git keep their files under ~/.config (XDG); autostart holds own entries
+# such as the xset mouse speed.
 termux=()
-for p in .ssh .gnupg .gitconfig .mozilla .config/gh .bash_history Desktop Documents Downloads Pictures Music Videos projekty; do
+for p in ${LX_ONLY:-.ssh .gnupg .gitconfig .mozilla .config/mozilla .config/git .config/gh .config/autostart \
+        .bash_history Desktop Documents Downloads Pictures Music Videos projekty}; do
     [ -e "$HOME/$p" ] && termux+=("home/$p")
 done
 debian=()
 [ -d "$R/root" ] && debian=(root)
+# LX_ONLY="paths": only these paths of the Termux home, into droiddesk-extra.tar.gpg (for things
+# a first export missed; import with LX_IN=.../droiddesk-extra.tar.gpg).
+if [ -n "${LX_ONLY:-}" ]; then
+    debian=()
+    out=$dir/droiddesk-extra.tar.gpg
+    [ ${#termux[@]} -gt 0 ] || { echo "None of LX_ONLY exists in $HOME" >&2; exit 2; }
+fi
 
 # What the user installed and taught, as lists for import.sh: manually installed packages
 # (Debian, Termux), glibc-native's learned proot fallbacks, own menu launchers (not the ones
@@ -42,7 +52,8 @@ echo "Lists: $(wc -l < "$meta/meta/debian-manual.txt") Debian, $(wc -l < "$meta/
 args=(--exclude=root/.local/share/claude --exclude=root/.local/bin/claude --exclude=root/.local/share/keyrings
       --exclude=root/.cache --exclude=root/.npm --exclude=root/.config/droiddesk
       --exclude=root/.bashrc --exclude=root/.profile --exclude='*/node_modules'
-      --exclude=root/.claude/shell-snapshots --exclude=root/.claude/statsig)
+      --exclude=root/.claude/shell-snapshots --exclude=root/.claude/statsig
+      --exclude='home/.config/autostart/droiddesk-*' --exclude='home/.config/mozilla/firefox/*/cache2')
 # LX_EXCLUDE: more paths to leave out, space separated, relative to Debian's /root or the Termux
 # home, e.g. LX_EXCLUDE="projekty apps .wine* sd-a.img whisper mesa-build Downloads".
 set -f  # the patterns go to tar as they are
@@ -64,4 +75,4 @@ nice -n 19 tar -cf - "${args[@]}" | nice -n 19 gpg --batch --yes --quiet --no-sy
 chmod 600 "$out" 2>/dev/null || true
 echo "Packed: debian ${debian[*]:-none}; termux ${termux[*]:-none}"
 ls -l "$out"
-echo "Now in Lexona's terminal: LX_PASS=... bash $dir/import.sh"
+echo "Now in Lexona's terminal: LX_PASS=... LX_IN=$out bash $dir/import.sh"
