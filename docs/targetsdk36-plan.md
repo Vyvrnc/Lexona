@@ -718,8 +718,23 @@ on the Termux side.
 
 Gotcha: `am instrument` restarts the app process, which ends a running desktop.
 
-Open: phase 5 (glibc native via libld.so), POST_NOTIFICATIONS request, `<queries>`, phantom
-process endurance, mouse right button, remove SmokeInstrumentation before a release.
+Phase 6, rest (night 2026-11-12):
+- Permissions, one at a time: targetSdk >= 30 asks notifications, microphone, then opens the
+  "All files access" page once (MANAGE_EXTERNAL_STORAGE; without it Linux programs cannot
+  read /sdcard, seen on the A16); old targets keep the storage dialog first. Tested on the
+  Tab S10 FE: the three steps appear in that order. The plan's `maxSdkVersion` on
+  READ/WRITE_EXTERNAL_STORAGE is not applied: it refers to the device's Android version and
+  would take storage from the targetSdk 28 build on Android 11+.
+- `<queries>` for ACTION_DIAL `tel:` and ACTION_SENDTO `smsto:`.
+- virgl's stale-server check reads argv[1] when argv[0] is linker64.
+- Phantom processes (A16, defaults: limit 32, monitor on): desktop + terminal = 27 processes;
+  with 10 more, Android killed the two oldest after 5 minutes ("Trimming phantom processes"):
+  the Debian session-bus proot and the in-app terminal's `-bash`. The home screen now warns
+  when the limit applies (developer option or adb fix, docs/backlog.md item 3). The limit is
+  the same at targetSdk 28; specialUse does not protect child processes.
+
+Open: phase 5 (glibc native via libld.so), FGS `microphone` type, mouse right button, remove
+SmokeInstrumentation before a release.
 
 ## Lessons from Local Desktop (localdesktop/localdesktop 43082a8, GPLv3, targetSdk 36)
 

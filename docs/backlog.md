@@ -19,7 +19,9 @@ Agreed items not yet scheduled for a release. Windows apps have their own plan:
    `build/app/outputs/mapping/release/mapping.txt` next to the APK
    (`~/DroidDesk-build/mapping-<version>.txt`), then retrace this stack and fix the caller.
 
-3. **Warn when the phantom process limit is on.** On the Fold 7
+3. **Warn when the phantom process limit is on.** (Done on `lexona-sdk36`, 2026-11-12: a warning
+   row in the home screen's System card with the developer option and the commands below.)
+   On the Fold 7
    `persist.sys.fflag.override.settings_enable_monitor_phantom_procs` came back as `true` although
    the developer option had been set, and Android trimmed the session's child processes every
    5 minutes ("Trimming phantom processes": XFCE, Wine, proot, Claude). At app start, read the flag
