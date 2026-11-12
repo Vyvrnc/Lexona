@@ -28,7 +28,7 @@ object DisplayProfile {
     val SCALES = listOf(100, 125, 150, 175, 200)
 
     /** Speed of a captured (physical) mouse in percent, per screen. */
-    val MOUSE_SPEEDS = listOf(50, 75, 100, 150, 200, 300)
+    val MOUSE_SPEEDS = listOf(50, 75, 100, 150, 200, 300, 400)
 
     private const val PREFS = "droiddesk_display"
 
@@ -58,8 +58,12 @@ object DisplayProfile {
         return next
     }
 
+    /**
+     * A captured mouse sends raw movement without Android's pointer acceleration, so 100 % felt
+     * slow (Fold 7 in DeX). Defaults: 200 % on DeX/monitors, 150 % elsewhere; a chosen speed stays.
+     */
     fun mouseSpeedFor(context: Context, screen: Screen): Int =
-        prefs(context).getInt("${screen.key}_mouse", 100)
+        prefs(context).getInt("${screen.key}_mouse", if (screen == Screen.DESKTOP) 200 else 150)
 
     /** Moves the current screen to the next mouse speed and persists it. */
     fun cycleMouseSpeed(context: Context, screen: Screen): Int {

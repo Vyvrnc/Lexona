@@ -189,7 +189,12 @@ class DesktopActivity : Activity() {
         captureButton?.text = if (enable) "Myš: zachycená" else "Myš: volná"
         Toast.makeText(
             this,
-            if (enable) "Myš zachycena (lišty DeX se neukážou). Uvolnit: Ctrl+Alt+M" else "Myš uvolněna",
+            if (enable) {
+                "Myš zachycena (lišty DeX se neukážou). Uvolnit: Ctrl+Alt+M. " +
+                    "Rychlost (${DisplayProfile.mouseSpeedFor(this, screen)} %): podržte tlačítko „Myš“ v liště"
+            } else {
+                "Myš uvolněna"
+            },
             Toast.LENGTH_LONG,
         ).show()
     }
@@ -497,7 +502,11 @@ class DesktopActivity : Activity() {
                 setPointerCapture(enable)
                 text = if (enable) "Myš: zachycená" else "Myš: volná"
                 if (enable) {
-                    Toast.makeText(this@DesktopActivity, "Rychlost myši: podržte tlačítko", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@DesktopActivity,
+                        "Rychlost myši (${DisplayProfile.mouseSpeedFor(this@DesktopActivity, screen)} %): podržte toto tlačítko „Myš“",
+                        Toast.LENGTH_LONG,
+                    ).show()
                 }
             }
             // Speed of the captured mouse for this screen (a DeX monitor wants another one).

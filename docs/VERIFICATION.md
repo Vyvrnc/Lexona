@@ -20,6 +20,16 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Unreleased (next: 2.0.3)
+
+- pathhook maps `__xstat`/`__lxstat`/`__fxstatat` (glibc < 2.33 ABI): RustDesk 1.5.3 (Flutter)
+  showed no text natively. Verified on the Fold 7 in DroidDesk with the new pathhook.so
+  (bc1a21c): text, ID and the session list render natively; the Claude session there kept
+  running on it. Regression checks in tools/glibc-native/test.c.
+- Captured mouse: default speed 200 % on DeX/monitors, 150 % elsewhere (was 100 %, slow
+  without Android's acceleration), a 400 % step, and the hint names the button (hold „Myš“).
+  Not yet tested on a device.
+
 ## Lexona 2.0.2 (2026-11-12)
 
 Full functional test on the Galaxy A16 (`tools/device-test/full.sh --heavy` in the app's terminal
