@@ -2028,7 +2028,65 @@ class LinuxRuntime(private val context: Context) {
         }
     }
 
+    /**
+     * Fewer Linux processes, because Android 12+ kills an app's oldest child processes beyond 32
+     * and the oldest is xfce4-session (Galaxy A16: the desktop died during an apt install).
+     * xfce4-session starts no ssh/gpg agent (a stale gpg-agent also kept the desktop black) and no
+     * Thunar daemon (Thunar starts over D-Bus when needed). Written once; a user's own session
+     * configuration is kept.
+     */
+    private fun writeSessionConfig() {
+        runCatching {
+            val file = File(homeDir, ".config/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml")
+            if (file.exists()) return
+            file.parentFile?.mkdirs()
+            file.writeText(
+                """
+                <?xml version="1.0" encoding="UTF-8"?>
+
+                <channel name="xfce4-session" version="1.0">
+                  <property name="startup" type="empty">
+                    <property name="ssh-agent" type="empty">
+                      <property name="enabled" type="bool" value="false"/>
+                    </property>
+                    <property name="gpg-agent" type="empty">
+                      <property name="enabled" type="bool" value="false"/>
+                    </property>
+                  </property>
+                  <property name="sessions" type="empty">
+                    <property name="Failsafe" type="empty">
+                      <property name="IsFailsafe" type="bool" value="true"/>
+                      <property name="Count" type="int" value="4"/>
+                      <property name="Client0_Command" type="array">
+                        <value type="string" value="xfwm4"/>
+                      </property>
+                      <property name="Client0_Priority" type="int" value="15"/>
+                      <property name="Client0_PerScreen" type="bool" value="false"/>
+                      <property name="Client1_Command" type="array">
+                        <value type="string" value="xfsettingsd"/>
+                      </property>
+                      <property name="Client1_Priority" type="int" value="20"/>
+                      <property name="Client1_PerScreen" type="bool" value="false"/>
+                      <property name="Client2_Command" type="array">
+                        <value type="string" value="xfce4-panel"/>
+                      </property>
+                      <property name="Client2_Priority" type="int" value="25"/>
+                      <property name="Client2_PerScreen" type="bool" value="false"/>
+                      <property name="Client3_Command" type="array">
+                        <value type="string" value="xfdesktop"/>
+                      </property>
+                      <property name="Client3_Priority" type="int" value="35"/>
+                      <property name="Client3_PerScreen" type="bool" value="false"/>
+                    </property>
+                  </property>
+                </channel>
+                """.trimIndent() + "\n",
+            )
+        }.onFailure { Log.w(TAG, "xfce4-session config: ${it.message}") }
+    }
+
     private fun writeXfceTweaks() {
+        writeSessionConfig()
         try {
             val batteryScript = File(binDir, "droiddesk-battery")
             batteryScript.writeText(

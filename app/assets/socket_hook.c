@@ -895,8 +895,55 @@ static int under_app_data(const char *path) {
     return path && (strncmp(path, "/data/user/", 11) == 0 || strncmp(path, "/data/data/", 11) == 0);
 }
 
+/* A Go program (PT_NOTE "Go" build ID). Go starts programs with raw syscalls, past this hook,
+ * so at targetSdk >= 29 its children in app data got EACCES (gh aliases, gh repo clone -> git,
+ * fzf's preview). */
+static int is_go_elf(int fd, uint64_t phoff, uint16_t phentsize, uint16_t phnum) {
+    for (uint16_t i = 0; i < phnum && i < 64; i++) {
+        unsigned char ph[56];
+        if (phentsize < 56 ||
+            pread(fd, ph, sizeof(ph), (off_t) (phoff + (uint64_t) i * phentsize)) != (ssize_t) sizeof(ph)) return 0;
+        uint32_t type;
+        memcpy(&type, ph, 4);
+        if (type != 4) continue; /* PT_NOTE */
+        uint64_t off, size;
+        memcpy(&off, ph + 8, 8);
+        memcpy(&size, ph + 32, 8);
+        unsigned char note[512];
+        ssize_t got = pread(fd, note, size < sizeof(note) ? size : sizeof(note), (off_t) off);
+        for (ssize_t p = 0; p + 12 <= got;) {
+            uint32_t namesz, descsz, ntype;
+            memcpy(&namesz, note + p, 4);
+            memcpy(&descsz, note + p + 4, 4);
+            memcpy(&ntype, note + p + 8, 4);
+            if (namesz == 3 || namesz == 4) {
+                if (p + 12 + 2 <= got && memcmp(note + p + 12, "Go", 2) == 0 && ntype == 4) return 1;
+            }
+            p += 12 + ((namesz + 3) & ~3u) + ((descsz + 3) & ~3u);
+        }
+    }
+    return 0;
+}
+
+/* Already under ptrace (proot): a second proot cannot attach, and the first one handles exec. */
+static int traced(void) {
+    int fd = real_open("/proc/self/status", O_RDONLY | O_CLOEXEC);
+    if (fd < 0) return 0;
+    char buf[1024];
+    ssize_t n = read(fd, buf, sizeof(buf) - 1);
+    close(fd);
+    if (n <= 0) return 0;
+    buf[n] = '\0';
+    const char *t = strstr(buf, "TracerPid:");
+    if (!t) return 0;
+    t += 10;
+    while (*t == ' ' || *t == '\t') t++;
+    return *t != '0';
+}
+
 /* 1: dynamic bionic ELF (PT_INTERP names linker64), 2: other ELF, 3: "#!" script, 0: other,
- * 4: ELF whose PT_INTERP is in app data (glibc-native mirrors: $PLIB/ld.so), copied to interp_out. */
+ * 4: ELF whose PT_INTERP is in app data (glibc-native mirrors: $PLIB/ld.so), copied to interp_out,
+ * 5: dynamic bionic Go program. */
 static int exec_kind(int fd, char *head, size_t head_size, char *interp_out, size_t interp_size) {
     ssize_t n = pread(fd, head, head_size - 1, 0);
     if (n < 4) return 0;
@@ -921,7 +968,7 @@ static int exec_kind(int fd, char *head, size_t head_size, char *interp_out, siz
         char interp[256];
         if (size == 0 || size >= sizeof(interp) || pread(fd, interp, size, (off_t) off) != (ssize_t) size) return 2;
         interp[size] = '\0';
-        if (strstr(interp, "linker64")) return 1;
+        if (strstr(interp, "linker64")) return is_go_elf(fd, phoff, phentsize, phnum) ? 5 : 1;
         if (under_app_data(interp) && interp_out && strlen(interp) < interp_size) {
             strcpy(interp_out, interp);
             return 4;
@@ -967,6 +1014,25 @@ static int make_exec_plan(const char *path, char *const argv[], struct exec_plan
             plan->path = plan->interp[depth];
             return 0;
         }
+        if (kind == 5) {
+            /* sh proot-lexona PROGRAM ARGS…: proot (ptrace) also catches the raw execve of Go,
+               starting its children through the loader. Plain linker64 when proot is missing or
+               already tracing this process. */
+            if (!traced() &&
+                snprintf(plan->interp[depth], sizeof(plan->interp[depth]), "%s/bin/proot-lexona", hook_prefix) <
+                    (int) sizeof(plan->interp[depth]) &&
+                real_access(plan->interp[depth], R_OK) == 0) {
+                int k = 0;
+                plan->argv[k++] = (char *) "sh";
+                plan->argv[k++] = plan->interp[depth];
+                plan->argv[k++] = (char *) cur_path;
+                for (int i = 1; i < PLAN_ARGS - 3 && cur[0] && cur[i]; i++) plan->argv[k++] = cur[i];
+                plan->argv[k] = NULL;
+                plan->path = "/system/bin/sh";
+                return 0;
+            }
+            kind = 1;
+        }
         if (kind == 1) {
             /* linker64 [original argv0] path args…: the started program finds the original
                argv0 in /proc/self/cmdline (identity_fix below). */
@@ -993,7 +1059,16 @@ static int make_exec_plan(const char *path, char *const argv[], struct exec_plan
             while (end > arg && (end[-1] == ' ' || end[-1] == '\t' || end[-1] == '\r')) *--end = '\0';
         }
         char rebuf[1024];
-        const char *real_interp = rewrite_path(interp, rebuf, sizeof(rebuf));
+        const char *real_interp;
+        /* "#!/usr/bin/env python3" and friends: Android has no /usr, Termux's programs live in
+           $PREFIX/bin (what termux-exec does). The FHS rewrite below would give $PREFIX/usr/bin. */
+        if (strncmp(interp, "/usr/bin/", 9) == 0 &&
+            snprintf(rebuf, sizeof(rebuf), "%s/bin/%s", hook_prefix, interp + 9) < (int) sizeof(rebuf) &&
+            access(rebuf, X_OK) == 0) {
+            real_interp = rebuf;
+        } else {
+            real_interp = rewrite_path(interp, rebuf, sizeof(rebuf));
+        }
         snprintf(plan->interp[depth], sizeof(plan->interp[depth]), "%s", real_interp);
         snprintf(plan->arg[depth], sizeof(plan->arg[depth]), "%s", arg);
         /* interpreter [arg] script args…, as the kernel does it */

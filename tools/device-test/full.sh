@@ -23,8 +23,10 @@ log "== exec model"
 chk "bash identity (comm, argv0)" bash -c 'test "$(cat /proc/$$/comm)" = bash'
 printf '#!/usr/bin/env python3\nprint("ok")\n' > "$w/s.py"; chmod +x "$w/s.py"
 chk "script with #!/usr/bin/env shebang" bash -c "test \"\$($w/s.py)\" = ok"
-chk "python subprocess" python3 -c 'import subprocess;assert subprocess.run(["ls","/"],capture_output=True).returncode==0'
-chk "python posix_spawn" python3 -c 'import os,shutil;p=os.posix_spawn(shutil.which("true"),["true"],os.environ);assert os.waitpid(p,0)[1]==0'
+chk "python subprocess" python3 -c 'import subprocess;assert subprocess.run(["uname","-m"],capture_output=True).returncode==0'
+chk "python fork + execv" python3 -c 'import os,shutil;p=os.fork()
+if p==0: os.execv(shutil.which("true"),["true"])
+assert os.waitpid(p,0)[1]==0'
 chk "python /proc/self/exe" python3 -c 'import os,sys;assert os.readlink("/proc/self/exe").endswith("python3.14") or "python3" in os.readlink("/proc/self/exe")'
 chk "pipes, xargs, find -exec" bash -c 'ls / | xargs -n1 echo >/dev/null && find "$PREFIX/bin" -maxdepth 1 -name ls -exec {} / \; >/dev/null'
 lim "child after env -i (loses the hook)" env -i PATH="$PATH" bash -c 'ls / >/dev/null'
@@ -40,7 +42,7 @@ chk "git clone https" git clone -q --depth 1 https://github.com/octocat/Hello-Wo
 chk "ssh-keygen" ssh-keygen -q -t ed25519 -N '' -f "$w/k"
 chk "pip install (pure)" python3 -m pip install -q --target "$w/pip" six
 gh alias set lxtest '!echo hi' --shell >/dev/null 2>&1
-lim "Go program spawning a program (gh alias)" bash -c 'test "$(gh lxtest 2>&1)" = hi'
+chk "Go program spawning a program (gh alias, through proot)" bash -c 'test "$(gh lxtest 2>&1)" = hi'
 gh alias delete lxtest >/dev/null 2>&1
 if [ $HEAVY = 1 ]; then
     chk "pkg install clang" pkg install -y clang
@@ -57,7 +59,7 @@ a=$(ms debian-run /usr/bin/true); b=$(ms env DD_NATIVE=0 debian-run /usr/bin/tru
 log "INFO debian-run true: native ${a} ms, proot ${b} ms"
 if [ $HEAVY = 1 ]; then
     chk "Debian python3 (apt, native run)" bash -c 'debian-run apt-get install -y -q python3 >/dev/null && debian-run python3 -c "import ssl,json;print(1)" | grep -q 1'
-    chk "Debian OpenGL with lexona-gpu (virgl)" bash -c 'debian-run apt-get install -y -q mesa-utils >/dev/null && lexona-gpu on >/dev/null && debian-run bash -lc "timeout 8 glxgears" 2>&1 | grep -q FPS'
+    chk "Debian OpenGL with lexona-gpu (virgl)" bash -c 'debian-run apt-get install -y -q mesa-utils >/dev/null && debian-run bash -lc "lexona-gpu on >/dev/null; timeout 8 gpu-run glxgears" 2>&1 | grep -q FPS'
 fi
 if debian-run bash -lc 'command -v claude' >/dev/null 2>&1; then
     chk "Claude Code native" bash -c "debian-run bash -lc 'claude --version' | grep -q 'Claude Code'"
