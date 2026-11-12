@@ -20,6 +20,17 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Lexona 2.0.6 (2026-11-12)
+
+On the Galaxy A16 (Android 16, light system mode):
+- `./t.sh` with a script without `#!` printed its output (before: Permission denied).
+- `apt-get install openjdk-21` set up openjdk-21 and openjdk-21-x (its preinst has no `#!`;
+  on the Fold 7 it had failed and left LibreOffice half installed).
+- The prebuilt hook replaced a stale one compiled on the phone (35200 B from 15:44).
+- Cold start: background (9, 19, 42) = ink after 8 s and 28 s (before: (49, 57, 76), a light
+  starting window over the app at about 16 %).
+- JetBrains Mono shows in the System card (monospace values).
+
 ## Lexona 2.0.5 candidate on the Galaxy A16 (2026-11-12)
 
 Process limit screen, tested with the limit on (Android's default) and restored afterwards:
