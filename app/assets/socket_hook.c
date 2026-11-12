@@ -17,6 +17,7 @@
 #include <android/log.h>
 #include <spawn.h>
 #include <stdint.h>
+#include <limits.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 
@@ -509,6 +510,7 @@ int renameat(int olddirfd, const char *oldpath, int newdirfd, const char *newpat
 
 static int is_self_exe_link(const char *path);
 static ssize_t copy_self_exe(char *buf, size_t bufsiz);
+static char self_exe[1024]; /* identity_fix (tentative definition, set there) */
 
 ssize_t readlink(const char *pathname, char *buf, size_t bufsiz) {
     setup();
@@ -522,6 +524,20 @@ ssize_t readlinkat(int dirfd, const char *pathname, char *buf, size_t bufsiz) {
     if (pathname && pathname[0] == '/' && is_self_exe_link(pathname)) return copy_self_exe(buf, bufsiz);
     char pathbuf[1024];
     return real_readlinkat(dirfd, rewrite_at_path(dirfd, pathname, pathbuf, sizeof(pathbuf)), buf, bufsiz);
+}
+
+/* realpath("/proc/self/exe"): bionic resolves it through the open file, which is linker64. */
+char *realpath(const char *path, char *resolved) {
+    static char *(*real_realpath)(const char *, char *) = NULL;
+    if (!real_realpath) real_realpath = dlsym(RTLD_NEXT, "realpath");
+    if (is_self_exe_link(path)) {
+        if (resolved) {
+            snprintf(resolved, PATH_MAX, "%s", self_exe);
+            return resolved;
+        }
+        return strdup(self_exe);
+    }
+    return real_realpath ? real_realpath(path, resolved) : NULL;
 }
 
 int symlink(const char *target, const char *linkpath) {
@@ -1187,6 +1203,20 @@ __attribute__((constructor)) static void identity_fix(int argc, char **argv) {
     if ((ssize_t) first + 1 >= got) return;
     const char *program = cmd + first + 1;
     snprintf(self_exe, sizeof(self_exe), "%s", program);
+    /* The kernel's /proc/self/exe has no symlinks in it: Termux's bin/firefox links to
+     * lib/firefox/firefox, and Firefox looks for libxul.so next to /proc/self/exe ("Couldn't
+     * load XPCOM", Galaxy A16). Raw syscalls: this runs before setup(). */
+    int pfd = (int) syscall(SYS_openat, AT_FDCWD, program, O_PATH | O_CLOEXEC);
+    if (pfd >= 0) {
+        char fdlink[64], real[1024];
+        snprintf(fdlink, sizeof(fdlink), "/proc/self/fd/%d", pfd);
+        ssize_t rn = syscall(SYS_readlinkat, AT_FDCWD, fdlink, real, sizeof(real) - 1);
+        if (rn > 0 && real[0] == '/') {
+            real[rn] = '\0';
+            snprintf(self_exe, sizeof(self_exe), "%s", real);
+        }
+        close(pfd);
+    }
     /* Started by the app (ProcessBuilder's argv[0] is linker64 itself): argv0 is the program. */
     size_t orig_len = strlen(orig_argv0);
     if (orig_len >= 8 && strcmp(orig_argv0 + orig_len - 8, "linker64") == 0) orig_argv0 = program;

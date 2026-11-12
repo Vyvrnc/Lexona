@@ -91,7 +91,9 @@ const _mali = GpuFamily(
         'With the opt-in 2 to 8 times faster in heavy scenes (refract 4 to 33 FPS, blur 11 to '
             '37 FPS); plain texturing is slower (106 to 45 FPS), glxgears 222 to 142 FPS',
         _a16),
-    GpuCheck('WebGL in browsers', GpuStatus.untested, 'No result yet', ''),
+    GpuCheck('WebGL in Firefox', GpuStatus.works,
+        'With the opt-in: WebGL 2, about 34 FPS on the test page', _a16),
+    GpuCheck('WebGL in Chromium', GpuStatus.untested, 'No result yet', ''),
     GpuCheck('Debian apps (OpenGL)', GpuStatus.untested, 'No result yet', ''),
     GpuCheck('Video decoding', GpuStatus.software, 'Videos play, decoded by the CPU', ''),
   ],

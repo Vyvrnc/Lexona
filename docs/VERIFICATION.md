@@ -33,7 +33,10 @@ Tested on Galaxy A16 and Tab S10 FE (adb, clean install, by hand on the screen):
   refract 4 vs 33 FPS, desktop blur 11 vs 37, jellyfish 21 vs 43, texture 106 vs 45.
 - GPU kit, Tab S10 FE: llvmpipe, Mesa 26.2.6, glxgears ~350 FPS.
 
-Not tested: WebGL and Debian OpenGL on Mali; Fold 7; a mouse's right button (BACK).
+- Firefox 159 (Termux) on the A16 with virgl: WebGL 2 about 34 FPS on the GPU kit test page,
+  after the socket hook resolves symlinks in /proc/self/exe (before: "Couldn't load XPCOM").
+
+Not tested: Chromium and Debian OpenGL on Mali; Fold 7; a mouse's right button (BACK).
 
 ## 1.0.1-fold.108 (2026-11-02)
 
