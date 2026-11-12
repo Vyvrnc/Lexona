@@ -943,13 +943,14 @@ static int traced(void) {
 
 /* 1: dynamic bionic ELF (PT_INTERP names linker64), 2: other ELF, 3: "#!" script, 0: other,
  * 4: ELF whose PT_INTERP is in app data (glibc-native mirrors: $PLIB/ld.so), copied to interp_out,
- * 5: dynamic bionic Go program, 6: static program (no PT_INTERP). */
+ * 5: dynamic bionic Go program, 6: static program (no PT_INTERP), 7: text without "#!". */
 static int exec_kind(int fd, char *head, size_t head_size, char *interp_out, size_t interp_size) {
     ssize_t n = pread(fd, head, head_size - 1, 0);
-    if (n < 4) return 0;
+    if (n < 0) return 0;
     head[n] = '\0';
-    if (head[0] == '#' && head[1] == '!') return 3;
-    if (memcmp(head, "\177ELF", 4) != 0 || n < 64 || head[4] != 2) return 0;
+    if (n >= 2 && head[0] == '#' && head[1] == '!') return 3;
+    if (n < 4 || memcmp(head, "\177ELF", 4) != 0) return memchr(head, '\0', (size_t) n) ? 0 : 7;
+    if (n < 64 || head[4] != 2) return 0;
     uint64_t phoff;
     uint16_t phentsize, phnum;
     memcpy(&phoff, head + 32, 8);
@@ -1052,6 +1053,24 @@ static int make_exec_plan(const char *path, char *const argv[], struct exec_plan
             plan->argv[k] = NULL;
             plan->path = LINKER64;
             return 0;
+        }
+        if (kind == 7) {
+            /* A shell script without "#!" (openjdk-21's preinst): execve gives ENOEXEC and
+               execvp falls back to /system/bin/sh, which then cannot open a file it may not
+               exec from app data. POSIX shells run it themselves; Termux's sh does it here. */
+            if (snprintf(plan->interp[depth], sizeof(plan->interp[depth]), "%s/bin/sh", hook_prefix) >=
+                    (int) sizeof(plan->interp[depth]) ||
+                real_access(plan->interp[depth], R_OK) != 0) break;
+            char *next[PLAN_ARGS];
+            int k = 0;
+            next[k++] = plan->interp[depth];
+            next[k++] = (char *) cur_path;
+            for (int i = 1; cur[0] && cur[i] && k < PLAN_ARGS - 1; i++) next[k++] = cur[i];
+            next[k] = NULL;
+            memcpy(cur, next, sizeof(char *) * (size_t) (k + 1));
+            cur_path = plan->interp[depth];
+            changed = 1;
+            continue;
         }
         if (kind != 3) break;
         char *line_end = strchr(head, '\n');
