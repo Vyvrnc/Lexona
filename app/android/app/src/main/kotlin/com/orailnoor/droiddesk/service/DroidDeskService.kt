@@ -26,6 +26,7 @@ import com.orailnoor.droiddesk.MainActivity
 import com.orailnoor.droiddesk.runtime.AndroidAppBridge
 import com.orailnoor.droiddesk.runtime.CameraBridge
 import com.orailnoor.droiddesk.runtime.LinuxRuntime
+import com.orailnoor.droiddesk.runtime.HostBridge
 import com.orailnoor.droiddesk.runtime.NetBridge
 import com.orailnoor.droiddesk.runtime.UsbBridge
 import com.orailnoor.droiddesk.view.TerminalSessions
@@ -144,6 +145,7 @@ class DroidDeskService : Service() {
         AndroidAppBridge.start(this)
         UsbBridge.start(this)
         NetBridge.start(this)
+        HostBridge.start(this)
         CameraBridge.start(this)
         running = true
         createNotificationChannel()

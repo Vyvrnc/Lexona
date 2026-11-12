@@ -1839,6 +1839,32 @@ class LinuxRuntime(private val context: Context) {
                 )
                 netCommand.setExecutable(true, false)
             }
+            // lexona-host: run a command outside the caller's proot (HostBridge), in Termux and
+            // in Debian (its own python3 there, Termux's as a fallback).
+            val hostClient = File(binDir, "lexona-host.py")
+            copyAssetAtomically("droiddesk/lexona-host.py", hostClient)
+            File(binDir, "lexona-host").let { hostCommand ->
+                hostCommand.writeText(
+                    "#!${File(binDir, "bash").absolutePath}\n" +
+                        "exec \"${File(binDir, "python3").absolutePath}\" \"${hostClient.absolutePath}\" \"${'$'}@\"\n",
+                )
+                hostCommand.setExecutable(true, false)
+            }
+            File(debianRootfs(baseDir), "usr/local/bin").takeIf { it.isDirectory }?.let { debianBin ->
+                runCatching {
+                    val debianClient = File(debianRootfs(baseDir), "usr/local/lib/lexona-host.py")
+                    debianClient.parentFile?.mkdirs()
+                    copyAssetAtomically("droiddesk/lexona-host.py", debianClient)
+                    File(debianBin, "lexona-host").apply {
+                        writeText(
+                            "#!/bin/sh\n" +
+                                "command -v python3 >/dev/null 2>&1 && exec python3 /usr/local/lib/lexona-host.py \"${'$'}@\"\n" +
+                                "exec \"${File(binDir, "python3").absolutePath}\" \"${hostClient.absolutePath}\" \"${'$'}@\"\n",
+                        )
+                        setExecutable(true, false)
+                    }
+                }.onFailure { Log.w(TAG, "Debian lexona-host: ${it.message}") }
+            }
             // Phone camera for Linux programs: firefox-cam starts Termux Firefox with
             // libdroiddesk_v4l2.so (fake /dev/video0 fed by CameraBridge, opt-in); droiddesk-camera
             // front|back|status picks the camera. The asset's #!/usr/bin/env line becomes our bash.
@@ -3511,6 +3537,21 @@ class LinuxRuntime(private val context: Context) {
         else File(prefixDir, "libexec/proot/loader").absolutePath
 
     /** ProcessBuilder for a program, through linker64 when the app may not exec it (NativeExec). */
+    /**
+     * HostBridge: argv through Termux's bash (PATH lookup, scripts) with Termux's environment, as
+     * a child of the app, outside any proot of the caller.
+     */
+    fun hostProcess(argv: List<String>, cwd: File?): Process =
+        nativeProcess(listOf(File(binDir, "bash").absolutePath, "-c", "exec \"\$@\"", "lexona-host") + argv)
+            .directory(cwd?.takeIf { it.isDirectory } ?: homeDir)
+            .redirectErrorStream(true)
+            .also { pb ->
+                pb.environment().clear()
+                pb.environment().putAll(getTermuxEnv())
+                pb.environment()["TERM"] = "dumb"
+            }
+            .start()
+
     private fun nativeProcess(vararg command: String) = ProcessBuilder(NativeExec.command(context, command.toList()))
 
     private fun nativeProcess(command: List<String>) = ProcessBuilder(NativeExec.command(context, command))

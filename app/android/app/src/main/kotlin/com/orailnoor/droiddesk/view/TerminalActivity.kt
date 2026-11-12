@@ -21,6 +21,7 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import com.orailnoor.droiddesk.runtime.LinuxRuntime
 import com.orailnoor.droiddesk.runtime.NativeExec
+import com.orailnoor.droiddesk.runtime.HostBridge
 import com.orailnoor.droiddesk.runtime.NetBridge
 import com.orailnoor.droiddesk.runtime.UsbBridge
 import com.termux.terminal.TerminalSession
@@ -307,6 +308,7 @@ object TerminalSessions {
         // Their bridges too: without the desktop DroidDeskService (which starts them) is not running.
         UsbBridge.start(context.applicationContext)
         NetBridge.start(context.applicationContext)
+        HostBridge.start(context.applicationContext)
         val env = runtime.terminalEnvironment()
         val prefix = env["PREFIX"] ?: File(context.filesDir, "usr").absolutePath
         val home = env["HOME"] ?: File(context.filesDir, "home").absolutePath
