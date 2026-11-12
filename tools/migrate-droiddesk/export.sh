@@ -23,12 +23,28 @@ done
 debian=()
 [ -d "$R/root" ] && debian=(root)
 
+# What the user installed and taught, as lists for import.sh: manually installed packages
+# (Debian, Termux), glibc-native's learned proot fallbacks, own menu launchers (not the ones
+# DroidDesk generates: debian-* from the menu sync, droiddesk-*).
+meta=$(mktemp -d "$TMPDIR/lexona-meta.XXXXXX"); trap 'rm -rf "$meta"' EXIT
+mkdir -p "$meta/meta/applications"
+"$PREFIX/bin/debian-run" apt-mark showmanual > "$meta/meta/debian-manual.txt" 2>/dev/null || true
+apt-mark showmanual > "$meta/meta/termux-manual.txt" 2>/dev/null || true
+cp "$PREFIX/opt/glibc-native/proot-list" "$meta/meta/proot-list" 2>/dev/null || true
+for f in "$HOME"/.local/share/applications/*.desktop; do
+    [ -f "$f" ] || continue
+    case ${f##*/} in debian-*|droiddesk-*) continue ;; esac
+    cp "$f" "$meta/meta/applications/"
+done
+echo "Lists: $(wc -l < "$meta/meta/debian-manual.txt") Debian, $(wc -l < "$meta/meta/termux-manual.txt") Termux packages, $(ls "$meta/meta/applications" | wc -l) launchers"
+
 args=(--exclude=root/.local/share/claude --exclude=root/.local/bin/claude --exclude=root/.local/share/keyrings
       --exclude=root/.cache --exclude=root/.npm --exclude=root/.config/droiddesk
       --exclude=root/.bashrc --exclude=root/.profile --exclude='*/node_modules'
       --exclude=root/.claude/shell-snapshots --exclude=root/.claude/statsig)
 [ ${#debian[@]} -gt 0 ] && args+=(-C "$R" "${debian[@]}")
 [ ${#termux[@]} -gt 0 ] && args+=(-C "$FILES" "${termux[@]}")
+args+=(-C "$meta" meta)
 tar -cf - "${args[@]}" | gpg --batch --yes --quiet --no-symkey-cache --pinentry-mode loopback \
     --passphrase-file <(printf %s "$LX_PASS") --symmetric --cipher-algo AES256 -o "$out"
 chmod 600 "$out" 2>/dev/null || true
