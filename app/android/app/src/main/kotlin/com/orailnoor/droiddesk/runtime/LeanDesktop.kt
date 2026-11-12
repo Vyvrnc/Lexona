@@ -6,9 +6,10 @@ import java.io.File
 /**
  * Parts of the XFCE desktop a user can turn off so it runs fewer processes: Android 12+ stops
  * an app's oldest child processes once all apps together run more than 32. The parts and their
- * process counts come from the Galaxy A16 desktop (2026-11-12: gvfsd, gvfsd-trash,
- * gvfsd-metadata, tumblerd, xfce4-notifyd, the USB tray's python3, pulseaudio). Changes apply
- * when the desktop starts; nothing is uninstalled.
+ * process counts come from the desktops on the Galaxy A16 and the Fold 7 (2026-11-12: gvfsd,
+ * gvfsd-trash, gvfsd-metadata, tumblerd, xfce4-notifyd, the USB tray's python3, pulseaudio;
+ * Debian's bus = proot + droiddesk-session-bus + dbus-daemon + gnome-keyring). The Fold's base
+ * desktop was 20 processes. Changes apply when the desktop starts; nothing is uninstalled.
  */
 object LeanDesktop {
     class Part(val id: String, val title: String, val detail: String, val processes: Int)
@@ -23,6 +24,11 @@ object LeanDesktop {
         Part("notifications", "Desktop notifications", "xfce4-notifyd: pop-up notifications of Linux apps.", 1),
         Part("usbtray", "USB icon in the panel", "The panel's USB icon; lexona-usb in the terminal keeps working.", 1),
         Part("sound", "Sound", "PulseAudio: Linux apps play and record no sound.", 1),
+        Part(
+            "debianbus", "Password store for Debian apps",
+            "Debian's session bus with gnome-keyring: VS Code, Electron apps and GitHub tools " +
+                "keep their sign-ins there and will ask again, or fail to save them.", 4,
+        ),
     )
 
     /** D-Bus names a part's programs are started by. */
@@ -44,6 +50,10 @@ object LeanDesktop {
         "thumbnails" to listOf("-x tumblerd"),
         "notifications" to listOf("-x xfce4-notifyd"),
         "usbtray" to listOf("-f droiddesk-usb-tray.py"),
+        // proot ends with its last traced program.
+        "debianbus" to listOf(
+            "-f droiddesk-session-bus", "-f 'path=/tmp/dbus-debian'", "-f 'gnome-keyring-daemon --foreground'",
+        ),
     )
 
     private const val MARK = "X-Lexona-Lean=true"

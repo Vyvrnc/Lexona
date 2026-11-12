@@ -4332,6 +4332,8 @@ class LinuxRuntime(private val context: Context) {
      */
     fun ensureDebianSessionBusInBackground() {
         if (debianBusStarting || debianBusProcess?.isAlive == true) return
+        // Lean desktop: no Debian bus and keyring (proot, its shell, dbus-daemon, keyring).
+        if (LeanDesktop.isOff(context, "debianbus")) return
         if (!isBootstrapped() || debianRootfsMarkers().none(File::exists)) return
         if (!listOf("usr/bin/dbus-daemon", "usr/bin/dbus-send", "usr/bin/gnome-keyring-daemon").all { debianFileExists(it) }) return
         debianBusStarting = true
