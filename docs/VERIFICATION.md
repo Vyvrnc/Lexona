@@ -20,7 +20,10 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
-## Unreleased (next: 2.0.3)
+## Lexona 2.0.3 (2026-11-12)
+
+Released without a whole-build device test (the A16 was offline); adds an opt-in
+captured-mouse log ($TMPDIR/lexona-mouse-diag -> $TMPDIR/lexona-mouse.log).
 
 - pathhook maps `__xstat`/`__lxstat`/`__fxstatat` (glibc < 2.33 ABI): RustDesk 1.5.3 (Flutter)
   showed no text natively. Verified on the Fold 7 in DroidDesk with the new pathhook.so
