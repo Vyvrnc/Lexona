@@ -22,7 +22,9 @@ comes with you.
 ## Install
 
 1. Download the APK from [Releases](../../releases), or track it with
-   [Obtainium](https://github.com/ImranR98/Obtainium).
+   [Obtainium](https://github.com/ImranR98/Obtainium). If Obtainium says the app is already
+   added, it still tracks DroidDesk Fold under this (renamed) repository: remove that entry
+   (keep the app installed when it asks), then add Lexona.
 2. Open Lexona and start the setup. It downloads and installs the desktop and Debian: about
    10 minutes on a recent phone, about 16 minutes on a Galaxy A16. Keep the phone on Wi-Fi.
 3. Tap **Launch desktop**.
