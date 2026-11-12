@@ -55,29 +55,37 @@ class MainActivity : FlutterActivity() {
 
         handleHomeLaunch(intent)
         SharedStorage.requestIfNeeded(this)
-        requestMicrophoneOnce()
+        continuePermissionRequests()
     }
 
     /**
-     * Microphone for Linux programs (PulseAudio source). Asked once, and only after the storage
-     * request is settled, so the two dialogs do not race; "deny" sticks until the user grants it
-     * in the Android settings.
+     * One permission at a time, so the dialogs do not race; each is asked once and "deny" sticks
+     * until the user grants it in the Android settings. Old targets: storage dialog (from
+     * onCreate), notifications, microphone (PulseAudio source). targetSdk >= 30: notifications,
+     * microphone, then the "All files access" settings page, which leaves the app.
      */
-    private fun requestMicrophoneOnce() {
-        if (!SharedStorage.isGranted(this)) return
+    private fun continuePermissionRequests() {
+        if (!SharedStorage.usesAllFilesAccess(this) && !SharedStorage.isGranted(this)) return
         if (requestNotificationsOnce()) return
+        if (requestMicrophoneOnce()) return
+        SharedStorage.requestAllFilesAccessOnce(this)
+    }
+
+    /** True while the dialog is up. */
+    private fun requestMicrophoneOnce(): Boolean {
         if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
-            android.content.pm.PackageManager.PERMISSION_GRANTED) return
+            android.content.pm.PackageManager.PERMISSION_GRANTED) return false
         val prefs = getSharedPreferences("droiddesk_permissions", MODE_PRIVATE)
-        if (prefs.getBoolean("microphone_asked", false)) return
+        if (prefs.getBoolean("microphone_asked", false)) return false
         prefs.edit().putBoolean("microphone_asked", true).apply()
         requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), REQUEST_MICROPHONE)
+        return true
     }
 
     /**
      * targetSdk >= 33 on Android 13+: notifications (the running-session notification with its
      * Stop action) need a runtime grant; older targets get the system prompt automatically.
-     * Asked once, between the storage and the microphone dialogs. True while the dialog is up.
+     * Asked once (continuePermissionRequests). True while the dialog is up.
      */
     private fun requestNotificationsOnce(): Boolean {
         if (Build.VERSION.SDK_INT < 33 || applicationInfo.targetSdkVersion < 33) return false
@@ -94,14 +102,20 @@ class MainActivity : FlutterActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == SharedStorage.REQUEST_CODE && SharedStorage.isGranted(this)) {
             SharedStorage.linkIntoHome(this)
-            requestMicrophoneOnce()
+            continuePermissionRequests()
         }
-        if (requestCode == REQUEST_NOTIFICATIONS) requestMicrophoneOnce()
+        if (requestCode == REQUEST_NOTIFICATIONS || requestCode == REQUEST_MICROPHONE) {
+            continuePermissionRequests()
+        }
     }
 
     override fun onResume() {
         super.onResume()
         restoreSystemBars()
+        // Back from the "All files access" page (or granted later in the settings).
+        if (SharedStorage.usesAllFilesAccess(this) && SharedStorage.isGranted(this)) {
+            SharedStorage.linkIntoHome(this)
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

@@ -3,8 +3,12 @@ package com.orailnoor.droiddesk.runtime
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.provider.Settings
 import android.system.Os
 import android.util.Log
 import java.io.File
@@ -24,14 +28,40 @@ object SharedStorage {
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
     )
 
-    fun isGranted(context: Context): Boolean = PERMISSIONS.all {
-        context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED
-    }
+    /**
+     * targetSdk >= 30 on Android 11+: the runtime permissions no longer give file access
+     * (requestLegacyExternalStorage is ignored, READ does nothing from 33), so Linux programs
+     * need "All files access" (MANAGE_EXTERNAL_STORAGE), granted on a settings page.
+     */
+    fun usesAllFilesAccess(context: Context): Boolean =
+        Build.VERSION.SDK_INT >= 30 && context.applicationInfo.targetSdkVersion >= 30
 
-    /** Asks once per launch; Android stops showing the dialog after repeated denials. */
+    fun isGranted(context: Context): Boolean =
+        if (usesAllFilesAccess(context)) Environment.isExternalStorageManager()
+        else PERMISSIONS.all { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+
+    /** Old targets: asks once per launch; Android stops showing the dialog after repeated denials. */
     fun requestIfNeeded(activity: Activity) {
         if (isGranted(activity)) linkIntoHome(activity)
-        else activity.requestPermissions(PERMISSIONS, REQUEST_CODE)
+        else if (!usesAllFilesAccess(activity)) activity.requestPermissions(PERMISSIONS, REQUEST_CODE)
+    }
+
+    /**
+     * New targets: opens the "All files access" page for this app once; the user can grant it
+     * there later too. The links into home follow in MainActivity.onResume.
+     */
+    fun requestAllFilesAccessOnce(activity: Activity) {
+        if (!usesAllFilesAccess(activity) || isGranted(activity)) return
+        val prefs = activity.getSharedPreferences("droiddesk_permissions", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("all_files_asked", false)) return
+        prefs.edit().putBoolean("all_files_asked", true).apply()
+        runCatching {
+            activity.startActivity(
+                Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${activity.packageName}")),
+            )
+        }.recoverCatching {
+            activity.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        }.onFailure { Log.w(TAG, "No All files access page", it) }
     }
 
     /** ~/storage/{shared,downloads,...} for the native (non-root) session; chroot mounts /sdcard itself. */
