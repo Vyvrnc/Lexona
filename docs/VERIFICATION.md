@@ -20,6 +20,23 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Lexona 2.0.1 (2026-11-12)
+
+Tested on Galaxy A16 (adb, by hand on the screen):
+- Update from 2.0.0 over a running desktop: desktop back in 15 s, new wallpaper (mascot at the
+  bottom centre, visible in portrait), desktop controls scroll sideways and "Myš"/"−" stay in
+  reach. Smoke test (tools run in the in-app terminal) 18/18: bash identity, no setlocale
+  warnings, lexona-* commands, pkg, python, glibc-native (debian-run native, glibc to Termux,
+  apt through proot), Claude Code natively, Firefox, X, virgl on the Mali, XFCE processes,
+  PulseAudio, D-Bus, network bridge, internet.
+- Clean install (app data cleared): welcome screen with the new subtitle; notifications, then
+  microphone, then the All files access page; setup about 20 min; "Launch Lexona" fully on
+  screen; home screen warns about the child process limit, its dialog opens; first desktop in
+  17 s. Smoke test 13/13 of what a clean install has (Claude Code, Firefox, glxinfo and the
+  virgl opt-in are not part of it).
+
+Not tested: Tab S10 FE and Fold 7 (not at hand).
+
 ## Lexona 2.0.0 (2026-11-12)
 
 First release as Lexona: new app ID `io.github.vyvrnc.lexona` (installs next to DroidDesk,
