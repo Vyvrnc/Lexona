@@ -99,7 +99,9 @@ def termux_env():
 
 def termux_argv(cmd):
     """argv that runs a shell command on the Termux side."""
-    if IN_TERMUX:
+    # Also from a Termux shell outside the desktop (the app's terminal): the desktop's own
+    # environment carries its OpenGL choice (virpipe on Mali/Xclipse), the shell's does not.
+    if IN_TERMUX and not desktop_environ():
         return ["bash", "-lc", cmd]
     if not PREFIX:
         return None
@@ -356,10 +358,17 @@ def main():
 
     say("DroidDesk GPU report v%d, writing %s" % (VERSION, out_path))
     say("Running from: %s, Termux prefix: %s" % ("Termux" if IN_TERMUX else "Debian", PREFIX or "not found"))
-    if not IN_TERMUX and PREFIX:
+    if PREFIX:
         termux_env()
-        say("Termux environment: " + TERMUX_ENV_SOURCE)
-        summary.append("- Run from Debian; Termux-side environment: " + TERMUX_ENV_SOURCE)
+        if IN_TERMUX and not desktop_environ():
+            TERMUX_ENV_SOURCE_SHOWN = "this shell (no desktop running)"
+        else:
+            TERMUX_ENV_SOURCE_SHOWN = TERMUX_ENV_SOURCE
+        say("Termux environment: " + TERMUX_ENV_SOURCE_SHOWN)
+        summary.append("- Run from %s; Termux-side environment: %s" %
+                       ("Termux" if IN_TERMUX else "Debian", TERMUX_ENV_SOURCE_SHOWN))
+        gl = termux_env().get("GALLIUM_DRIVER") if not (IN_TERMUX and not desktop_environ()) else os.environ.get("GALLIUM_DRIVER")
+        summary.append("- Desktop GALLIUM_DRIVER: %s" % (gl or "unset (Mesa default)"))
 
     # Environment
     rc, props = run("termux", "for p in ro.product.manufacturer ro.product.model ro.soc.manufacturer ro.soc.model "
