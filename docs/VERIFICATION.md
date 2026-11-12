@@ -20,7 +20,7 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
-## Lexona 2.0.2 (2026-11-12, candidate)
+## Lexona 2.0.2 (2026-11-12)
 
 Full functional test on the Galaxy A16 (`tools/device-test/full.sh --heavy` in the app's terminal
 and `tools/device-test/lifecycle.sh` over adb; build cb35254, the release adds only text): 44 PASS,
