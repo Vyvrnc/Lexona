@@ -25,11 +25,11 @@ android {
 
     defaultConfig {
         applicationId = "io.github.vyvrnc.lexona"
-        minSdk = 28  // Downgraded to 28 to bypass W^X (Write XOR Execute) restrictions on app data
-        // 28 lets the app exec programs from its data dir; 36 (needed for new installs on
-        // Android 16, Play Protect) starts them through linker64 (NativeExec, socket hook).
-        // flutter build apk --android-project-arg=lexona.targetSdk=36
-        targetSdk = (project.findProperty("lexona.targetSdk") as String?)?.toInt() ?: 28
+        minSdk = 28
+        // 36 (Play Protect lets new installs through on Android 16): programs in the app's data
+        // dir start through linker64 (NativeExec, socket hook), glibc through the APK's libld.so.
+        // An old-style build that execs data-dir programs directly: TARGET_SDK=28 tools/build-apk.sh
+        targetSdk = (project.findProperty("lexona.targetSdk") as String?)?.toInt() ?: 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders["appLabel"] = "Lexona"

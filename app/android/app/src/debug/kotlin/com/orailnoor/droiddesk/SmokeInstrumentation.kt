@@ -9,7 +9,7 @@ import com.orailnoor.droiddesk.runtime.LinuxRuntime
  * runs one shell command through the app's own exec path, in the app process, also on a locked
  * phone. Only adb can start an instrumentation:
  *   adb shell am instrument -w -e cmd 'echo hi' io.github.vyvrnc.lexona/com.orailnoor.droiddesk.SmokeInstrumentation
- * Remove before a release that does not need it.
+ * In the debug source set only; release APKs do not contain it.
  */
 class SmokeInstrumentation : Instrumentation() {
     private var command = "echo hello"

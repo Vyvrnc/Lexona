@@ -4,4 +4,10 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Debug builds only: runs one shell command through the app's exec path over adb, also on a
+         locked phone (docs/targetsdk36-plan.md). Release builds do not contain it. -->
+    <instrumentation
+        android:name="com.orailnoor.droiddesk.SmokeInstrumentation"
+        android:targetPackage="${applicationId}" />
 </manifest>

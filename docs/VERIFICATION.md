@@ -20,7 +20,11 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
-## Lexona 2.0.0, targetSdk 36 test builds (2026-11-12, not released)
+## Lexona 2.0.0 (2026-11-12)
+
+First release as Lexona: new app ID `io.github.vyvrnc.lexona` (installs next to DroidDesk,
+nothing is migrated yet), targetSdk 36. The release build is the last test build without the
+debug-only SmokeInstrumentation.
 
 Tested on Galaxy A16 and Tab S10 FE (adb, clean install, by hand on the screen):
 - Full in-app setup (A16 ~16 min), XFCE desktop (A16 8-14 s to xfdesktop), xfce4-terminal,
@@ -45,7 +49,12 @@ Tested on Galaxy A16 and Tab S10 FE (adb, clean install, by hand on the screen):
 - Claude Code 2.1.322 natively at targetSdk 36 (A16, installed from the app catalog): `claude
   --version` 0.5 s, its embedded ripgrep through the argv0 "rg" re-exec finds files.
 
-Not tested: Electron mirrors natively at targetSdk 36; Chromium and Debian OpenGL on Mali; Fold 7; a mouse's right button (BACK).
+- Tab S10 FE: a gpg-agent left from an earlier session kept XFCE black; the session script now
+  kills one that does not answer, the desktop then started in 4 s. The wallpaper mascot stays
+  visible on 16:10.
+
+Not tested: the 2.0.0 release APK itself beyond install and desktop start (see below); Electron
+mirrors natively at targetSdk 36; Chromium and Debian OpenGL on Mali; Fold 7; a mouse's right button (BACK).
 
 ## 1.0.1-fold.108 (2026-11-02)
 
