@@ -155,6 +155,8 @@ class LinuxRuntime(private val context: Context) {
         // wrappers operate on the same session.
         @Volatile private var sessionProcess: Process? = null
         @Volatile private var dbusProcess: Process? = null
+        /** LeanDesktop.state() when the session bus started. */
+        @Volatile private var busLeanState: String? = null
         // Debian's session bus host (droiddesk-session-bus), see ensureDebianSessionBusInBackground.
         @Volatile private var debianBusProcess: Process? = null
         @Volatile private var debianBusStarting = false
@@ -1851,6 +1853,12 @@ class LinuxRuntime(private val context: Context) {
                 command.writeText("#!${File(binDir, "bash").absolutePath}\n" + script.substringAfter('\n'))
                 command.setExecutable(true, false)
             }
+            // The child process limit off over Wireless debugging (warning on the home screen).
+            File(binDir, "lexona-unlimit").let { command ->
+                val script = context.assets.open("droiddesk/lexona-unlimit").bufferedReader().use { it.readText() }
+                command.writeText("#!${File(binDir, "bash").absolutePath}\n" + script.substringAfter('\n'))
+                command.setExecutable(true, false)
+            }
             // Opt-in Debian glibc tools; setup is always an explicit user action.
             File(binDir, "droiddesk-glibc-native").let { command ->
                 val script = context.assets.open("droiddesk/droiddesk-glibc-native").bufferedReader().use { it.readText() }
@@ -2012,6 +2020,7 @@ class LinuxRuntime(private val context: Context) {
                 Name=USB (ikona v panelu)
                 Exec=${trayCommand.absolutePath}
                 NoDisplay=true
+                Hidden=${LeanDesktop.isOff(context, "usbtray")}
                 """.trimIndent() + "\n",
             )
         }.onFailure { Log.w(TAG, "Failed to install droiddesk-usb: ${it.message}") }
@@ -5020,7 +5029,12 @@ class LinuxRuntime(private val context: Context) {
         // --fork: a forked daemon can outlive the Android activity and leave an
         // orphaned bus behind after its socket is replaced.
         val dbusSocket = File(tmpDir, "dbus-session")
-        val reuseBus = keepServices && dbusProcess?.isAlive == true && dbusSocket.exists()
+        // A changed lean desktop needs a new bus: its service directories and blocks are read
+        // when the bus starts.
+        val leanState = LeanDesktop.state(context)
+        val reuseBus = keepServices && dbusProcess?.isAlive == true && dbusSocket.exists() &&
+            busLeanState == leanState
+        busLeanState = leanState
         if (reuseBus) Log.i(TAG, "Keeping the session dbus-daemon")
         if (!reuseBus) try {
             dbusProcess?.destroyForcibly()
@@ -5035,8 +5049,8 @@ class LinuxRuntime(private val context: Context) {
                   <keep_umask/>
                   <listen>unix:path=${dbusSocket.absolutePath}</listen>
                   <auth>EXTERNAL</auth>
-                  <servicedir>${File(prefixDir, "share/dbus-1/services").absolutePath}</servicedir>
                   <servicedir>${File(homeDir, ".local/share/dbus-1/services").absolutePath}</servicedir>
+                  <servicedir>${File(prefixDir, "share/dbus-1/services").absolutePath}</servicedir>
                   <policy context="default">
                     <allow send_destination="*" eavesdrop="true"/>
                     <allow eavesdrop="true"/>
@@ -5050,11 +5064,14 @@ class LinuxRuntime(private val context: Context) {
             val gvfsd = File(prefixDir, "libexec/gvfsd")
             val userServices = File(homeDir, ".local/share/dbus-1/services").apply { mkdirs() }
             val gvfsService = File(userServices, "org.gtk.vfs.Daemon.service")
-            if (gvfsd.exists()) {
+            if (gvfsd.exists() && !LeanDesktop.isOff(context, "gvfs")) {
                 gvfsService.writeText("[D-BUS Service]\nName=org.gtk.vfs.Daemon\nExec=${gvfsd.absolutePath}\n")
             } else {
                 gvfsService.delete()
             }
+            // Lean desktop: the user's services directory comes first, so its blocks win.
+            runCatching { LeanDesktop.apply(context, userServices, File(homeDir, ".config/autostart")) }
+                .onFailure { Log.w(TAG, "Lean desktop: ${it.message}") }
             val dbusCmd = listOf(
                 File(prefixDir, "bin/dbus-daemon").absolutePath,
                 "--config-file=${dbusConfig.absolutePath}",
@@ -5125,7 +5142,13 @@ class LinuxRuntime(private val context: Context) {
             # XFCE from starting (black screen with a cursor). Kill it outright
             # and never let pactl block the desktop. A desktop restart keeps a daemon that
             # answers, so playing apps are not cut off.
-            if [ "${if (keepServices) "1" else "0"}" = "1" ] &&
+            # Lean desktop (fewer processes): GIO without gvfs, no sound server.
+            ${if (LeanDesktop.isOff(context, "gvfs")) "export GIO_USE_VFS=local" else ":"}
+            ${LeanDesktop.killScript(context)}
+            if [ "${if (LeanDesktop.isOff(context, "sound")) "1" else "0"}" = "1" ]; then
+                echo "DIAG: sound off (lean desktop)"
+                timeout 2 pulseaudio --kill >/dev/null 2>&1 || true
+            elif [ "${if (keepServices) "1" else "0"}" = "1" ] &&
                 timeout 2 pactl list short sinks 2>/dev/null | grep -q AAudio_sink; then
                 echo "DIAG: keeping PulseAudio"
             else
@@ -5330,6 +5353,7 @@ class LinuxRuntime(private val context: Context) {
         // isRunning() only knows a session this process started; after the app process was
         // recreated the desktop may still run, so a live xfce4-session counts too.
         if (pulseCheckRunning || !isBootstrapped() || !(isRunning() || desktopProcessAlive())) return
+        if (LeanDesktop.isOff(context, "sound")) return  // lean desktop: no sound server
         pulseCheckRunning = true
         try {
             val script = "timeout 3 pactl info >/dev/null 2>&1 && exit 0\n" +
@@ -5364,17 +5388,6 @@ class LinuxRuntime(private val context: Context) {
      * own Android processes (its package name as the command line) stay. Returns how many ended.
      */
     fun killRemainingProcesses(): Int {
-        val myUid = android.os.Process.myUid()
-        val myPid = android.os.Process.myPid()
-        val pkg = context.packageName
-        fun linuxPids(): List<Int> = File("/proc").listFiles()?.mapNotNull { dir ->
-            val pid = dir.name.toIntOrNull() ?: return@mapNotNull null
-            if (pid == myPid) return@mapNotNull null
-            val uid = runCatching { android.system.Os.stat(dir.path).st_uid }.getOrNull() ?: return@mapNotNull null
-            if (uid != myUid) return@mapNotNull null
-            val cmd = runCatching { File(dir, "cmdline").readText().substringBefore('\u0000') }.getOrDefault("")
-            if (cmd.isEmpty() || cmd.startsWith(pkg)) null else pid
-        } ?: emptyList()
         val first = linuxPids()
         first.forEach { runCatching { android.os.Process.sendSignal(it, 15) } }
         val deadline = System.currentTimeMillis() + 2000
@@ -5382,6 +5395,24 @@ class LinuxRuntime(private val context: Context) {
         linuxPids().forEach { runCatching { android.os.Process.sendSignal(it, 9) } }
         Log.i(TAG, "Stop server: ended ${first.size} Linux processes")
         return first.size
+    }
+
+    /**
+     * The app's Linux processes: every process of this uid except the app's own; Android counts
+     * them against the phantom process limit. Kernel threads and zombies (no cmdline) are skipped.
+     */
+    fun linuxPids(): List<Int> {
+        val myUid = android.os.Process.myUid()
+        val myPid = android.os.Process.myPid()
+        val pkg = context.packageName
+        return File("/proc").listFiles()?.mapNotNull { dir ->
+            val pid = dir.name.toIntOrNull() ?: return@mapNotNull null
+            if (pid == myPid) return@mapNotNull null
+            val uid = runCatching { android.system.Os.stat(dir.path).st_uid }.getOrNull() ?: return@mapNotNull null
+            if (uid != myUid) return@mapNotNull null
+            val cmd = runCatching { File(dir, "cmdline").readText().substringBefore('\u0000') }.getOrDefault("")
+            if (cmd.isEmpty() || cmd.startsWith(pkg)) null else pid
+        } ?: emptyList()
     }
 
     fun stopSession() {

@@ -9,6 +9,7 @@ import 'package:droiddesk/screens/setup/de_install_screen.dart';
 import 'package:droiddesk/screens/apps/app_catalog_screen.dart';
 import 'package:droiddesk/screens/desktop_tools_screen.dart';
 import 'package:droiddesk/screens/gpu_support_screen.dart';
+import 'package:droiddesk/screens/process_limit_screen.dart';
 
 /// Home dashboard — shown after setup is complete.
 /// Central hub for launching the desktop, terminal, and managing the environment.
@@ -449,7 +450,9 @@ class HomeScreen extends StatelessWidget {
                         if (state.deviceInfo['phantomLimit'] == true) ...[
                           _divider(),
                           InkWell(
-                            onTap: () => _showPhantomLimitHelp(context),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const ProcessLimitScreen()),
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               child: Row(
@@ -554,54 +557,6 @@ class HomeScreen extends StatelessWidget {
           Text(
             value,
             style: LexonaTheme.monoSm.copyWith(color: LexonaTheme.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static const _phantomAdb =
-      'adb shell settings put global settings_enable_monitor_phantom_procs false\n'
-      'adb shell device_config set_sync_disabled_for_tests persistent\n'
-      'adb shell device_config put activity_manager max_phantom_processes 2147483647';
-
-  void _showPhantomLimitHelp(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        icon: Icon(Icons.warning_amber_rounded, color: LexonaTheme.warning),
-        title: const Text('Android limits child processes'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Android 12 and newer stop the oldest programs of an app once it runs more than '
-                '32 of them. The desktop alone uses about 27, so a browser or a few terminals '
-                'are enough for Android to close Linux programs every few minutes.\n\n'
-                'To turn the limit off: Settings > Developer options > Disable child process '
-                'restrictions (Android 14 and newer). Or once from a computer:',
-              ),
-              const SizedBox(height: 12),
-              SelectableText(
-                _phantomAdb,
-                style: LexonaTheme.mono.copyWith(fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(const ClipboardData(text: _phantomAdb));
-              Navigator.of(dialogContext).pop();
-            },
-            child: const Text('Copy commands'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Close'),
           ),
         ],
       ),

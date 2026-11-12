@@ -275,6 +275,7 @@ class TerminalActivity : Activity() {
             "debian" -> "Debian"
             "claude" -> "Claude Code"
             "codex" -> "Codex"
+            "unlimit" -> "Limit procesů"
             else -> "Terminál"
         }
     }
@@ -308,6 +309,8 @@ object TerminalSessions {
             // In tmux, so XFCE's "Claude Code" (and claude-tmux anywhere) attaches to the same session.
             "claude" -> "$bin/claude-tmux" to arrayOf("claude-tmux")
             "codex" -> "$bin/codex-debian" to arrayOf("codex-debian")
+            // The phantom-limit warning: adb over Wireless debugging (lexona-unlimit).
+            "unlimit" -> "$bin/lexona-unlimit" to arrayOf("lexona-unlimit")
             else -> "$bin/bash" to arrayOf("-bash")
         }
         val program = if (File(command).canExecute()) command else "$bin/bash"

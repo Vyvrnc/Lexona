@@ -153,7 +153,28 @@ class DroidDeskPlatform {
     return Map<String, bool>.from(result);
   }
 
-  /// Real terminal (PTY) in the app: profile shell, debian, claude or codex.
+  /// Phantom process limit: {limitOn, processes (-1 = unknown), developerOptions}.
+  static Future<Map<String, dynamic>> phantomStatus() async {
+    final result = await _channel.invokeMethod('phantomStatus');
+    return Map<String, dynamic>.from(result ?? {});
+  }
+
+  /// Lean desktop parts: [{id, title, detail, processes, off}].
+  static Future<List<Map<String, dynamic>>> getLeanOptions() async {
+    final result = await _channel.invokeMethod<List<dynamic>>('getLeanOptions') ?? [];
+    return result.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  static Future<bool> setLeanOption(String id, bool off) async {
+    return await _channel.invokeMethod<bool>('setLeanOption', {'id': id, 'off': off}) ?? false;
+  }
+
+  /// Opens Developer options, or "About phone" while they are off. Returns which one.
+  static Future<String> openDeveloperOptions() async {
+    return await _channel.invokeMethod<String>('openDeveloperOptions') ?? 'none';
+  }
+
+  /// Real terminal (PTY) in the app: profile shell, debian, claude, codex or unlimit.
   static Future<bool> openTerminal(String profile) async {
     return await _channel.invokeMethod<bool>('openTerminal', {'profile': profile}) ?? false;
   }

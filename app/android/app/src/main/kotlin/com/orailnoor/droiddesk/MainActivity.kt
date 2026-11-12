@@ -659,6 +659,48 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
 
+                "phantomStatus" -> {
+                    // The warning dialog: is the limit on, how many Linux processes run now.
+                    thread(name = "phantom-status") {
+                        val status = mapOf(
+                            "limitOn" to phantomProcessLimitOn(),
+                            "processes" to if (chrootRuntime.hasRoot()) -1 else linuxRuntime.linuxPids().size,
+                            "developerOptions" to (android.provider.Settings.Global.getInt(
+                                contentResolver, android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1),
+                        )
+                        runOnUiThread { result.success(status) }
+                    }
+                }
+
+                "getLeanOptions" -> result.success(com.orailnoor.droiddesk.runtime.LeanDesktop.options(this))
+
+                "setLeanOption" -> {
+                    // Applies when the desktop starts next (the screen offers a restart).
+                    val id = call.argument<String>("id") ?: ""
+                    if (com.orailnoor.droiddesk.runtime.LeanDesktop.parts.any { it.id == id }) {
+                        com.orailnoor.droiddesk.runtime.LeanDesktop.setOff(this, id, call.argument<Boolean>("off") == true)
+                        // The USB tray's autostart entry is written with the device tools.
+                        thread(name = "lean-tools") { runCatching { linuxRuntime.writeDeviceTools() } }
+                        result.success(true)
+                    } else {
+                        result.success(false)
+                    }
+                }
+
+                "openDeveloperOptions" -> {
+                    // Developer options when they are on, otherwise "About phone" (Build number).
+                    val devOn = android.provider.Settings.Global.getInt(
+                        contentResolver, android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
+                    val action = if (devOn) Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS
+                        else Settings.ACTION_DEVICE_INFO_SETTINGS
+                    val opened = runCatching {
+                        startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); true
+                    }.getOrElse {
+                        runCatching { startActivity(Intent(Settings.ACTION_SETTINGS)); true }.getOrDefault(false)
+                    }
+                    result.success(if (opened) (if (devOn) "developer" else "about") else "none")
+                }
+
                 "launchDesktopActivity" -> {
                     val rooted = chrootRuntime.hasRoot()
                     val intent = Intent(this@MainActivity, com.orailnoor.droiddesk.view.DesktopActivity::class.java).apply {
@@ -963,6 +1005,8 @@ class MainActivity : FlutterActivity() {
      */
     private fun phantomProcessLimitOn(): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+        // lexona-unlimit set max_phantom_processes over adb and checked it; apps cannot read it.
+        if (java.io.File(filesDir, "home/.config/lexona/phantom-unlocked").isFile) return false
         val key = "settings_enable_monitor_phantom_procs"
         val global = runCatching { android.provider.Settings.Global.getString(contentResolver, key) }.getOrNull()
         val override = runCatching {
