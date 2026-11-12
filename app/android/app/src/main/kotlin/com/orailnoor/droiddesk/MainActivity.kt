@@ -30,6 +30,7 @@ class MainActivity : FlutterActivity() {
         private const val CHANNEL = "com.droiddesk/core"
         private const val TAG = "MainActivity"
         private const val REQUEST_MICROPHONE = 4107
+        private const val REQUEST_NOTIFICATIONS = 4108
         private val packageOperationRunning = java.util.concurrent.atomic.AtomicBoolean(false)
     }
 
@@ -64,6 +65,7 @@ class MainActivity : FlutterActivity() {
      */
     private fun requestMicrophoneOnce() {
         if (!SharedStorage.isGranted(this)) return
+        if (requestNotificationsOnce()) return
         if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED) return
         val prefs = getSharedPreferences("droiddesk_permissions", MODE_PRIVATE)
@@ -72,12 +74,29 @@ class MainActivity : FlutterActivity() {
         requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), REQUEST_MICROPHONE)
     }
 
+    /**
+     * targetSdk >= 33 on Android 13+: notifications (the running-session notification with its
+     * Stop action) need a runtime grant; older targets get the system prompt automatically.
+     * Asked once, between the storage and the microphone dialogs. True while the dialog is up.
+     */
+    private fun requestNotificationsOnce(): Boolean {
+        if (Build.VERSION.SDK_INT < 33 || applicationInfo.targetSdkVersion < 33) return false
+        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED) return false
+        val prefs = getSharedPreferences("droiddesk_permissions", MODE_PRIVATE)
+        if (prefs.getBoolean("notifications_asked", false)) return false
+        prefs.edit().putBoolean("notifications_asked", true).apply()
+        requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFICATIONS)
+        return true
+    }
+
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == SharedStorage.REQUEST_CODE && SharedStorage.isGranted(this)) {
             SharedStorage.linkIntoHome(this)
             requestMicrophoneOnce()
         }
+        if (requestCode == REQUEST_NOTIFICATIONS) requestMicrophoneOnce()
     }
 
     override fun onResume() {

@@ -694,11 +694,32 @@ locked, `am instrument … SmokeInstrumentation`):
   maintainer scripts) work; `dpkg --audit` clean.
 - jniLibs `libproot-loader.so` replaced by the loader of Termux proot 5.1.107.102.
 
-Open:
-- proot at 36: `proot -0 /system/bin/id` fails with EPERM while translating execve (before the
-  loader is used), also with PROOT_NO_SECCOMP=1 and with the loader from nativeLibraryDir;
-  ptrace itself works (strace runs). Cause under investigation.
-- Not tested yet (needs the screen unlocked): the in-app terminal (PTY login), the desktop.
+- proot at 36: the EPERM was Samsung's read restriction on `/system/bin` for untrusted_app
+  (exec allowed, `openat` EPERM), not proot; Debian programs in app data work. proot-distro
+  execs proot with a minimal environment, so it gets `PD_PROOT_BIN=$PREFIX/bin/proot-lexona`, a
+  `/system/bin/sh` wrapper that sets PROOT_LOADER/PROOT_TMP_DIR and runs proot via linker64.
+- Phase 6 (part): specialUse foreground service, started for the first setup too.
+- Full in-app setup on the A16 in ~16 min, then the XFCE desktop (panel, xfdesktop, dbus,
+  wallpaper). Tab S10 FE (Xclipse 540): setup, desktop, xfce4-terminal, `pkg install`,
+  GPU report (llvmpipe, Mesa 26.2.6, glxgears ~350 FPS; virgl is opt-in there).
+- In-app terminal (PTY): login shell, `debian-run` (0.98 s on the A16), proot-distro Debian.
+- glibc-native is blocked at >= 29 until phase 5 (`DD_NATIVE_BLOCKED=1` baked into
+  droiddesk-glibc-native; debian-run and friends fall back to proot; no background setup).
+- Edge to edge (targetSdk 35+): TerminalActivity pads by system bar, cutout and IME insets;
+  the setup screen's Retry/Launch button sits below the scrolling log.
+- Back: the app already opts in with `enableOnBackInvokedCallback="true"` and lets Android
+  handle KEYCODE_BACK on the desktop; `input keyevent 4` behaves. Not tested: a mouse's right
+  button that Android turns into BACK (needs a real mouse, e.g. the Fold in DeX).
+
+Found on the way (also in the released DroidDesk): bash-completion makes bash restore
+LC_CTYPE/LC_COLLATE from LANG; bionic knows only C/C.UTF-8 there, so a Czech LANG printed a
+dozen setlocale warnings at every terminal start. Fixed with `LC_CTYPE`/`LC_COLLATE=C.UTF-8`
+on the Termux side.
+
+Gotcha: `am instrument` restarts the app process, which ends a running desktop.
+
+Open: phase 5 (glibc native via libld.so), POST_NOTIFICATIONS request, `<queries>`, phantom
+process endurance, mouse right button, remove SmokeInstrumentation before a release.
 
 ## Lessons from Local Desktop (localdesktop/localdesktop 43082a8, GPLv3, targetSdk 36)
 
