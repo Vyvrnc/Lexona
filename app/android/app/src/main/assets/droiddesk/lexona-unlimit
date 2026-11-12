@@ -22,24 +22,44 @@ if ! command -v adb >/dev/null 2>&1; then
     pkg install -y android-tools < /dev/null || finish "Installing adb failed; check the internet connection." 1
 fi
 
+# The adb server it starts is one more process: end it on the way out.
+trap 'adb kill-server >/dev/null 2>&1' EXIT
+# Wireless debugging announces its port over mDNS; then the user types nothing but the pairing.
+mdns_port() { adb mdns services < /dev/null 2>/dev/null | awk '/_adb-tls-connect/ { n = split($NF, a, ":"); print a[n]; exit }'; }
+try_connect() {  # try_connect PORT: connected and authorized (paired before)
+    dev=127.0.0.1:$1
+    adb connect "$dev" < /dev/null >/dev/null 2>&1
+    [ "$(adb -s "$dev" get-state < /dev/null 2>/dev/null)" = device ]
+}
+
 say "Turn the child process limit off without a computer"
 cat <<'EOF'
 
 1. Settings > Developer options > Wireless debugging: turn it on (the phone must be on Wi-Fi).
    Developer options appear after tapping Build number 7 times (Settings > About phone >
    Software information).
+EOF
+read -r -p "Press Enter once Wireless debugging is on. " _ || exit 1
+cport=$(mdns_port)
+if [ -n "$cport" ] && try_connect "$cport"; then
+    say "Connected (paired before)."
+else
+    cat <<'EOF'
+
 2. Put Settings and Lexona side by side (split screen or a pop-up window); the pairing code
    closes when you switch apps.
 3. In Wireless debugging tap "Pair device with pairing code".
 EOF
-read -r -p "Pairing port (the number after the colon, e.g. 37123): " pport || exit 1
-read -r -p "Pairing code (6 digits): " pcode || exit 1
-adb pair "127.0.0.1:$pport" "$pcode" < /dev/null || finish "Pairing failed. Check the port and the code and run lexona-unlimit again." 1
-
-say "4. The main Wireless debugging screen shows \"IP address & Port\" (not the pairing port)."
-read -r -p "Port (the number after the colon): " cport || exit 1
-dev=127.0.0.1:$cport
-adb connect "$dev" < /dev/null | grep -q 'connected' || finish "Could not connect to $dev." 1
+    read -r -p "Pairing port (the number after the colon, e.g. 37123): " pport || exit 1
+    read -r -p "Pairing code (6 digits): " pcode || exit 1
+    adb pair "127.0.0.1:$pport" "$pcode" < /dev/null || finish "Pairing failed. Check the port and the code and run lexona-unlimit again." 1
+    cport=$(mdns_port)
+    if [ -z "$cport" ] || ! try_connect "$cport"; then
+        say "4. The main Wireless debugging screen shows \"IP address & Port\" (not the pairing port)."
+        read -r -p "Port (the number after the colon): " cport || exit 1
+        try_connect "$cport" || finish "Could not connect to 127.0.0.1:$cport." 1
+    fi
+fi
 sh_() { adb -s "$dev" shell "$@" < /dev/null | tr -d '\r'; }
 
 if [ $undo = 1 ]; then

@@ -70,7 +70,8 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
         title: const Text('Process limit'),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        // Edge to edge: keep the last button above the navigation bar.
+        padding: EdgeInsets.fromLTRB(24, 8, 24, 32 + MediaQuery.of(context).viewPadding.bottom),
         children: [
           _card(Column(
             crossAxisAlignment: CrossAxisAlignment.start,

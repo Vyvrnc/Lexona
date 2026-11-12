@@ -264,6 +264,11 @@ class TerminalActivity : Activity() {
         if (terminalView.currentSession === session) terminalView.onScreenUpdated()
     }
 
+    /** A one-shot profile (lexona-unlimit) closes its window when it ends instead of restarting. */
+    fun onSessionEnded(session: TerminalSession) {
+        if (terminalView.currentSession === session && profile == "unlimit") finish() else onSessionText(session)
+    }
+
     fun onSessionTitle(session: TerminalSession) {
         if (terminalView.currentSession === session && !session.title.isNullOrBlank()) title = session.title
     }
@@ -341,7 +346,7 @@ object TerminalSessions {
         override fun onTitleChanged(changedSession: TerminalSession) { activity?.onSessionTitle(changedSession) }
         override fun onSessionFinished(finishedSession: TerminalSession) {
             // The emulator shows the exit status; Enter (or any extra key) starts it again.
-            activity?.onSessionText(finishedSession)
+            activity?.onSessionEnded(finishedSession)
         }
 
         override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
