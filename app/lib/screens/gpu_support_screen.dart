@@ -77,8 +77,28 @@ const _xclipse = GpuFamily(
   ],
 );
 
+const _a16 = 'Galaxy A16 (Mali-G57 MC2), Lexona 2.0 targetSdk 36 test, 2026-11-12';
+
+const _mali = GpuFamily(
+  name: 'Mali (MediaTek, Exynos)',
+  path: 'virgl over ANGLE/Vulkan (experimental, opt-in)',
+  defaultState: 'Off by default: software rendering (llvmpipe). Turn on with '
+      '"droiddesk-native-gpu on" in the terminal and restart the desktop.',
+  checks: [
+    GpuCheck('Desktop and Termux apps (OpenGL)', GpuStatus.caveat,
+        'With the opt-in: OpenGL 2.1 on virgl; without it: software, OpenGL 4.6', _a16),
+    GpuCheck('Heavy 3D (glmark2)', GpuStatus.works,
+        'With the opt-in 2 to 8 times faster in heavy scenes (refract 4 to 33 FPS, blur 11 to '
+            '37 FPS); plain texturing is slower (106 to 45 FPS), glxgears 222 to 142 FPS',
+        _a16),
+    GpuCheck('WebGL in browsers', GpuStatus.untested, 'No result yet', ''),
+    GpuCheck('Debian apps (OpenGL)', GpuStatus.untested, 'No result yet', ''),
+    GpuCheck('Video decoding', GpuStatus.software, 'Videos play, decoded by the CPU', ''),
+  ],
+);
+
 const _other = GpuFamily(
-  name: 'Other GPU (Mali, PowerVR, ...)',
+  name: 'Other GPU (PowerVR, ...)',
   path: 'Software rendering (llvmpipe); virgl opt-in untested',
   defaultState: 'Software rendering. Everything works, but 3D and WebGL are slow.',
   checks: [
@@ -94,6 +114,7 @@ GpuFamily gpuFamilyFor(String gpuName) {
   final name = gpuName.toLowerCase();
   if (name.contains('adreno')) return _adreno;
   if (name.contains('xclipse')) return _xclipse;
+  if (name.contains('mali')) return _mali;
   return _other;
 }
 

@@ -11,12 +11,29 @@ Devices:
 - **Tab S10 FE**: Samsung Galaxy Tab S10 FE (SM-X620), Exynos 1580 / Xclipse 540, Android 16.
 - **Fold 7**: Samsung Galaxy Z Fold 7 (SM-F966B), Snapdragon 8 Elite / Adreno 830, Android 17 (Android 16, One UI 8.5 before fold.106).
 
+- **Galaxy A16**: Samsung Galaxy A16 (SM-A165F), MediaTek Helio G99 (MT6789) / Mali-G57 MC2, 4 GB, Android 16. Low-end test phone.
+
 Unless stated otherwise, every release is installed over the previous one (`adb install -r`,
 same as an Obtainium update) and the existing Debian, settings and Claude Code login are kept.
 
 Automated checks before every release: `tools/glibc-native/test.sh` (pathhook and launcher
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
+
+## Lexona 2.0.0, targetSdk 36 test builds (2026-11-12, not released)
+
+Tested on Galaxy A16 and Tab S10 FE (adb, clean install, by hand on the screen):
+- Full in-app setup (A16 ~16 min), XFCE desktop (A16 8-14 s to xfdesktop), xfce4-terminal,
+  in-app terminal with extra keys above the keyboard, `pkg install`, proot-distro Debian,
+  `debian-run` (0.98 s on the A16).
+- A16 with the desktop running: ~730 MB RSS for all Lexona processes (app UI 268 MB, X 80 MB,
+  xfce4-session 61 MB, USB tray 58 MB); idle CPU about 5 % of one core (X).
+- GPU kit, A16: llvmpipe glxgears 195-222 FPS; virgl (`droiddesk-native-gpu on`) on
+  Mali-G57 MC2 works, glxgears 142 FPS; glmark2 960x540: score 41 software vs 47 virgl,
+  refract 4 vs 33 FPS, desktop blur 11 vs 37, jellyfish 21 vs 43, texture 106 vs 45.
+- GPU kit, Tab S10 FE: llvmpipe, Mesa 26.2.6, glxgears ~350 FPS.
+
+Not tested: WebGL and Debian OpenGL on Mali; Fold 7; a mouse's right button (BACK).
 
 ## 1.0.1-fold.108 (2026-11-02)
 
