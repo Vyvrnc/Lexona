@@ -24,6 +24,13 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
       Color(0xFFFF7139),
     ),
     _FeaturedApp(
+      'chromium',
+      'Chromium',
+      'Open-source base of Chrome: web apps, Meet, WebGL.',
+      Icons.travel_explore_rounded,
+      Color(0xFF4285F4),
+    ),
+    _FeaturedApp(
       'code-oss',
       'Code OSS',
       'Powerful desktop code editor and IDE.',

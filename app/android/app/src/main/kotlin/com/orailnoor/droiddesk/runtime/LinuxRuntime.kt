@@ -4721,7 +4721,7 @@ class LinuxRuntime(private val context: Context) {
 
     fun getInstalledNativePackages(limit: Int = 500): List<Map<String, Any>> {
         val visible = storeInstalledPackages() + setOf(
-            "firefox", "code-oss", "libreoffice", "gimp", "blender", "vlc",
+            "firefox", "chromium", "code-oss", "libreoffice", "gimp", "blender", "vlc",
             "nodejs", "python", "imagemagick",
         )
         return installedPackageRecords()

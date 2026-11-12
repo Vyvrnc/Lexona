@@ -995,7 +995,11 @@ static int make_exec_plan(const char *path, char *const argv[], struct exec_plan
     for (int i = 0; i < argc; i++) cur[i] = argv[i];
     cur[argc] = NULL;
     const char *cur_path = path;
+    /* execve("/proc/self/exe"): Chromium and Electron start their zygote and renderers this way.
+       Under linker64 the kernel's /proc/self/exe is the linker itself, which would take the first
+       switch as its program; the real program is self_exe (identity_fix). */
     int changed = 0;
+    if (is_self_exe_link(path)) { cur_path = self_exe; changed = 1; }
     for (int depth = 0; depth < PLAN_DEPTH; depth++) {
         if (!under_app_data(cur_path)) break;
         int fd = real_open(cur_path, O_RDONLY | O_CLOEXEC);
