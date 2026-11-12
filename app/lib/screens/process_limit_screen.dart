@@ -45,8 +45,8 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
   }
 
   Future<void> _refresh() async {
-    final status = await PlatformBridge.phantomStatus();
-    final lean = await PlatformBridge.getLeanOptions();
+    final status = await DroidDeskPlatform.phantomStatus();
+    final lean = await DroidDeskPlatform.getLeanOptions();
     if (!mounted) return;
     setState(() {
       _status = status;
@@ -119,7 +119,7 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
               ),
               const SizedBox(height: 8),
               FilledButton.tonal(
-                onPressed: () => PlatformBridge.openDeveloperOptions(),
+                onPressed: () => DroidDeskPlatform.openDeveloperOptions(),
                 child: Text(devOn ? 'Open Developer options' : 'Open About phone'),
               ),
               Divider(height: 32, color: LexonaTheme.border),
@@ -133,7 +133,7 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
               ),
               const SizedBox(height: 8),
               FilledButton.tonal(
-                onPressed: () => PlatformBridge.openTerminal('unlimit'),
+                onPressed: () => DroidDeskPlatform.openTerminal('unlimit'),
                 child: const Text('Start in the terminal'),
               ),
               Divider(height: 32, color: LexonaTheme.border),
@@ -199,7 +199,7 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
         style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary),
       ),
       onChanged: (off) async {
-        await PlatformBridge.setLeanOption(option['id'].toString(), off);
+        await DroidDeskPlatform.setLeanOption(option['id'].toString(), off);
         if (!mounted) return;
         setState(() => _leanChanged = true);
         _refresh();
