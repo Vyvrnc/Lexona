@@ -914,9 +914,11 @@ public class LorieView extends SurfaceView implements InputStub {
             return;
         }
 
-        CharSequence clip = clipboard.getText();
+        ClipData data = clipboard.getPrimaryClip();
+        CharSequence clip = data != null && data.getItemCount() > 0
+                ? data.getItemAt(0).coerceToText(getContext()) : null;
         if (clip != null) {
-            String text = String.valueOf(clipboard.getText());
+            String text = String.valueOf(clip);
             sendClipboardEvent(text.getBytes(UTF_8));
             Log.d("CLIP", "sending clipboard contents, length=" + text.length());
         }
@@ -928,11 +930,12 @@ public class LorieView extends SurfaceView implements InputStub {
 
     public void checkForClipboardChange() {
         ClipDescription desc = clipboard.getPrimaryClipDescription();
+        // Any text, not only clips with exactly one MIME type: browsers and keyboards copy
+        // text/plain together with text/html, and those never reached X (the older xclip
+        // poller took them through coerceToText).
         if (clipboardSyncEnabled && desc != null &&
                 lastClipboardTimestamp < desc.getTimestamp() &&
-                desc.getMimeTypeCount() == 1 &&
-                (desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) ||
-                        desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML))) {
+                desc.hasMimeType("text/*")) {
             lastClipboardTimestamp = desc.getTimestamp();
             sendClipboardAnnounce();
             Log.d("CLIP", "sending clipboard announce");
