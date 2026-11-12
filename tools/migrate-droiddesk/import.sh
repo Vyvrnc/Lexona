@@ -7,9 +7,14 @@
 # Unpacks into Lexona's Debian /root and Termux home. Anything already there with the same name
 # is kept as NAME.pre-migrate-<time>, nothing is deleted. Paths of the old app
 # (com.orailnoor.droiddesk) in Claude Code's config and history are rewritten to Lexona's.
-# The encrypted archive is deleted at the end.
+# The encrypted archive is kept; delete it by hand once everything checks out.
+# Quit Claude Code first: its config (/root/.claude, /root/.claude.json) is merged too, and a
+# running Claude Code would overwrite the merged .claude.json with its own copy.
 set -euo pipefail
 [ -n "${LX_PASS:-}" ] || { echo "Set LX_PASS: LX_PASS=... bash import.sh" >&2; exit 2; }
+if pgrep -x claude >/dev/null 2>&1 || pgrep -f '\.local/(share|bin)/claude' >/dev/null 2>&1; then
+    echo "Claude Code is running; quit it (all sessions) and run import.sh again." >&2; exit 3
+fi
 dir=/sdcard/Download/lexona-migrate
 in=$dir/droiddesk-home.tar.gpg
 [ -f "$in" ] || { echo "Missing $in (run export.sh in DroidDesk first)" >&2; exit 2; }
@@ -110,5 +115,5 @@ if [ -d "$meta" ]; then
     fi
 fi
 
-rm -f "$in"
-echo "Done. The archive was deleted. Sign in to Claude Code again (claude-debian)."
+echo "Done. The archive is kept: $in"
+echo "Delete it yourself once everything checks out (it holds SSH keys). Sign in to Claude Code again if it asks (claude-debian)."
