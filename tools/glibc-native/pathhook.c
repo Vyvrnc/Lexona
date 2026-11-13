@@ -82,6 +82,21 @@ static int is_loader(const char *path) {
     if (!plib || !path || snprintf(want, sizeof want, "%s/ld.so", plib) >= (int)sizeof want) return 0;
     return !strcmp(path, want);
 }
+/* TracerPid != 0: under ptrace, in Lexona that is proot (a Claude Code session). */
+static int traced_by_proot(void) {
+    int fd = (int)raw_syscall(SYS_openat, AT_FDCWD, "/proc/self/status", O_RDONLY | O_CLOEXEC);
+    if (fd < 0) return 0;
+    char buf[2048];
+    ssize_t n = read(fd, buf, sizeof buf - 1);
+    close(fd);
+    if (n <= 0) return 0;
+    buf[n] = 0;
+    const char *t = strstr(buf, "TracerPid:");
+    if (!t) return 0;
+    t += 10;
+    while (*t == ' ' || *t == '\t') ++t;
+    return *t >= '1' && *t <= '9';
+}
 __attribute__((constructor)) static void find_self_exe(void) {
     int fd = (int)raw_syscall(SYS_openat, AT_FDCWD, "/proc/self/cmdline", O_RDONLY | O_CLOEXEC);
     if (fd < 0) return;
@@ -1183,7 +1198,10 @@ static int prepare(const char *file, char *const argv[], char *const env[], stru
     int glibc = !strcmp(interp, "/lib/ld-linux-aarch64.so.1") || !strcmp(interp, "/lib64/ld-linux-x86-64.so.2") ||
                 is_loader(interp);
     int bionic = !strcmp(interp, "/system/bin/linker64") || !strcmp(interp, "/system/bin/linker");
-    if (kind == 1 && !glibc && !bionic && !is_loader(target)) {
+    /* A static program (Go, musl) needs proot's loader; a session proot already traces runs
+       its execve itself, and a second, nested proot hung (gh 2.104 from cli.github.com in a
+       Claude Code session, Galaxy A16). */
+    if (kind == 1 && !glibc && !bionic && !is_loader(target) && !traced_by_proot()) {
         if (!prepare_proot(target, argv, env, c, 0)) return 0;
         if (errno != ENOENT) return -1;
         dispose(c); memset(c, 0, sizeof *c);

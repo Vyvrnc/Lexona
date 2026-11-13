@@ -705,6 +705,9 @@ class LinuxRuntime(private val context: Context) {
                     for s in ${'$'}d/*.sock; do [ -e "${'$'}s" ] || continue; p=${'$'}{s##*/}; kill -0 ${'$'}{p%.sock} 2>/dev/null || rm -f "${'$'}s"; done
                     if [ -n "${'$'}{DD_ROOTFS:-}" ]; then
                         export DISABLE_AUTOUPDATER=1
+                        # MCP servers started by npx need more than the 30 s default of Claude Code on a phone
+                        # (npx 11 checks the registry first: 57 s on the Galaxy A16).
+                        export MCP_TIMEOUT=${'$'}{MCP_TIMEOUT:-120000}
                         # Bun reads files with its own system calls, past pathhook: the built-in rg
                         # missed Debian paths. Debian rg goes through the hook.
                         command -v rg >/dev/null && export USE_BUILTIN_RIPGREP=0
@@ -774,6 +777,9 @@ class LinuxRuntime(private val context: Context) {
                     for s in ${'$'}d/*.sock; do [ -e "${'$'}s" ] || continue; p=${'$'}{s##*/}; kill -0 ${'$'}{p%.sock} 2>/dev/null || rm -f "${'$'}s"; done
                     if [ -n "${'$'}{DD_ROOTFS:-}" ]; then
                         export DISABLE_AUTOUPDATER=1
+                        # MCP servers started by npx need more than the 30 s default of Claude Code on a phone
+                        # (npx 11 checks the registry first: 57 s on the Galaxy A16).
+                        export MCP_TIMEOUT=${'$'}{MCP_TIMEOUT:-120000}
                         # Bun reads files with its own system calls, past pathhook: the built-in rg
                         # missed Debian paths. Debian rg goes through the hook.
                         command -v rg >/dev/null && export USE_BUILTIN_RIPGREP=0
@@ -981,6 +987,9 @@ class LinuxRuntime(private val context: Context) {
                     for s in ${'$'}d/*.sock; do [ -e "${'$'}s" ] || continue; p=${'$'}{s##*/}; kill -0 ${'$'}{p%.sock} 2>/dev/null || rm -f "${'$'}s"; done
                     if [ -n "${'$'}{DD_ROOTFS:-}" ]; then
                         export DISABLE_AUTOUPDATER=1
+                        # MCP servers started by npx need more than the 30 s default of Claude Code on a phone
+                        # (npx 11 checks the registry first: 57 s on the Galaxy A16).
+                        export MCP_TIMEOUT=${'$'}{MCP_TIMEOUT:-120000}
                         # Bun reads files with its own system calls, past pathhook: the built-in rg
                         # missed Debian paths. Debian rg goes through the hook.
                         command -v rg >/dev/null && export USE_BUILTIN_RIPGREP=0
