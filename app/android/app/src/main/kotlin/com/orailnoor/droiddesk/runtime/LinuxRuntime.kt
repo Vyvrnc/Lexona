@@ -2169,7 +2169,9 @@ class LinuxRuntime(private val context: Context) {
                 # mimeapps.list, or in an Android app when there is none (--android:
                 # always Android). Other leading options (termux-open's --view, --send,
                 # --content-type X) are ignored.
-                [ ${'$'}# -ge 1 ] || { echo "Usage: droiddesk-open [--android] FILE|URL" >&2; exit 2; }
+                usage="Usage: lexona-open [--android] FILE|URL  (--android: always an Android app)"
+                [ ${'$'}# -ge 1 ] || { echo "${'$'}usage" >&2; exit 2; }
+                case "${'$'}1" in -h|--help) echo "${'$'}usage"; exit 0 ;; esac
                 mode=xdg
                 for target; do [ "${'$'}target" = --android ] && mode=open; done
                 for target; do :; done
@@ -2178,7 +2180,8 @@ class LinuxRuntime(private val context: Context) {
                     bs='\x'; target=${'$'}(printf '%b' "${'$'}{target//%/${'$'}bs}") ;;
                     [A-Za-z]*:*) exec "${File(binDir, "python3").absolutePath}" "${bridgeClient.absolutePath}" "${'$'}mode:${'$'}target" ;;
                 esac
-                target=${'$'}(realpath -- "${'$'}target") || exit 1
+                # -e: a file that does not exist is an error, not a silent "opened" (2.0.8 test).
+                target=${'$'}(realpath -e -- "${'$'}target") || exit 1
                 exec "${File(binDir, "python3").absolutePath}" "${bridgeClient.absolutePath}" "${'$'}mode:${'$'}target"
                 """.trimIndent() + "\n",
             )
