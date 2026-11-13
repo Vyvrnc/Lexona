@@ -107,7 +107,7 @@ object ShellBridge {
         val out = client.outputStream
         val line = readLine(input) ?: return
         // Descriptors sent with the request (APKs for "install").
-        val fds = client.ancillaryFileDescriptors.orEmpty()
+        val fds: Array<FileDescriptor> = client.ancillaryFileDescriptors?.filterNotNull()?.toTypedArray() ?: emptyArray()
         try {
             val req = runCatching { JSONObject(line) }.getOrNull() ?: return
             val op = req.optString("op")
