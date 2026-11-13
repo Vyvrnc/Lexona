@@ -1038,6 +1038,10 @@ static int proot_only_name(const char *file) {
         "sudo", "su", "passwd", "useradd", "usermod", "groupadd", "chroot", "update-alternatives", NULL};
     const char *base = strrchr(file, '/');
     base = base ? base + 1 : file;
+    /* Lexona's own apt-get/apt/dpkg wrappers in /usr/local/bin decide themselves (lexona-host
+       when there is no fake root): a nested proot from a session that proot already traces
+       hung for good (Claude Code on the Galaxy A16, 2.0.8). */
+    if (strstr(file, "/usr/local/bin/")) return 0;
     for (int i = 0; names[i]; ++i) if (!strcmp(base, names[i])) return 1;
     return 0;
 }
@@ -1141,7 +1145,7 @@ static int prepare(const char *file, char *const argv[], char *const env[], stru
     const char *target = mapped(file, path, 0);
     if (!target) return -1;
     if (access(target, X_OK)) return -1;
-    if (depth == 0 && proot_only_name(file)) {
+    if (depth == 0 && proot_only_name(file) && !strstr(target, "/usr/local/bin/")) {
         if (!prepare_proot(target, argv, env, c, 1)) return 0;
         if (errno != ENOENT) return -1;
         dispose(c); memset(c, 0, sizeof *c);
