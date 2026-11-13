@@ -37,7 +37,14 @@ Optional Shizuku support, Galaxy A16 with Shizuku-Next 14.0.35, Lexona allowed:
 - lexona-android-data over WebDAV (raw HTTP from adb): root lists `data/` and `obb/`;
   `data/` lists all 188 app folders; MKCOL, PUT, GET and DELETE in a test folder work and the
   shell user sees the written file; a foreign Host gets 403, a path without the secret 404.
-- Not tested yet: Thunar's "Android data" bookmark in the desktop, obb on a device with games.
+- Desktop: Thunar shows "Android data" in Places, opens data/ and obb/, data/ lists the app
+  folders. The server lasts until Lexona stops (an update ended it), the Advanced text says so.
+- Thunar's red cross on DCIM, Download, ... and on the "Telefon"/"Stažené" bookmarks: Thunar
+  4.20 marks a directory without an x bit for others as unreadable from the mode bits alone
+  (2770, owned by MediaProvider), while GIO access:: and test -r/-w/-x are all true. The desktop
+  tweaks put an empty emblem-noread into ~/.local/share/icons/<icon theme>/; checked on a fresh
+  desktop start of the new build: no crosses.
+- Not tested yet: obb on a device with games.
 
 ## Lexona 2.0.9 candidate (2026-11-13)
 

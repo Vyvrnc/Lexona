@@ -64,8 +64,8 @@ class _AdvancedScreenState extends State<AdvancedScreen> with WidgetsBindingObse
               const SizedBox(height: 6),
               Text(
                 'Android/data and Android/obb (files of other apps, games\' data) open in the '
-                'desktop\'s file manager: Thunar shows them as "Android data". Lasts until the '
-                'phone restarts.',
+                'desktop\'s file manager: Thunar shows them as "Android data". Lasts until Lexona '
+                'stops; tap again after that.',
                 style: LexonaTheme.body.copyWith(color: LexonaTheme.textSecondary),
               ),
               if (_dataMessage != null) ...[
