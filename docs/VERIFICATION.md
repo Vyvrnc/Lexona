@@ -20,6 +20,14 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Lexona 2.0.7 (2026-11-13)
+
+On the Galaxy A16 (Android 16), after release:
+- `lexona-host echo host-ok` printed host-ok, status 0.
+- Inside proot, as a Claude Code session in Lexona runs: `debian-run bash -c "lexona-host
+  debian-run apt-get install -y cowsay"` unpacked and configured cowsay (libtext-charwidth-perl
+  with it). Before, apt from such a session hung (forks in ptrace_stop, nested proot).
+
 ## Lexona 2.0.6 (2026-11-12)
 
 On the Galaxy A16 (Android 16, light system mode):
