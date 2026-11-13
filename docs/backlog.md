@@ -412,3 +412,21 @@ possible), answer `err no-permission` at once.
   thread: the new fd can end up as an untracked eventfd. Not on Firefox's or Chromium's path.
 - The atomic file writer (LinuxRuntime.writeAtomically) keeps the executable bit, not the
   whole permission mode of the file it replaces.
+
+## Roadmap: Shizuku and userspace tunnels (agreed 2026-11-13)
+
+Advanced screen (Shizuku, optional for power users), next features:
+- Install an APK from Linux (`lexona-apk-install`, `pm install` through Shizuku).
+- Lexona on the doze/standby whitelist with one tap (`dumpsys deviceidle whitelist +pkg`).
+- logcat in Linux (`lexona-logcat`), for debugging Android apps from the desktop.
+- Screen and input from Linux (screencap, `input`), behind its own switch.
+- A full `lexona-adb` shell as the shell user, behind a power-user switch with a warning.
+
+Userspace tunnels (`lexona-tunnel`), no Android VPN slot needed, so they work next to a
+system VPN and on a network without internet:
+- Tailscale with `--tun=userspace-networking` and its SOCKS5/HTTP proxy (the brain at home
+  while on a customer's VPN or a cable without internet).
+- openconnect with ocproxy (AnyConnect, Fortinet and other protocols openconnect speaks).
+- WireGuard with wireproxy.
+- Each tunnel is a target in lexona-net's routing rules (per host, per app), next to the
+  direct route and the system VPN.

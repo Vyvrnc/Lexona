@@ -20,6 +20,25 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Lexona 2.0.10 candidate (2026-11-13)
+
+Optional Shizuku support, Galaxy A16 with Shizuku-Next 14.0.35, Lexona allowed:
+
+- Process limit, "With Shizuku (one tap)": "Turn the limit off" sets
+  `settings_enable_monitor_phantom_procs=false` and `max_phantom_processes=2147483647`, the
+  screen shows "The limit is off"; "Put Android's limit back" deletes both (`null`). The first
+  candidate set them but reported "process hasn't exited": Shizuku's remote process throws on a
+  timed `waitFor`, now a watchdog plus plain `waitFor()`.
+- New Advanced screen (System card): Shizuku state and permission, "Show Android data". Three
+  fixes found on the device: the device tools were missing before the desktop's first start
+  (written on tap now), the Android data bridge started only with the desktop or a terminal
+  (started on tap now), and R8 renamed ShellFilesService so Shizuku could not instantiate it
+  (keep rule).
+- lexona-android-data over WebDAV (raw HTTP from adb): root lists `data/` and `obb/`;
+  `data/` lists all 188 app folders; MKCOL, PUT, GET and DELETE in a test folder work and the
+  shell user sees the written file; a foreign Host gets 403, a path without the secret 404.
+- Not tested yet: Thunar's "Android data" bookmark in the desktop, obb on a device with games.
+
 ## Lexona 2.0.9 candidate (2026-11-13)
 
 On the Galaxy A16 (Android 16):
