@@ -181,8 +181,8 @@ def apk_files(paths, tmp):
                 inner = [n for n in inner if not n.startswith("standalones/")]
             if not inner:
                 raise Refused("%s: neither an APK nor a bundle of APKs" % path)
-            for k, n in enumerate(inner):
-                target = os.path.join(tmp, "%d-%s" % (len(result) + k, os.path.basename(n)))
+            for n in inner:
+                target = os.path.join(tmp, "%d-%s" % (len(result), os.path.basename(n)))
                 with z.open(n) as src, open(target, "wb") as dst:
                     while True:
                         block = src.read(1 << 20)

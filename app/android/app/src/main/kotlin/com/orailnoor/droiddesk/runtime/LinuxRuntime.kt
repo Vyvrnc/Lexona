@@ -2297,6 +2297,10 @@ class LinuxRuntime(private val context: Context) {
             tweaksScript.writeText(
                 """
                 #!${File(binDir, "bash").absolutePath}
+                # Termux has no xdg-mime (xdg-utils); gio writes the same mimeapps.list. Without
+                # this the default-app steps below were skipped (seen on the A16, 2026-11-14).
+                command -v xdg-mime >/dev/null ||
+                    xdg-mime() { [ "${'$'}1" = default ] && gio mime "${'$'}3" "${'$'}2" >/dev/null; }
                 marker="${'$'}HOME/.config/droiddesk/xfce-tweaks-v1"
                 if [ ! -f "${'$'}marker" ]; then
                     # Dragging a window to the edge should tile it, not jump to the
