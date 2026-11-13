@@ -87,4 +87,8 @@ dependencies {
     implementation("com.github.mik3y:usb-serial-for-android:3.11.0")
     // In-app terminal (TerminalActivity): Termux's terminal emulator and view, Apache-2.0.
     implementation("com.github.termux.termux-app:terminal-view:v0.118.1")
+    // Optional Android shell access through Shizuku (any maintained fork: Shizuku-Next, Porter
+    // with its compatibility app, Shizuku+ drop-in); MIT.
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
 }

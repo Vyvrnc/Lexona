@@ -159,6 +159,20 @@ class DroidDeskPlatform {
     return Map<String, dynamic>.from(result ?? {});
   }
 
+  /// Shizuku: missing, stopped, denied, granted or old.
+  static Future<String> shizukuState() async =>
+      await _channel.invokeMethod<String>('shizukuState') ?? 'missing';
+
+  /// Shizuku's own permission dialog for Lexona.
+  static Future<bool> shizukuRequest() async =>
+      await _channel.invokeMethod<bool>('shizukuRequest') ?? false;
+
+  /// Child process limit off (or back with undo) through Shizuku: {ok, message}.
+  static Future<Map<String, dynamic>> shizukuUnlimit({bool undo = false}) async {
+    final r = await _channel.invokeMethod('shizukuUnlimit', {'undo': undo});
+    return Map<String, dynamic>.from(r ?? {});
+  }
+
   /// lexona-update (check: only list what can be updated); output streams via onTerminalOutput.
   static Future<String> systemUpdate({required bool check}) async {
     return await _channel.invokeMethod<String>('systemUpdate', {'check': check}) ?? '';

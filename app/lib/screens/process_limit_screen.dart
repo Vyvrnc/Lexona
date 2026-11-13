@@ -24,6 +24,9 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
   Map<String, dynamic> _status = {};
   List<Map<String, dynamic>> _lean = [];
   bool _leanChanged = false;
+  String _shizuku = 'missing';
+  String? _shizukuMessage;
+  bool _shizukuBusy = false;
 
   @override
   void initState() {
@@ -47,10 +50,12 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
   Future<void> _refresh() async {
     final status = await DroidDeskPlatform.phantomStatus();
     final lean = await DroidDeskPlatform.getLeanOptions();
+    final shizuku = await DroidDeskPlatform.shizukuState();
     if (!mounted) return;
     setState(() {
       _status = status;
       _lean = lean;
+      _shizuku = shizuku;
     });
     context.read<AppState>().refreshStatus();
   }
@@ -104,6 +109,10 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
           const SizedBox(height: 16),
           Text('Turn the limit off', style: LexonaTheme.subheading),
           const SizedBox(height: 8),
+          if (_shizuku != 'missing') ...[
+            _card(_shizukuCard(limitOn)),
+            const SizedBox(height: 12),
+          ],
           _card(Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -186,6 +195,59 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
           ],
         ],
       ),
+    );
+  }
+
+  /// Shizuku (shell rights without a computer): one tap, once Shizuku runs and allows Lexona.
+  Widget _shizukuCard(bool limitOn) {
+    final text = switch (_shizuku) {
+      'stopped' => 'Shizuku is installed but not running. Start it in the Shizuku app, then come back.',
+      'denied' => 'Lexona needs your permission in Shizuku once.',
+      'old' => 'This Shizuku is too old. Install a maintained one, for example Shizuku-Next.',
+      _ => limitOn ? 'Shizuku is running: one tap turns the limit off.' : 'Shizuku is running.',
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('With Shizuku (one tap)', style: LexonaTheme.subheading),
+        const SizedBox(height: 6),
+        Text(text, style: LexonaTheme.body.copyWith(color: LexonaTheme.textSecondary)),
+        if (_shizukuMessage != null) ...[
+          const SizedBox(height: 6),
+          Text(_shizukuMessage!, style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary)),
+        ],
+        const SizedBox(height: 8),
+        if (_shizuku == 'denied')
+          FilledButton.tonal(
+            onPressed: _shizukuBusy
+                ? null
+                : () async {
+                    setState(() => _shizukuBusy = true);
+                    await DroidDeskPlatform.shizukuRequest();
+                    _shizukuBusy = false;
+                    _refresh();
+                  },
+            child: const Text('Allow in Shizuku'),
+          ),
+        if (_shizuku == 'granted')
+          FilledButton.tonal(
+            onPressed: _shizukuBusy
+                ? null
+                : () async {
+                    setState(() => _shizukuBusy = true);
+                    final r = await DroidDeskPlatform.shizukuUnlimit(undo: !limitOn);
+                    if (!mounted) return;
+                    setState(() {
+                      _shizukuBusy = false;
+                      _shizukuMessage = r['ok'] == true
+                          ? (limitOn ? 'Done: the limit is off (survives a reboot).' : "Android's default is back.")
+                          : 'Did not work: ${r['message'] ?? ''}';
+                    });
+                    _refresh();
+                  },
+            child: Text(limitOn ? 'Turn the limit off' : "Put Android's limit back"),
+          ),
+      ],
     );
   }
 

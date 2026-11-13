@@ -672,6 +672,20 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
+                "shizukuState" -> result.success(com.orailnoor.droiddesk.runtime.ShizukuSupport.state(this))
+
+                "shizukuRequest" -> com.orailnoor.droiddesk.runtime.ShizukuSupport.requestPermission { granted ->
+                    runOnUiThread { result.success(granted) }
+                }
+
+                "shizukuUnlimit" -> {
+                    val undo = call.argument<Boolean>("undo") == true
+                    thread(name = "shizuku-unlimit") {
+                        val (ok, message) = com.orailnoor.droiddesk.runtime.ShizukuSupport.unlimitPhantomProcesses(this, undo)
+                        runOnUiThread { result.success(mapOf("ok" to ok, "message" to message)) }
+                    }
+                }
+
                 "systemUpdate" -> {
                     // System updates screen: lexona-update [--check], output streamed like a command.
                     val check = call.argument<Boolean>("check") == true
