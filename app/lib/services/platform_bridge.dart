@@ -177,6 +177,22 @@ class DroidDeskPlatform {
   static Future<String> androidDataStart() async =>
       await _channel.invokeMethod<String>('androidDataStart') ?? '';
 
+  /// Linux tools with shell rights: {apk, logcat, screen, adb} -> on.
+  static Future<Map<String, bool>> shellSwitches() async {
+    final r = await _channel.invokeMethod('shellSwitches');
+    return Map<String, bool>.from(r ?? {});
+  }
+
+  static Future<void> setShellSwitch(String name, bool on) async =>
+      await _channel.invokeMethod('shellSwitch', {'name': name, 'on': on});
+
+  /// Lexona unrestricted in the background through Shizuku: {state, message}; state is
+  /// unrestricted, default or unknown. [unrestricted] null only reads the state.
+  static Future<Map<String, dynamic>> shizukuBackground({bool? unrestricted}) async {
+    final r = await _channel.invokeMethod('shizukuBackground', {'unrestricted': unrestricted});
+    return Map<String, dynamic>.from(r ?? {});
+  }
+
   /// lexona-update (check: only list what can be updated); output streams via onTerminalOutput.
   static Future<String> systemUpdate({required bool check}) async {
     return await _channel.invokeMethod<String>('systemUpdate', {'check': check}) ?? '';

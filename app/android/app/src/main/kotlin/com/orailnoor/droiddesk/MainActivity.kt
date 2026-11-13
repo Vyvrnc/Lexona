@@ -698,6 +698,31 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
+                "shellSwitches" -> result.success(com.orailnoor.droiddesk.runtime.ShellBridge.switches(this))
+
+                "shellSwitch" -> {
+                    // Advanced: a group of Linux tools with shell rights on or off. The bridge
+                    // and the tools are made ready here, so they work before the desktop starts.
+                    val name = call.argument<String>("name") ?: ""
+                    val on = call.argument<Boolean>("on") == true
+                    runCatching { com.orailnoor.droiddesk.runtime.ShellBridge.setEnabled(this, name, on) }
+                        .onFailure { result.error("switch", it.message, null); return@setMethodCallHandler }
+                    com.orailnoor.droiddesk.runtime.ShellBridge.start(this)
+                    thread(name = "shell-tools") { runCatching { linuxRuntime.writeDeviceTools() } }
+                    result.success(true)
+                }
+
+                "shizukuBackground" -> {
+                    // Advanced: Lexona unrestricted in the background (null: only the state).
+                    val set = call.argument<Boolean>("unrestricted")
+                    thread(name = "shizuku-background") {
+                        val support = com.orailnoor.droiddesk.runtime.ShizukuSupport
+                        val message = if (set != null) support.backgroundUnrestricted(this, undo = !set).second else ""
+                        val state = support.backgroundState(this)
+                        runOnUiThread { result.success(mapOf("state" to state, "message" to message)) }
+                    }
+                }
+
                 "systemUpdate" -> {
                     // System updates screen: lexona-update [--check], output streamed like a command.
                     val check = call.argument<Boolean>("check") == true

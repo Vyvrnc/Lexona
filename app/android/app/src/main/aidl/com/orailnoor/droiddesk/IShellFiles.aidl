@@ -22,4 +22,8 @@ interface IShellFiles {
     boolean delete(String path, boolean recursive) = 5;
 
     boolean rename(String from, String to) = 6;
+
+    // An interactive shell (/system/bin/sh) on a new pty as the shell user: the pty master.
+    // env: "NAME=value" entries added to the service's own environment (TERM, ...).
+    ParcelFileDescriptor openShell(int rows, int cols, in String[] env) = 7;
 }

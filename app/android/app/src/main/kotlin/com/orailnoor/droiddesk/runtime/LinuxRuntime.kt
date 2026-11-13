@@ -77,6 +77,8 @@ class LinuxRuntime(private val context: Context) {
         private const val SHEBANG_MARKER = ".relocated_text_paths_v4"
         // Termux's app data directory as compiled into its packages.
         private const val TERMUX_DATA = "/data/data/com.termux"
+        // Linux commands of lexona-shizuku.py (ShellBridge), in Termux and Debian.
+        val SHIZUKU_TOOLS = listOf("lexona-apk-install", "lexona-logcat", "lexona-screenshot", "lexona-input", "lexona-adb")
         private const val ELF_PATCH_MARKER = ".elf_runpaths_patched"
         private const val DE_MARKER = ".de_installed"
         // Release asset built by tools/mesa-kgsl/build.sh (tag mesa-kgsl-<version>).
@@ -1884,6 +1886,21 @@ class LinuxRuntime(private val context: Context) {
                         writeText("#!/bin/sh\nexec /usr/local/bin/lexona-host lexona-android-data \"${'$'}@\"\n")
                         setExecutable(true, false)
                     }
+                    // Shizuku tools straight from Debian (the abstract socket reaches the app from
+                    // proot too; lexona-adb needs the caller's terminal, so no lexona-host).
+                    val debianShell = File(debianRootfs(baseDir), "usr/local/lib/lexona-shizuku.py")
+                    copyAssetAtomically("droiddesk/lexona-shizuku.py", debianShell)
+                    for (tool in SHIZUKU_TOOLS) {
+                        File(debianBin, tool).apply {
+                            val run = "/usr/local/lib/lexona-shizuku.py ${tool.removePrefix("lexona-")} \"${'$'}@\""
+                            writeText(
+                                "#!/bin/sh\n" +
+                                    "command -v python3 >/dev/null 2>&1 && exec python3 $run\n" +
+                                    "exec \"${File(binDir, "python3").absolutePath}\" $run\n",
+                            )
+                            setExecutable(true, false)
+                        }
+                    }
                     // apt-get, apt and writing dpkg calls from a Claude Code session go through
                     // lexona-host by themselves (debian-apt-wrapper). A user's own file of the same
                     // name in /usr/local/bin stays.
@@ -1922,6 +1939,36 @@ class LinuxRuntime(private val context: Context) {
                 )
                 command.setExecutable(true, false)
             }
+            // Android shell rights for Linux through Shizuku (ShellBridge): one client, a command
+            // per tool. "Install on Android" for .apk files in the file manager.
+            val shellClient = File(binDir, "lexona-shizuku.py")
+            copyAssetAtomically("droiddesk/lexona-shizuku.py", shellClient)
+            for (tool in SHIZUKU_TOOLS) {
+                File(binDir, tool).let { command ->
+                    command.writeText(
+                        "#!${File(binDir, "bash").absolutePath}\n" +
+                            "exec \"${File(binDir, "python3").absolutePath}\" \"${shellClient.absolutePath}\" " +
+                            "${tool.removePrefix("lexona-")} \"${'$'}@\"\n",
+                    )
+                    command.setExecutable(true, false)
+                }
+            }
+            runCatching {
+                File(homeDir, ".local/share/applications").mkdirs()
+                File(homeDir, ".local/share/applications/lexona-apk-install.desktop").writeText(
+                    """
+                    [Desktop Entry]
+                    Type=Application
+                    Name=Install on Android
+                    Comment=Install the app on this phone (Lexona, Shizuku)
+                    Exec=${File(binDir, "lexona-apk-install").absolutePath} --gui %F
+                    Icon=android
+                    MimeType=application/vnd.android.package-archive;
+                    NoDisplay=true
+                    Terminal=false
+                    """.trimIndent() + "\n",
+                )
+            }.onFailure { Log.w(TAG, "lexona-apk-install.desktop: ${it.message}") }
             // System updates for Termux and Debian (the app's "System updates" screen runs it).
             File(binDir, "lexona-update").let { command ->
                 val script = context.assets.open("droiddesk/lexona-update").bufferedReader().use { it.readText() }
@@ -2349,6 +2396,14 @@ class LinuxRuntime(private val context: Context) {
                             xdg-mime default "${'$'}(basename "${'$'}viewer")" "${'$'}type"
                     done
                     mkdir -p "${'$'}(dirname "${'$'}marker6")" && touch "${'$'}marker6"
+                fi
+                # .apk files install on the phone (lexona-apk-install, Shizuku) unless the user
+                # chose otherwise. Once.
+                marker7="${'$'}HOME/.config/droiddesk/apk-install-v1"
+                if [ ! -f "${'$'}marker7" ] && command -v xdg-mime >/dev/null; then
+                    grep -q '^application/vnd.android.package-archive=' "${'$'}HOME/.config/mimeapps.list" 2>/dev/null ||
+                        xdg-mime default lexona-apk-install.desktop application/vnd.android.package-archive
+                    mkdir -p "${'$'}(dirname "${'$'}marker7")" && touch "${'$'}marker7"
                 fi
                 # Fluent icons installed after the theme (separate package): once, while the
                 # icon theme is still the default.

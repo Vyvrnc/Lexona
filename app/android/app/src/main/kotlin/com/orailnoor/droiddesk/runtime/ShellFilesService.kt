@@ -65,4 +65,34 @@ class ShellFilesService : IShellFiles.Stub() {
         if (ROOTS.contains(a.path)) return false
         return a.renameTo(b)
     }
+
+    /**
+     * /system/bin/sh on a new pty, through Termux's JNI (libtermux.so from the APK; the service
+     * loads it from the app's library directory). Returns the master; the child is reaped here.
+     */
+    override fun openShell(rows: Int, cols: Int, env: Array<String>?): ParcelFileDescriptor? {
+        val jni = runCatching { Class.forName("com.termux.terminal.JNI") }.getOrNull() ?: return null
+        val create = jni.getDeclaredMethod(
+            "createSubprocess", String::class.java, String::class.java, Array<String>::class.java,
+            Array<String>::class.java, IntArray::class.java, Int::class.javaPrimitiveType, Int::class.javaPrimitiveType,
+        ).apply { isAccessible = true }
+        val waitFor = jni.getDeclaredMethod("waitFor", Int::class.javaPrimitiveType).apply { isAccessible = true }
+        // Termux's createSubprocess clears the environment: pass the service's own (the shell
+        // user's, as from adb) plus the client's TERM and friends.
+        val vars = LinkedHashMap(System.getenv())
+        env.orEmpty().forEach { entry ->
+            val i = entry.indexOf('=')
+            if (i > 0) vars[entry.substring(0, i)] = entry.substring(i + 1)
+        }
+        if (vars["HOME"].isNullOrEmpty() || vars["HOME"] == "/") vars["HOME"] = "/data/local/tmp"
+        val pid = IntArray(1)
+        val fd = runCatching {
+            create.invoke(
+                null, "/system/bin/sh", vars["HOME"], arrayOf("-sh"),
+                vars.map { "${it.key}=${it.value}" }.toTypedArray(), pid, rows.coerceAtLeast(1), cols.coerceAtLeast(1),
+            ) as Int
+        }.getOrNull() ?: return null
+        Thread { runCatching { waitFor.invoke(null, pid[0]) } }.apply { isDaemon = true; start() }
+        return ParcelFileDescriptor.adoptFd(fd)
+    }
 }

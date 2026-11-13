@@ -310,6 +310,7 @@ object TerminalSessions {
         NetBridge.start(context.applicationContext)
         HostBridge.start(context.applicationContext)
         com.orailnoor.droiddesk.runtime.AndroidDataBridge.start(context.applicationContext)
+        com.orailnoor.droiddesk.runtime.ShellBridge.start(context.applicationContext)
         // lexona-open from a terminal or Claude Code without the desktop (Connection refused on
         // lexona.android-app-launcher, Galaxy A16 2.0.8 test).
         com.orailnoor.droiddesk.runtime.AndroidAppBridge.start(context.applicationContext)

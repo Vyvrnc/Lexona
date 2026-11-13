@@ -147,6 +147,7 @@ class DroidDeskService : Service() {
         NetBridge.start(this)
         HostBridge.start(this)
         com.orailnoor.droiddesk.runtime.AndroidDataBridge.start(this)
+        com.orailnoor.droiddesk.runtime.ShellBridge.start(this)
         CameraBridge.start(this)
         running = true
         createNotificationChannel()

@@ -51,10 +51,7 @@ object ShizukuSupport {
      * every Shizuku app ships it. Returns (exit status, output).
      */
     fun shell(command: String, timeoutSeconds: Long = 30): Pair<Int, String> {
-        val method = Shizuku::class.java.getDeclaredMethod(
-            "newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java,
-        ).apply { isAccessible = true }
-        val process = method.invoke(null, arrayOf("sh", "-c", "$command 2>&1"), null, null) as Process
+        val process = newProcess("$command 2>&1")
         process.outputStream.close()
         // Shizuku's remote process has no timed waitFor (exitValue throws "process hasn't
         // exited" while it runs), so a watchdog destroys it and the plain waitFor() blocks.
@@ -75,6 +72,47 @@ object ShizukuSupport {
         done.set(true)
         watchdog.interrupt()
         return (if (timedOut.get()) 124 else status) to output
+    }
+
+    /** `sh -c command` as uid 2000, streams left to the caller (ShellBridge). */
+    fun newProcess(command: String): Process {
+        val method = Shizuku::class.java.getDeclaredMethod(
+            "newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java,
+        ).apply { isAccessible = true }
+        return method.invoke(null, arrayOf("sh", "-c", command), null, null) as Process
+    }
+
+    /** One word for sh, in single quotes (a quote inside becomes '"'"'). */
+    fun quote(arg: String): String = "'" + arg.replace("'", "'\"'\"'") + "'"
+
+    /**
+     * Lexona allowed to run in the background without limits: on the doze whitelist (the
+     * "Unrestricted" battery setting) and RUN_ANY_IN_BACKGROUND allowed. [undo] puts both back.
+     * Returns (the wanted state reached, output).
+     */
+    fun backgroundUnrestricted(context: Context, undo: Boolean): Pair<Boolean, String> {
+        val pkg = context.packageName
+        val command = if (undo) {
+            "dumpsys deviceidle whitelist -$pkg; cmd appops set $pkg RUN_ANY_IN_BACKGROUND default; echo done"
+        } else {
+            "dumpsys deviceidle whitelist +$pkg && cmd appops set $pkg RUN_ANY_IN_BACKGROUND allow && " +
+                "cmd appops set $pkg RUN_IN_BACKGROUND allow; am set-standby-bucket $pkg active; echo done"
+        }
+        val (status, output) = runCatching { shell(command) }.getOrElse { return false to (it.message ?: "Shizuku error") }
+        Log.i(TAG, "Background ${if (undo) "default" else "unrestricted"}: status $status, ${output.trim()}")
+        val now = backgroundState(context)
+        return (if (undo) now == "default" else now == "unrestricted") to output.trim()
+    }
+
+    /** "unrestricted" (whitelisted, RUN_ANY_IN_BACKGROUND not denied), "default", or "unknown". */
+    fun backgroundState(context: Context): String {
+        val pkg = context.packageName
+        val (_, output) = runCatching {
+            shell("dumpsys deviceidle whitelist | grep -c ',$pkg,'; cmd appops get $pkg RUN_ANY_IN_BACKGROUND")
+        }.getOrElse { return "unknown" }
+        val listed = output.lineSequence().firstOrNull()?.trim()?.toIntOrNull()?.let { it > 0 } ?: return "unknown"
+        val denied = Regex("RUN_ANY_IN_BACKGROUND: (ignore|deny)").containsMatchIn(output)
+        return if (listed && !denied) "unrestricted" else "default"
     }
 
     /** The child process limit off, as lexona-unlimit does over Wireless debugging. */
