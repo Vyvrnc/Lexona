@@ -33,20 +33,16 @@ list_upgradable() {
         END { print "LXU COUNT " side " " n + 0; if (side == "debian") print "LXU SECURITY debian " s + 0 }'
 }
 
+# A failed refresh (a mirror in the middle of a sync, no network) still lists what the old
+# package lists know; the app says the list may be incomplete.
 echo "LXU STEP Termux: package lists"
-if apt-get update -q; then
-    apt list --upgradable 2>/dev/null | list_upgradable termux
-else
-    echo "LXU COUNT termux 0"; failed="$failed termux-update"
-fi
+apt-get update -q || failed="$failed termux-lists"
+apt list --upgradable 2>/dev/null | list_upgradable termux
 
 if command -v debian-run >/dev/null 2>&1 && [ -d "$PREFIX/var/lib/proot-distro/containers/debian/rootfs/usr" ]; then
     echo "LXU STEP Debian: package lists"
-    if debian-run bash -c 'apt-get update -q' ; then
-        debian-run bash -c 'apt list --upgradable 2>/dev/null' | list_upgradable debian
-    else
-        echo "LXU COUNT debian 0"; echo "LXU SECURITY debian 0"; failed="$failed debian-update"
-    fi
+    debian-run bash -c 'apt-get update -q' || failed="$failed debian-lists"
+    debian-run bash -c 'apt list --upgradable 2>/dev/null' | list_upgradable debian
 else
     echo "LXU COUNT debian 0"; echo "LXU SECURITY debian 0"
 fi

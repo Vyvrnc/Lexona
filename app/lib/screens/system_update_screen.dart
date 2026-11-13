@@ -109,6 +109,13 @@ class _SystemUpdateScreenState extends State<SystemUpdateScreen> {
                 const SizedBox(height: 16),
                 const LinearProgressIndicator(),
               ],
+              if (!running && check != null && check.ok == false) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _listsWarning(check.failed),
+                  style: LexonaTheme.body.copyWith(color: LexonaTheme.warning),
+                ),
+              ],
               const SizedBox(height: 16),
               Wrap(spacing: 12, runSpacing: 8, children: [
                 FilledButton.tonal(
@@ -197,10 +204,20 @@ class _SystemUpdateScreenState extends State<SystemUpdateScreen> {
   String _headline(bool running, _Result? live, _Result? check, int total) {
     if (running) return live?.step.isNotEmpty == true ? '${live!.step}…' : 'Working…';
     if (check == null) return _install == null ? 'Not checked yet' : 'Done';
-    if (check.ok == false) return 'Could not check everything';
-    if (total == 0) return 'Everything is up to date';
+    if (total == 0) return check.ok == false ? 'No updates found' : 'Everything is up to date';
     final sec = check.security > 0 ? ', ${check.security} security' : '';
     return '$total update${total == 1 ? '' : 's'} available$sec';
+  }
+
+  /// Which package server did not answer completely, in words; usually a mirror mid-sync.
+  String _listsWarning(String failed) {
+    final parts = <String>[
+      if (failed.contains('termux')) 'the desktop and its programs (Termux)',
+      if (failed.contains('debian')) 'Debian',
+    ];
+    final which = parts.isEmpty ? 'a package server' : 'the package server for ${parts.join(' and ')}';
+    return 'Could not reach $which completely (it is often in the middle of an update, or the '
+        'connection dropped). The list may be incomplete: check again in a few minutes.';
   }
 
   /// The last lines of the log, without the app's own LXU lines.
