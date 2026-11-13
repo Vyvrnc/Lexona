@@ -1863,6 +1863,18 @@ class LinuxRuntime(private val context: Context) {
                         )
                         setExecutable(true, false)
                     }
+                    // apt-get, apt and writing dpkg calls from a Claude Code session go through
+                    // lexona-host by themselves (debian-apt-wrapper). A user's own file of the same
+                    // name in /usr/local/bin stays.
+                    val wrapper = context.assets.open("droiddesk/debian-apt-wrapper").use { it.readBytes() }
+                    for (name in listOf("apt-get", "apt", "dpkg")) {
+                        val target = File(debianBin, name)
+                        val ours = !target.exists() ||
+                            runCatching { target.readText().contains("Lexona: apt-get, apt and dpkg") }.getOrDefault(false)
+                        if (!ours) continue
+                        writeAtomically(target, wrapper)
+                        target.setExecutable(true, false)
+                    }
                 }.onFailure { Log.w(TAG, "Debian lexona-host: ${it.message}") }
             }
             // Phone camera for Linux programs: firefox-cam starts Termux Firefox with

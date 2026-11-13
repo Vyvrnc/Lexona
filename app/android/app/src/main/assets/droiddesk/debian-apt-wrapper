@@ -1,0 +1,19 @@
+#!/bin/sh
+# Lexona: apt-get, apt and dpkg in Debian's /usr/local/bin (one file, three names).
+# In a Claude Code session in Lexona (glibc-native under proot, no fake root) apt hangs and dpkg
+# cannot write; those run through "lexona-host debian-run", as a child of the app under Debian's
+# fake root. Everywhere else (debian-run, start-debian: uid 0) the real program runs unchanged.
+name=${0##*/}
+real=/usr/bin/$name
+if [ -n "${DD_NATIVE_ACTIVE:-}" ] && [ "$(id -u)" != 0 ] && command -v lexona-host >/dev/null 2>&1; then
+    if [ "$name" = dpkg ]; then
+        # Queries (-l, -s, -L, --print-architecture…) work here; only changes need root.
+        case " $* " in
+            *" -i "*|*" --install "*|*" -r "*|*" --remove "*|*" -P "*|*" --purge "*|*" --configure "*|*" --unpack "*) ;;
+            *) exec "$real" "$@" ;;
+        esac
+    fi
+    echo "lexona: $name runs through lexona-host debian-run (it gets no input: use -y)" >&2
+    exec lexona-host debian-run "$real" "$@"
+fi
+exec "$real" "$@"
