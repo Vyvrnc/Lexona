@@ -86,6 +86,10 @@ object ShellBridge {
                 } catch (error: Exception) {
                     Log.d(TAG, "Shell request ended: ${error.message}")
                 } finally {
+                    // shutdown first: close() alone neither wakes the input watcher blocked in
+                    // read nor ends the connection while that read holds the socket.
+                    runCatching { client.shutdownOutput() }
+                    runCatching { client.shutdownInput() }
                     runCatching { client.close() }
                 }
             }
