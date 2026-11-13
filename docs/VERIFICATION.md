@@ -20,6 +20,21 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Lexona 2.0.8 candidate (2026-11-13)
+
+On the Galaxy A16 (Android 16), tests run by a Claude Code session in Lexona itself:
+- tools/device-test/full.sh with the desktop running: 37 PASS, 1 LIMIT (child after env -i),
+  0 FAIL (desktop processes, xfce4-terminal, Thunar, Mousepad, Ristretto, screenshot, xclip,
+  paplay, camera bridge, pkg install). Without the desktop: 24 PASS, the rest needs it.
+- apt from the Claude session (wrappers in /usr/local/bin, pathhook no longer forces them into
+  a nested proot): apt-get install -y cowsay 3.6 s, apt install -y sl 3.2 s, new package
+  figlet 9 s and it runs, apt-get -s 3.1 s, without -y apt asks, gets no answer and aborts in
+  3 s; dpkg -s / -l stay direct. Before the pathhook fix: all hung (rc=124).
+- Tools from the session: git, python3 (ssl, sqlite3, subprocess), rg, curl, tmux, ./script
+  and a script without #!, 20 lexona-* commands, shared clipboard; gh not in the session's PATH
+  (Termux gh works), no node/npx. lexona-open reaches the Android bridge without the desktop.
+- Claude Code start (tap to prompt): first after the update 16-20 s, next one 6-9 s.
+
 ## Lexona 2.0.7 (2026-11-13)
 
 On the Galaxy A16 (Android 16), after release:
