@@ -11,6 +11,7 @@ import 'package:droiddesk/screens/desktop_tools_screen.dart';
 import 'package:droiddesk/screens/gpu_support_screen.dart';
 import 'package:droiddesk/screens/process_limit_screen.dart';
 import 'package:droiddesk/screens/system_update_screen.dart';
+import 'package:droiddesk/screens/advanced_screen.dart';
 
 /// Home dashboard — shown after setup is complete.
 /// Central hub for launching the desktop, terminal, and managing the environment.
@@ -486,6 +487,22 @@ class HomeScreen extends StatelessWidget {
                               child: Row(
                                 children: [
                                   Expanded(child: Text('System updates', style: LexonaTheme.bodySm)),
+                                  Icon(Icons.chevron_right_rounded, size: 18, color: LexonaTheme.textMuted),
+                                ],
+                              ),
+                            ),
+                          ),
+                          _divider(),
+                          // Optional power-user features (Shizuku).
+                          InkWell(
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const AdvancedScreen()),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  Expanded(child: Text('Advanced', style: LexonaTheme.bodySm)),
                                   Icon(Icons.chevron_right_rounded, size: 18, color: LexonaTheme.textMuted),
                                 ],
                               ),

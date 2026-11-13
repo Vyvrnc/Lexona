@@ -173,6 +173,10 @@ class DroidDeskPlatform {
     return Map<String, dynamic>.from(r ?? {});
   }
 
+  /// Starts lexona-android-data (Android/data and obb for Thunar); returns its output.
+  static Future<String> androidDataStart() async =>
+      await _channel.invokeMethod<String>('androidDataStart') ?? '';
+
   /// lexona-update (check: only list what can be updated); output streams via onTerminalOutput.
   static Future<String> systemUpdate({required bool check}) async {
     return await _channel.invokeMethod<String>('systemUpdate', {'check': check}) ?? '';

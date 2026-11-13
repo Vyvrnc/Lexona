@@ -686,6 +686,16 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
+                "androidDataStart" -> {
+                    // Advanced: Android/data in Thunar. The tools exist only after the desktop's
+                    // first start, so write them here too.
+                    thread(name = "android-data-start") {
+                        runCatching { linuxRuntime.writeDeviceTools() }
+                        val output = linuxRuntime.executeCommand("lexona-android-data") { }
+                        runOnUiThread { result.success(output) }
+                    }
+                }
+
                 "systemUpdate" -> {
                     // System updates screen: lexona-update [--check], output streamed like a command.
                     val check = call.argument<Boolean>("check") == true

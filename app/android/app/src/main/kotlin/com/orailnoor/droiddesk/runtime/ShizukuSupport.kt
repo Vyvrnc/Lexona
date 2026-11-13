@@ -56,12 +56,25 @@ object ShizukuSupport {
         ).apply { isAccessible = true }
         val process = method.invoke(null, arrayOf("sh", "-c", "$command 2>&1"), null, null) as Process
         process.outputStream.close()
-        val output = process.inputStream.bufferedReader().readText()
-        if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
-            process.destroy()
-            return 124 to output
-        }
-        return process.exitValue() to output
+        // Shizuku's remote process has no timed waitFor (exitValue throws "process hasn't
+        // exited" while it runs), so a watchdog destroys it and the plain waitFor() blocks.
+        val done = java.util.concurrent.atomic.AtomicBoolean(false)
+        val timedOut = java.util.concurrent.atomic.AtomicBoolean(false)
+        val watchdog = Thread {
+            try {
+                Thread.sleep(TimeUnit.SECONDS.toMillis(timeoutSeconds))
+                if (!done.get()) {
+                    timedOut.set(true)
+                    process.destroy()
+                }
+            } catch (_: InterruptedException) {
+            }
+        }.apply { isDaemon = true; start() }
+        val output = runCatching { process.inputStream.bufferedReader().readText() }.getOrDefault("")
+        val status = process.waitFor()
+        done.set(true)
+        watchdog.interrupt()
+        return (if (timedOut.get()) 124 else status) to output
     }
 
     /** The child process limit off, as lexona-unlimit does over Wireless debugging. */
