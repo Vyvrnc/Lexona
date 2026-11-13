@@ -689,6 +689,8 @@ class MainActivity : FlutterActivity() {
                 "androidDataStart" -> {
                     // Advanced: Android/data in Thunar. The tools exist only after the desktop's
                     // first start, so write them here too.
+                    // The bridge otherwise starts only with the desktop or a terminal.
+                    com.orailnoor.droiddesk.runtime.AndroidDataBridge.start(this)
                     thread(name = "android-data-start") {
                         runCatching { linuxRuntime.writeDeviceTools() }
                         val output = linuxRuntime.executeCommand("lexona-android-data") { }
