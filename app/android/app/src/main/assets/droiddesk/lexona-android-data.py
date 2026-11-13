@@ -70,7 +70,10 @@ def ask(request, want_fd=False):
     if err.startswith("shizuku:"):
         if fd is not None:
             os.close(fd)
-        raise Failure(503, "Shizuku is " + err[8:] + ": start it and allow Lexona")
+        state = err[8:]
+        if state == "granted":
+            raise Failure(503, "Shizuku could not start Lexona's file service (see logcat)")
+        raise Failure(503, "Shizuku is " + state + ": start it and allow Lexona")
     return reply, fd
 
 
