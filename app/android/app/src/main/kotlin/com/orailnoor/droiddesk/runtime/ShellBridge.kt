@@ -72,6 +72,8 @@ object ShellBridge {
             val client = try {
                 socket.accept()
             } catch (error: Exception) {
+                if (server !== socket) break
+                Thread.sleep(200)
                 continue
             }
             if (client.peerCredentials.uid != android.os.Process.myUid()) {
@@ -134,7 +136,7 @@ object ShellBridge {
                         else -> words(req).joinToString(" ").ifBlank { "true" } + " 2>&1"
                     }
                     header(JSONObject().put("ok", true))
-                    stream(command, if (op == "exec") input else null, out)
+                    stream(command, input, op == "exec" && req.optBoolean("stdin"), out)
                 }
             }
         } finally {
@@ -151,18 +153,25 @@ object ShellBridge {
 
     /**
      * Runs [command] as the shell user and copies its output to [out], then the exit mark.
-     * [stdin] goes to the command's input until it ends. A client that goes away ends the
-     * command at its next output.
+     * With [feed], what the client sends goes to the command's input until it ends. Without,
+     * the client keeps its side open and its end (Ctrl-C) ends the command at once; a fed
+     * command ends when the client is gone at its next output.
      */
-    private fun stream(command: String, stdin: InputStream?, out: OutputStream) {
+    private fun stream(command: String, input: InputStream, feed: Boolean, out: OutputStream) {
         val process = ShizukuSupport.newProcess(command)
-        val feeder = if (stdin != null) {
-            thread(name = "shell-bridge-stdin", isDaemon = true) {
-                runCatching { process.outputStream.use { stdin.copyTo(it) } }
+        if (!feed) runCatching { process.outputStream.close() }
+        val feeder = thread(name = "shell-bridge-input", isDaemon = true) {
+            if (feed) {
+                try {
+                    process.outputStream.use { input.copyTo(it) }
+                } catch (error: java.io.IOException) {
+                    process.destroy()
+                }
+            } else {
+                // Nothing comes; end of stream or an error means the client went away.
+                runCatching { while (input.read() >= 0) Unit }
+                process.destroy()
             }
-        } else {
-            runCatching { process.outputStream.close() }
-            null
         }
         var clientGone = false
         try {
@@ -214,7 +223,7 @@ object ShellBridge {
             out.flush()
         }
         val sizes = fds.map { Os.fstat(it).st_size }
-        val (createStatus, created) = ShizukuSupport.shell("pm install-create -S ${sizes.sum()}")
+        val (createStatus, created) = ShizukuSupport.shell("pm install-create -r -S ${sizes.sum()}")
         val session = Regex("\\[(\\d+)]").find(created)?.groupValues?.get(1)
         if (createStatus != 0 || session == null) {
             say(created.trim())

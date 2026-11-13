@@ -51,7 +51,7 @@ object ShizukuSupport {
      * every Shizuku app ships it. Returns (exit status, output).
      */
     fun shell(command: String, timeoutSeconds: Long = 30): Pair<Int, String> {
-        val process = newProcess("$command 2>&1")
+        val process = newProcess("{ $command\n} 2>&1")
         process.outputStream.close()
         // Shizuku's remote process has no timed waitFor (exitValue throws "process hasn't
         // exited" while it runs), so a watchdog destroys it and the plain waitFor() blocks.

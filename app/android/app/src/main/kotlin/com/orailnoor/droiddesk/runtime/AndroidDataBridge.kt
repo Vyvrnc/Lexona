@@ -47,8 +47,11 @@ object AndroidDataBridge {
     }
 
     /** The shell-side service (also ShellBridge's), bound through Shizuku on first use (up to 10 s). */
-    @Synchronized
-    fun service(context: Context): IShellFiles? {
+    private val serviceLock = Any()
+
+    fun service(context: Context): IShellFiles? = synchronized(serviceLock) { bindService(context) }
+
+    private fun bindService(context: Context): IShellFiles? {
         files?.takeIf { it.asBinder().isBinderAlive }?.let { return it }
         if (ShizukuSupport.state(context) != "granted") return null
         val ready = CountDownLatch(1)

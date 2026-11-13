@@ -85,19 +85,34 @@ def read_header(sock, want_fd=False):
     return header, fd
 
 
+def maybe_mark(tail):
+    """True when tail (starting with NUL) is the exit mark or may become it."""
+    if len(tail) <= len(MARK):
+        return MARK.startswith(tail)
+    if not tail.startswith(MARK):
+        return False
+    rest = tail[len(MARK):]
+    if rest.endswith(b"\n"):
+        rest = rest[:-1]
+    return rest == b"" or rest.isdigit()
+
+
 def stream(sock, out):
     """Copies the output to out (binary) until the exit mark; returns the exit status."""
     pending = b""
-    keep = len(MARK) + 12
     while True:
         chunk = sock.recv(65536)
         if not chunk:
             break
         pending += chunk
-        if len(pending) > keep:
-            out.write(pending[:-keep])
+        # Hold back only what may be the start of the exit mark (from the last NUL on).
+        i = pending.rfind(b"\0")
+        if i < 0 or not maybe_mark(pending[i:]):
+            i = len(pending)
+        if i > 0:
+            out.write(pending[:i])
             out.flush()
-            pending = pending[-keep:]
+            pending = pending[i:]
     i = pending.rfind(MARK)
     if i < 0:
         out.write(pending)
@@ -111,16 +126,19 @@ def stream(sock, out):
         return 255
 
 
-def run_streamed(request, out=None, stdin=None):
+def run_streamed(request, out=None, stdin=False):
+    """stdin True: our input (fd 0) goes to the command until it ends. Otherwise the socket's
+    write side stays open: when we go away (Ctrl-C), the app ends the command."""
+    request["stdin"] = bool(stdin)
     sock = connect(request)
     read_header(sock)
-    if stdin is not None:
+    if stdin:
         import threading
 
         def feed():
             try:
                 while True:
-                    block = stdin.read(65536)
+                    block = os.read(0, 65536)
                     if not block:
                         break
                     sock.sendall(block)
@@ -132,8 +150,6 @@ def run_streamed(request, out=None, stdin=None):
                 pass
 
         threading.Thread(target=feed, daemon=True).start()
-    else:
-        sock.shutdown(socket.SHUT_WR)
     try:
         return stream(sock, out or sys.stdout.buffer)
     finally:
@@ -157,11 +173,14 @@ def apk_files(paths, tmp):
             if "AndroidManifest.xml" in names:
                 result.append(path)
                 continue
-            inner = [n for n in names if n.lower().endswith(".apk") and "/" not in n.strip("/")]
+            inner = [n for n in names if n.lower().endswith(".apk")]
+            # bundletool: splits/ holds the real set, standalones/ alternatives for old Androids.
+            if any(n.startswith("splits/") for n in inner):
+                inner = [n for n in inner if not n.startswith("standalones/")]
             if not inner:
                 raise Refused("%s: neither an APK nor a bundle of APKs" % path)
-            for n in inner:
-                target = os.path.join(tmp, os.path.basename(n))
+            for k, n in enumerate(inner):
+                target = os.path.join(tmp, "%d-%s" % (len(result) + k, os.path.basename(n)))
                 with z.open(n) as src, open(target, "wb") as dst:
                     while True:
                         block = src.read(1 << 20)
@@ -188,7 +207,6 @@ def apk_install(args):
                 names = [os.path.basename(p) for p in files]
                 sock = connect({"op": "install", "names": names}, [h.fileno() for h in handles])
                 read_header(sock)
-                sock.shutdown(socket.SHUT_WR)
 
                 class Collect:
                     data = b""
@@ -249,8 +267,12 @@ def screenshot(args):
         os.makedirs(folder, exist_ok=True)
         target = os.path.join(folder, time.strftime("android-%Y%m%d-%H%M%S.png"))
     partial = target + ".part"
-    with open(partial, "wb") as out:
-        status = run_streamed({"op": "screencap"}, out)
+    try:
+        with open(partial, "wb") as out:
+            status = run_streamed({"op": "screencap"}, out)
+    except Refused:
+        os.unlink(partial)
+        raise
     with open(partial, "rb") as f:
         good = f.read(8) == b"\x89PNG\r\n\x1a\n"
     if status != 0 or not good:
@@ -329,10 +351,9 @@ def adb(args):
         args = args[1:]
     if not args:
         if not os.isatty(0):
-            return run_streamed({"op": "exec", "args": ["sh"]}, stdin=sys.stdin.buffer)
+            return run_streamed({"op": "exec", "args": ["sh"]}, stdin=True)
         return interactive_shell()
-    stdin = None if os.isatty(0) else sys.stdin.buffer
-    return run_streamed({"op": "exec", "args": args}, stdin=stdin)
+    return run_streamed({"op": "exec", "args": args}, stdin=not os.isatty(0))
 
 
 def main():
@@ -368,4 +389,10 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    code = main()
+    try:
+        sys.stdout.flush()
+    except OSError:
+        pass
+    # No interpreter shutdown: a stdin feeder thread may still sit in a read.
+    os._exit(code)

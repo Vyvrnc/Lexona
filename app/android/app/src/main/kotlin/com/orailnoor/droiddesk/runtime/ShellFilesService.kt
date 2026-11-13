@@ -70,7 +70,10 @@ class ShellFilesService : IShellFiles.Stub() {
      * /system/bin/sh on a new pty, through Termux's JNI (libtermux.so from the APK; the service
      * loads it from the app's library directory). Returns the master; the child is reaped here.
      */
-    override fun openShell(rows: Int, cols: Int, env: Array<String>?): ParcelFileDescriptor? {
+    override fun openShell(rows: Int, cols: Int, env: Array<String>?): ParcelFileDescriptor? =
+        runCatching { shell(rows, cols, env) }.getOrNull()
+
+    private fun shell(rows: Int, cols: Int, env: Array<String>?): ParcelFileDescriptor? {
         val jni = runCatching { Class.forName("com.termux.terminal.JNI") }.getOrNull() ?: return null
         val create = jni.getDeclaredMethod(
             "createSubprocess", String::class.java, String::class.java, Array<String>::class.java,
