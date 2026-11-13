@@ -247,6 +247,32 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
                   },
             child: Text(limitOn ? 'Turn the limit off' : "Put Android's limit back"),
           ),
+        if (_shizuku == 'granted') ...[
+          const SizedBox(height: 8),
+          Text(
+            'Android/data and Android/obb (files of other apps, games' "'" ' data) can open in the '
+            "desktop's file manager: Thunar shows them as \"Android data\".",
+            style: LexonaTheme.body.copyWith(color: LexonaTheme.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.tonal(
+            onPressed: _shizukuBusy
+                ? null
+                : () async {
+                    setState(() => _shizukuBusy = true);
+                    final out = await DroidDeskPlatform.executeCommand('lexona-android-data');
+                    if (!mounted) return;
+                    final url = RegExp(r'dav://\S+').firstMatch(out)?.group(0);
+                    setState(() {
+                      _shizukuBusy = false;
+                      _shizukuMessage = url != null
+                          ? 'Android data is in Thunar\'s side panel ("Android data"), or at $url'
+                          : 'Did not start: ${out.trim().split('\n').last}';
+                    });
+                  },
+            child: const Text('Show Android data in the file manager'),
+          ),
+        ],
       ],
     );
   }

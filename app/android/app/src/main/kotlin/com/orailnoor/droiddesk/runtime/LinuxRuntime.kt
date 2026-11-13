@@ -1880,6 +1880,10 @@ class LinuxRuntime(private val context: Context) {
                         writeText("#!/bin/sh\nexec /usr/local/bin/lexona-host lexona-update \"${'$'}@\"\n")
                         setExecutable(true, false)
                     }
+                    File(debianBin, "lexona-android-data").apply {
+                        writeText("#!/bin/sh\nexec /usr/local/bin/lexona-host lexona-android-data \"${'$'}@\"\n")
+                        setExecutable(true, false)
+                    }
                     // apt-get, apt and writing dpkg calls from a Claude Code session go through
                     // lexona-host by themselves (debian-apt-wrapper). A user's own file of the same
                     // name in /usr/local/bin stays.
@@ -1906,6 +1910,16 @@ class LinuxRuntime(private val context: Context) {
             File(binDir, "droiddesk-screen-profile").let { command ->
                 val script = context.assets.open("droiddesk/droiddesk-screen-profile").bufferedReader().use { it.readText() }
                 command.writeText("#!${File(binDir, "bash").absolutePath}\n" + script.substringAfter('\n'))
+                command.setExecutable(true, false)
+            }
+            // Android/data and Android/obb in Linux through Shizuku (AndroidDataBridge).
+            val dataClient = File(binDir, "lexona-android-data.py")
+            copyAssetAtomically("droiddesk/lexona-android-data.py", dataClient)
+            File(binDir, "lexona-android-data").let { command ->
+                command.writeText(
+                    "#!${File(binDir, "bash").absolutePath}\n" +
+                        "exec \"${File(binDir, "python3").absolutePath}\" \"${dataClient.absolutePath}\" \"${'$'}@\"\n",
+                )
                 command.setExecutable(true, false)
             }
             // System updates for Termux and Debian (the app's "System updates" screen runs it).
