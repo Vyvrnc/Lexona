@@ -1,0 +1,66 @@
+#!/bin/bash
+# lexona-update: system updates for Termux (the desktop, its programs) and Debian.
+#   lexona-update --check   refresh the package lists, list what can be updated
+#   lexona-update           install all updates (Termux, then Debian)
+# The app's "System updates" screen runs it and reads the "LXU ..." lines:
+#   LXU COUNT <termux|debian> <n>         LXU SECURITY debian <n>
+#   LXU PKG <termux|debian> <name> <old> <new> [security]
+#   LXU STEP <text>                        LXU DONE <ok|fail> [failed parts]
+# Existing configuration files are kept (confold); nothing asks a question.
+set -u
+check=0
+[ "${1:-}" = --check ] && check=1
+
+# A Claude Code session in Lexona runs under proot without Debian's fake root: run as the
+# app's child instead (debian-run and apt hang there).
+if [ -n "${DD_NATIVE_ACTIVE:-}" ] && [ "$(id -u)" != 0 ] && command -v lexona-host >/dev/null 2>&1; then
+    exec lexona-host lexona-update "$@"
+fi
+
+export DEBIAN_FRONTEND=noninteractive
+opts='-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold'
+failed=""
+
+# list_upgradable SIDE: "LXU PKG" lines and a count from "apt list --upgradable" on stdin.
+list_upgradable() {
+    awk -v side="$1" '
+        /\[upgradable from:/ {
+            split($1, a, "/"); name = a[1]; repo = a[2]; new = $2; old = $NF; sub(/\]$/, "", old)
+            sec = (repo ~ /security/) ? " security" : ""
+            print "LXU PKG " side " " name " " old " " new sec
+            n++; if (sec != "") s++
+        }
+        END { print "LXU COUNT " side " " n + 0; if (side == "debian") print "LXU SECURITY debian " s + 0 }'
+}
+
+echo "LXU STEP Termux: package lists"
+if apt-get update -q; then
+    apt list --upgradable 2>/dev/null | list_upgradable termux
+else
+    echo "LXU COUNT termux 0"; failed="$failed termux-update"
+fi
+
+if command -v debian-run >/dev/null 2>&1 && [ -d "$PREFIX/var/lib/proot-distro/containers/debian/rootfs/usr" ]; then
+    echo "LXU STEP Debian: package lists"
+    if debian-run bash -c 'apt-get update -q' ; then
+        debian-run bash -c 'apt list --upgradable 2>/dev/null' | list_upgradable debian
+    else
+        echo "LXU COUNT debian 0"; echo "LXU SECURITY debian 0"; failed="$failed debian-update"
+    fi
+else
+    echo "LXU COUNT debian 0"; echo "LXU SECURITY debian 0"
+fi
+
+if [ $check = 1 ]; then
+    [ -z "$failed" ] && echo "LXU DONE ok" || echo "LXU DONE fail$failed"
+    exit 0
+fi
+
+echo "LXU STEP Termux: installing updates"
+# shellcheck disable=SC2086
+apt-get -y $opts full-upgrade < /dev/null || failed="$failed termux"
+if command -v debian-run >/dev/null 2>&1 && [ -d "$PREFIX/var/lib/proot-distro/containers/debian/rootfs/usr" ]; then
+    echo "LXU STEP Debian: installing updates"
+    debian-run bash -c "export DEBIAN_FRONTEND=noninteractive; apt-get -y $opts full-upgrade && apt-get -y autoremove" < /dev/null || failed="$failed debian"
+fi
+[ -z "$failed" ] && echo "LXU DONE ok" || echo "LXU DONE fail$failed"

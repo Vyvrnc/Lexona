@@ -672,6 +672,21 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
+                "systemUpdate" -> {
+                    // System updates screen: lexona-update [--check], output streamed like a command.
+                    val check = call.argument<Boolean>("check") == true
+                    Thread {
+                        runCatching { linuxRuntime.writeDeviceTools() }
+                        val output = linuxRuntime.executeCommand(if (check) "lexona-update --check" else "lexona-update") { chunk ->
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+                                    .invokeMethod("onTerminalOutput", mapOf("text" to chunk))
+                            }
+                        }
+                        android.os.Handler(android.os.Looper.getMainLooper()).post { result.success(output) }
+                    }.start()
+                }
+
                 "getLeanOptions" -> result.success(com.orailnoor.droiddesk.runtime.LeanDesktop.options(this))
 
                 "setLeanOption" -> {

@@ -159,6 +159,11 @@ class DroidDeskPlatform {
     return Map<String, dynamic>.from(result ?? {});
   }
 
+  /// lexona-update (check: only list what can be updated); output streams via onTerminalOutput.
+  static Future<String> systemUpdate({required bool check}) async {
+    return await _channel.invokeMethod<String>('systemUpdate', {'check': check}) ?? '';
+  }
+
   /// Lean desktop parts: [{id, title, detail, processes, off}].
   static Future<List<Map<String, dynamic>>> getLeanOptions() async {
     final result = await _channel.invokeMethod<List<dynamic>>('getLeanOptions') ?? [];

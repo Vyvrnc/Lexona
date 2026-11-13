@@ -1109,6 +1109,8 @@ class LinuxRuntime(private val context: Context) {
                 'path-exclude=/usr/share/man/*' 'path-exclude=/usr/share/info/*' > /etc/dpkg/dpkg.cfg.d/droiddesk-nodoc
             printf '%s\n' 'Acquire::Retries "3";' 'Acquire::Languages "none";' > /etc/apt/apt.conf.d/90droiddesk
             apt-get update
+            # The rootfs image is older than the security updates of its release.
+            apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade
             apt-get install -y git procps less bash-completion fontconfig tzdata locales fzf jq vim curl ca-certificates dbus-x11 xz-utils pulseaudio-utils libnotify-bin tmux proxychains4 xclip libxcb-keysyms1 ripgrep wmctrl xdotool x11-utils
             # Debian's own session bus and keyring (droiddesk-session-bus, started by the app):
             # Electron's safeStorage and other libsecret apps keep their secrets there.
@@ -1888,6 +1890,12 @@ class LinuxRuntime(private val context: Context) {
             // XFCE sizes per screen (DeX monitor vs phone), run by applyScreenProfile.
             File(binDir, "droiddesk-screen-profile").let { command ->
                 val script = context.assets.open("droiddesk/droiddesk-screen-profile").bufferedReader().use { it.readText() }
+                command.writeText("#!${File(binDir, "bash").absolutePath}\n" + script.substringAfter('\n'))
+                command.setExecutable(true, false)
+            }
+            // System updates for Termux and Debian (the app's "System updates" screen runs it).
+            File(binDir, "lexona-update").let { command ->
+                val script = context.assets.open("droiddesk/lexona-update").bufferedReader().use { it.readText() }
                 command.writeText("#!${File(binDir, "bash").absolutePath}\n" + script.substringAfter('\n'))
                 command.setExecutable(true, false)
             }

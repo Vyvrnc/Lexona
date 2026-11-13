@@ -10,6 +10,7 @@ import 'package:droiddesk/screens/apps/app_catalog_screen.dart';
 import 'package:droiddesk/screens/desktop_tools_screen.dart';
 import 'package:droiddesk/screens/gpu_support_screen.dart';
 import 'package:droiddesk/screens/process_limit_screen.dart';
+import 'package:droiddesk/screens/system_update_screen.dart';
 
 /// Home dashboard — shown after setup is complete.
 /// Central hub for launching the desktop, terminal, and managing the environment.
@@ -469,6 +470,22 @@ class HomeScreen extends StatelessWidget {
                                           )
                                         : Text('Process limit and lean desktop', style: LexonaTheme.bodySm),
                                   ),
+                                  Icon(Icons.chevron_right_rounded, size: 18, color: LexonaTheme.textMuted),
+                                ],
+                              ),
+                            ),
+                          ),
+                          _divider(),
+                          // Updates without a terminal (lexona-update).
+                          InkWell(
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const SystemUpdateScreen()),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  Expanded(child: Text('System updates', style: LexonaTheme.bodySm)),
                                   Icon(Icons.chevron_right_rounded, size: 18, color: LexonaTheme.textMuted),
                                 ],
                               ),

@@ -38,6 +38,9 @@ class AppState extends ChangeNotifier {
   double _optionalInstallProgress = 0.0;
   String _optionalInstallStatus = '';
   String _optionalInstallLog = '';
+  // System updates screen (lexona-update): its streamed output while it runs.
+  bool _systemUpdateRunning = false;
+  String _systemUpdateLog = '';
   Map<String, String> _craftApps = {};
   bool _isProotTerminal = false;
 
@@ -86,6 +89,8 @@ class AppState extends ChangeNotifier {
   double get optionalInstallProgress => _optionalInstallProgress;
   String get optionalInstallStatus => _optionalInstallStatus;
   String get optionalInstallLog => _optionalInstallLog;
+  bool get systemUpdateRunning => _systemUpdateRunning;
+  String get systemUpdateLog => _systemUpdateLog;
   Map<String, String> get craftApps => _craftApps;
   bool get isProotTerminal => _isProotTerminal;
 
@@ -169,6 +174,13 @@ class AppState extends ChangeNotifier {
             _optionalInstallLog.length - 20000,
           );
         }
+      }
+      if (_systemUpdateRunning) {
+        _systemUpdateLog += cleanedText;
+        if (_systemUpdateLog.length > 40000) {
+          _systemUpdateLog = _systemUpdateLog.substring(_systemUpdateLog.length - 40000);
+        }
+        notifyListeners();
       }
       _terminalCharactersReceived += cleanedText.length;
       appendTerminalOutput(cleanedText);
@@ -558,6 +570,22 @@ class AppState extends ChangeNotifier {
       return -1;
     } finally {
       _setBusy(null);
+    }
+  }
+
+  /// lexona-update (--check): the whole output, also streamed into [systemUpdateLog].
+  Future<String> runSystemUpdate({required bool check}) async {
+    if (_systemUpdateRunning) return '';
+    _systemUpdateRunning = true;
+    _systemUpdateLog = '';
+    notifyListeners();
+    try {
+      return await DroidDeskPlatform.systemUpdate(check: check);
+    } catch (e) {
+      return 'Error: $e';
+    } finally {
+      _systemUpdateRunning = false;
+      notifyListeners();
     }
   }
 
