@@ -159,6 +159,7 @@ object ShellBridge {
      */
     private fun stream(command: String, input: InputStream, feed: Boolean, out: OutputStream) {
         val process = ShizukuSupport.newProcess(command)
+        Log.i(TAG, "started: $command (input ${if (feed) "fed" else "closed"})")
         if (!feed) runCatching { process.outputStream.close() }
         val feeder = thread(name = "shell-bridge-input", isDaemon = true) {
             if (feed) {
@@ -174,6 +175,7 @@ object ShellBridge {
             }
         }
         var clientGone = false
+        var total = 0L
         try {
             val buffer = ByteArray(64 * 1024)
             val source = process.inputStream
@@ -182,13 +184,16 @@ object ShellBridge {
                 if (n < 0) break
                 out.write(buffer, 0, n)
                 out.flush()
+                total += n
             }
         } catch (error: java.io.IOException) {
             clientGone = true
             process.destroy()
         }
+        Log.i(TAG, "output ended after $total bytes, client gone: $clientGone")
         val status = process.waitFor()
-        feeder?.interrupt()
+        Log.i(TAG, "exit status $status")
+        feeder.interrupt()
         if (!clientGone) {
             runCatching {
                 out.write(MARK + "$status\n".toByteArray())

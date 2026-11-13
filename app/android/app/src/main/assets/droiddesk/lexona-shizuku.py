@@ -107,6 +107,8 @@ def stream(sock, out):
         pending += chunk
         # Hold back only what may be the start of the exit mark (from the last NUL on).
         i = pending.rfind(b"\0")
+        if i >= 0 and pending.endswith(b"\n") and maybe_mark(pending[i:]) and len(pending) - i > len(MARK) + 1:
+            break  # the whole exit mark: done, whether or not the app closes its side
         if i < 0 or not maybe_mark(pending[i:]):
             i = len(pending)
         if i > 0:
