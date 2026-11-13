@@ -2360,6 +2360,21 @@ class LinuxRuntime(private val context: Context) {
                     esac
                     mkdir -p "${'$'}(dirname "${'$'}marker5")" && touch "${'$'}marker5"
                 fi
+                # Thunar marks a folder without an x bit for "others" as unreadable (red cross,
+                # emblem-noread) by its mode bits alone. The phone's shared storage (DCIM,
+                # Download, ...: 2770, owned by MediaProvider) is fully accessible to Lexona
+                # all the same, so the cross would be wrong on almost every folder there. An
+                # empty emblem-noread in the user's copy of the current icon theme hides it.
+                icon_theme=${'$'}(xfconf-query -c xsettings -p /Net/IconThemeName 2>/dev/null)
+                if [ -n "${'$'}icon_theme" ] && [ -d "${'$'}icons/${'$'}icon_theme" ]; then
+                    find -L "${'$'}icons/${'$'}icon_theme" -name 'emblem-noread.*' 2>/dev/null | while read -r f; do
+                        rel=${'$'}{f#"${'$'}icons/${'$'}icon_theme"/}
+                        blank="${'$'}HOME/.local/share/icons/${'$'}icon_theme/${'$'}{rel%.*}.svg"
+                        [ -f "${'$'}blank" ] && continue
+                        mkdir -p "${'$'}{blank%/*}" &&
+                            echo '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"/>' > "${'$'}blank"
+                    done
+                fi
 
                 # A vertical panel (mode 1) rotates text plugins such as the battery
                 # label; Deskbar (mode 2) keeps the same dock with horizontal text.
