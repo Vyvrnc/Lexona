@@ -1874,6 +1874,12 @@ class LinuxRuntime(private val context: Context) {
                         )
                         setExecutable(true, false)
                     }
+                    // lexona-update from Debian and Claude Code (not in their PATH before): the app
+                    // runs it, outside any proot.
+                    File(debianBin, "lexona-update").apply {
+                        writeText("#!/bin/sh\nexec /usr/local/bin/lexona-host lexona-update \"${'$'}@\"\n")
+                        setExecutable(true, false)
+                    }
                     // apt-get, apt and writing dpkg calls from a Claude Code session go through
                     // lexona-host by themselves (debian-apt-wrapper). A user's own file of the same
                     // name in /usr/local/bin stays.

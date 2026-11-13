@@ -20,6 +20,21 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Lexona 2.0.9 candidate (2026-11-13)
+
+On the Galaxy A16 (Android 16):
+- System updates screen: the check listed what was there and, after the session's manual
+  upgrade, said "Everything is up to date". A Termux mirror mid-sync ("File has unexpected
+  size") made the first check fail; the screen now still lists updates and says which server
+  did not answer. lexona-update --check from the Claude session (through lexona-host): LXU
+  COUNT termux 0, debian 0, DONE ok, 15 s.
+- gh 2.104 (static Go, cli.github.com) from the Claude session: 530 ms (hung in 2.0.8: nested
+  proot); network and certificates fine (curl api.github.com). GoogleWorkspace MCP connected
+  with MCP_TIMEOUT=120000 (npx 11 needs 57 s there; the 30 s default timed out).
+- The session's manual updates: Debian full-upgrade (zlib1g, libcares2 security), Termux
+  full-upgrade, Node 26.13.1 LTS from NodeSource, gh 2.104 from cli.github.com; keys checked by
+  fingerprint.
+
 ## Lexona 2.0.8 candidate (2026-11-13)
 
 On the Galaxy A16 (Android 16), tests run by a Claude Code session in Lexona itself:
