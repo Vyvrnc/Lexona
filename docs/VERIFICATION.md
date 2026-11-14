@@ -57,8 +57,14 @@ tapped in the app.
   bytes in the output stay output and the real status (3) comes through; fed stdin then
   output; a fed command (`cat; sleep 777`) ends when its client is killed. One run's
   `gio open` check failed on a fixed 12 s wait after a cold start; by hand it installs in
-  4-6 s (3 of 3), and the check now waits up to 40 s. Not checked on the device: Shizuku
-  stopped during a request, SIGTERM to the interactive shell, Debian without python3.
+  4-6 s (3 of 3), and the check now waits up to 40 s.
+- Then `shz-verify.sh` (4/4): SIGTERM to an interactive lexona-adb ends it with 143 and
+  the terminal has echo back; in Debian with PATH=/usr/local/bin (no python3) the wrapper
+  runs the Termux client and `lexona-adb id` is uid 2000; shizuku_server killed while
+  lexona-logcat, a fed `cat` and `sleep 600` ran: Lexona kept its pid (nothing new in the
+  crash buffer), the clients ended with 255, and after restarting Shizuku from adb
+  (libshizuku.so) lexona-adb worked again. The `sleep 600` itself outlived the dead
+  Shizuku server (Lexona cannot reach it any more); it had to be killed by hand.
 - Not tested: an .xapk with more than about 10 parts (all descriptors travel in one
   message); lexona-adb resize of a running shell (SIGWINCH is wired, not checked).
 
