@@ -52,6 +52,13 @@ tapped in the app.
   `shutdownOutput`/`shutdownInput` first, and the client stops at the exit mark). Termux has
   no `xdg-mime`, so the desktop tweaks never set default apps (images in ristretto, .apk to
   "Install on Android"); a `gio mime` fallback does it now.
+- Codex review fixes (`f2c24ad`), the same run again on the A16: off 10/10, on 33/34. New
+  checks: stderr of every command in a list (`'echo e >&2; true'`); the exit mark's own
+  bytes in the output stay output and the real status (3) comes through; fed stdin then
+  output; a fed command (`cat; sleep 777`) ends when its client is killed. One run's
+  `gio open` check failed on a fixed 12 s wait after a cold start; by hand it installs in
+  4-6 s (3 of 3), and the check now waits up to 40 s. Not checked on the device: Shizuku
+  stopped during a request, SIGTERM to the interactive shell, Debian without python3.
 - Not tested: an .xapk with more than about 10 parts (all descriptors travel in one
   message); lexona-adb resize of a running shell (SIGWINCH is wired, not checked).
 
