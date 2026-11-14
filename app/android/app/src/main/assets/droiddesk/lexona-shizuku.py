@@ -98,17 +98,17 @@ def maybe_mark(tail):
 
 
 def stream(sock, out):
-    """Copies the output to out (binary) until the exit mark; returns the exit status."""
+    """Copies the output to out (binary) until the app closes its side; returns the exit
+    status from the exit mark at the very end. A mark inside the output (binary data) is
+    output: more bytes after it show it was not the end."""
     pending = b""
     while True:
         chunk = sock.recv(65536)
         if not chunk:
             break
         pending += chunk
-        # Hold back only what may be the start of the exit mark (from the last NUL on).
+        # Hold back only what may be the exit mark (from the last NUL on).
         i = pending.rfind(b"\0")
-        if i >= 0 and pending.endswith(b"\n") and maybe_mark(pending[i:]) and len(pending) - i > len(MARK) + 1:
-            break  # the whole exit mark: done, whether or not the app closes its side
         if i < 0 or not maybe_mark(pending[i:]):
             i = len(pending)
         if i > 0:
@@ -116,7 +116,7 @@ def stream(sock, out):
             out.flush()
             pending = pending[i:]
     i = pending.rfind(MARK)
-    if i < 0:
+    if i < 0 or not maybe_mark(pending[i:]) or not pending.endswith(b"\n"):
         out.write(pending)
         out.flush()
         return 255  # cut off: the app went away
@@ -129,8 +129,9 @@ def stream(sock, out):
 
 
 def run_streamed(request, out=None, stdin=False):
-    """stdin True: our input (fd 0) goes to the command until it ends. Otherwise the socket's
-    write side stays open: when we go away (Ctrl-C), the app ends the command."""
+    """stdin True: our input (fd 0) goes to the command in frames (length, bytes) and an
+    empty frame ends it. The socket's write side stays open either way: when we go away
+    (Ctrl-C, killed), the app ends the command."""
     request["stdin"] = bool(stdin)
     sock = connect(request)
     read_header(sock)
@@ -141,13 +142,9 @@ def run_streamed(request, out=None, stdin=False):
             try:
                 while True:
                     block = os.read(0, 65536)
+                    sock.sendall(struct.pack(">I", len(block)) + block)
                     if not block:
                         break
-                    sock.sendall(block)
-            except OSError:
-                pass
-            try:
-                sock.shutdown(socket.SHUT_WR)
             except OSError:
                 pass
 
@@ -315,7 +312,12 @@ def interactive_shell():
         except OSError:
             pass
 
+    def leave(signum, _frame):
+        raise SystemExit(128 + signum)  # through the finally below: the terminal comes back
+
     signal.signal(signal.SIGWINCH, resize)
+    for signum in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(signum, leave)
     saved = termios.tcgetattr(0) if os.isatty(0) else None
     try:
         if saved:

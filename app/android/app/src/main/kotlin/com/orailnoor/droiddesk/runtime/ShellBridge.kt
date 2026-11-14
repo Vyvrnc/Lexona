@@ -23,7 +23,10 @@ import kotlin.concurrent.thread
  * Abstract socket "lexona.shell", same uid only. The client sends one JSON line
  * {"op": ..., ...}; the app answers one JSON line {"ok": bool, "error"?: text} and, for
  * streamed ops, the output followed by "\u0000LEXONA-EXIT:<status>\n" (as lexona-host).
- * Bytes the client sends after its request line are the command's input ("exec" only).
+ * With "stdin": true ("exec" only) the client then sends its input as frames (4-byte
+ * big-endian length, bytes), a frame of length 0 ending the input; the end of the connection
+ * always means the client went away and ends the command. The app shuts its side down after
+ * the exit mark, so only the mark at the very end of the stream counts.
  */
 object ShellBridge {
     private const val TAG = "ShellBridge"
@@ -136,8 +139,9 @@ object ShellBridge {
                         "logcat" -> "exec logcat " + args(req) + " 2>&1"
                         "screencap" -> "exec screencap -p 2>/dev/null"
                         "input" -> "input " + args(req) + " 2>&1"
-                        // As adb shell: the words joined, the shell parses them.
-                        else -> words(req).joinToString(" ").ifBlank { "true" } + " 2>&1"
+                        // As adb shell: the words joined, the shell parses them. The group puts
+                        // stderr of every command in a list on the output, not only the last's.
+                        else -> "{ " + words(req).joinToString(" ").ifBlank { "true" } + "\n} 2>&1"
                     }
                     header(JSONObject().put("ok", true))
                     stream(command, input, op == "exec" && req.optBoolean("stdin"), out)
@@ -155,48 +159,97 @@ object ShellBridge {
 
     private fun args(req: JSONObject) = words(req).joinToString(" ") { ShizukuSupport.quote(it) }
 
+    /** Fills [buffer] from [input]; false when the stream ends first. */
+    private fun readFully(input: InputStream, buffer: ByteArray, length: Int): Boolean {
+        var done = 0
+        while (done < length) {
+            val n = input.read(buffer, done, length - done)
+            if (n < 0) return false
+            done += n
+        }
+        return true
+    }
+
+    /**
+     * Copies the client's input frames (4-byte big-endian length, then the bytes) to the
+     * command; a frame of length 0 is the end of the input. The connection's own end, before
+     * or after that frame, is the client going away.
+     */
+    private fun feedFrames(input: InputStream, stdin: OutputStream) {
+        val head = ByteArray(4)
+        val buffer = ByteArray(64 * 1024)
+        var open = true
+        try {
+            while (readFully(input, head, 4)) {
+                val length = java.nio.ByteBuffer.wrap(head).int
+                if (length == 0) {
+                    runCatching { stdin.close() }
+                    open = false
+                    continue
+                }
+                if (length < 0 || !open) return
+                var left = length
+                while (left > 0) {
+                    val n = input.read(buffer, 0, minOf(left, buffer.size))
+                    if (n < 0) return
+                    stdin.write(buffer, 0, n)
+                    stdin.flush()
+                    left -= n
+                }
+            }
+        } finally {
+            runCatching { stdin.close() }
+        }
+    }
+
     /**
      * Runs [command] as the shell user and copies its output to [out], then the exit mark.
-     * With [feed], what the client sends goes to the command's input until it ends. Without,
-     * the client keeps its side open and its end (Ctrl-C) ends the command at once; a fed
-     * command ends when the client is gone at its next output.
+     * With [feed], the client's input frames go to the command's input; without, nothing
+     * comes. Either way the end of the connection (Ctrl-C, the client killed) ends the command.
      */
     private fun stream(command: String, input: InputStream, feed: Boolean, out: OutputStream) {
         val process = ShizukuSupport.newProcess(command)
         Log.d(TAG, "started: $command (input ${if (feed) "fed" else "closed"})")
+        // Calls on the process go through Shizuku's binder and throw once Shizuku is gone; an
+        // exception in the watcher thread would end the whole app, so every call is guarded.
+        fun kill() = runCatching { process.destroy() }
         if (!feed) runCatching { process.outputStream.close() }
         val feeder = thread(name = "shell-bridge-input", isDaemon = true) {
-            if (feed) {
-                try {
-                    process.outputStream.use { input.copyTo(it) }
-                } catch (error: java.io.IOException) {
-                    process.destroy()
-                }
-            } else {
-                // Nothing comes; end of stream or an error means the client went away.
-                runCatching { while (input.read() >= 0) Unit }
-                process.destroy()
+            try {
+                if (feed) feedFrames(input, process.outputStream)
+                else while (input.read() >= 0) Unit // nothing comes: an end is the client gone
+            } catch (error: Throwable) {
+                Log.d(TAG, "input ended: ${error.message}")
             }
+            kill()
         }
         var clientGone = false
         var total = 0L
         try {
-            val buffer = ByteArray(64 * 1024)
-            val source = process.inputStream
-            while (true) {
-                val n = source.read(buffer)
-                if (n < 0) break
-                out.write(buffer, 0, n)
-                out.flush()
-                total += n
+            process.inputStream.use { source ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) {
+                    val n = source.read(buffer)
+                    if (n < 0) break
+                    try {
+                        out.write(buffer, 0, n)
+                        out.flush()
+                    } catch (error: java.io.IOException) {
+                        clientGone = true
+                        break
+                    }
+                    total += n
+                }
             }
-        } catch (error: java.io.IOException) {
-            clientGone = true
-            process.destroy()
+        } catch (error: Exception) {
+            Log.d(TAG, "output failed: ${error.message}")
+            kill()
         }
+        if (clientGone) kill()
         Log.d(TAG, "output ended after $total bytes, client gone: $clientGone")
-        val status = process.waitFor()
+        val status = runCatching { process.waitFor() }.getOrDefault(255)
         Log.d(TAG, "exit status $status")
+        if (feed) runCatching { process.outputStream.close() }
         feeder.interrupt()
         if (!clientGone) {
             runCatching {
@@ -249,7 +302,7 @@ object ShellBridge {
                         process.outputStream.use { apk.copyTo(it, 256 * 1024) }
                     }
                 }
-                val written = process.inputStream.bufferedReader().readText().trim()
+                val written = process.inputStream.bufferedReader().use { it.readText() }.trim()
                 val status = process.waitFor()
                 if (status != 0 || !written.contains("Success")) {
                     say("$name: $written")

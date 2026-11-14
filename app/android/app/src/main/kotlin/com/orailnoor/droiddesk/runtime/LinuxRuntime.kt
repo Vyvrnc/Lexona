@@ -1890,13 +1890,16 @@ class LinuxRuntime(private val context: Context) {
                     // proot too; lexona-adb needs the caller's terminal, so no lexona-host).
                     val debianShell = File(debianRootfs(baseDir), "usr/local/lib/lexona-shizuku.py")
                     copyAssetAtomically("droiddesk/lexona-shizuku.py", debianShell)
+                    // Termux's python (no python3 in Debian) sees Android's paths, not Debian's:
+                    // it gets the Termux copy of the client (written below), as lexona-host does.
+                    val termuxShell = File(binDir, "lexona-shizuku.py").absolutePath
                     for (tool in SHIZUKU_TOOLS) {
                         File(debianBin, tool).apply {
-                            val run = "/usr/local/lib/lexona-shizuku.py ${tool.removePrefix("lexona-")} \"${'$'}@\""
+                            val op = "${tool.removePrefix("lexona-")} \"${'$'}@\""
                             writeText(
                                 "#!/bin/sh\n" +
-                                    "command -v python3 >/dev/null 2>&1 && exec python3 $run\n" +
-                                    "exec \"${File(binDir, "python3").absolutePath}\" $run\n",
+                                    "command -v python3 >/dev/null 2>&1 && exec python3 /usr/local/lib/lexona-shizuku.py $op\n" +
+                                    "exec \"${File(binDir, "python3").absolutePath}\" \"$termuxShell\" $op\n",
                             )
                             setExecutable(true, false)
                         }
