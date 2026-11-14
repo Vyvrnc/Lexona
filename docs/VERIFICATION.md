@@ -20,6 +20,34 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Galaxy Tab S10 FE, soak, camera call and native GPU (2.0.10 -> 2.0.11, 2026-11-14)
+
+Tab S10 FE on 2.0.10, display kept on (charger, 85 %), no power saving. Monitors ran as the
+adb shell user, outside Lexona.
+
+- Soak, 12:09 to 18:13 (6 h 4 min): the app, X11, xfce4-session, xfwm4, panel and
+  pulseaudio kept their PIDs throughout; the screen stayed Awake (180 of 180 samples);
+  no kills, trims or crashes in logcat. Workload every 5 minutes in a terminal and from the
+  desktop (clang build and run, Debian python3, HTTPS): 72 + 72 rounds, all clang=0
+  python=0 https=200, 1-2 s each. MemAvailable 1.7-3.0 GB, 27-30 C.
+- Load shown on the desktop: Firefox with the WebGL aquarium and cs.wikipedia (RSS
+  95-105 MB, no growth), htop, a log terminal, glxgears.
+- Camera: WebRTC loopback call (webrtc.github.io pc1) in `firefox-cam`, 15:39 to 18:13
+  (2 h 35 min): `lexona-camera status` "ok streaming 640x480 30 fps" in all 155 one-minute
+  samples. Firefox CPU about 40 % after warm-up, RSS 584 -> 171 MB (no leak).
+- Native GPU was off (opt-in, llvmpipe), which is why the aquarium ran at 3-5 FPS. Not a
+  targetSdk 36 regression: with virpipe the GL path works as before (renderer virgl over
+  ANGLE/Samsung Vulkan 1.3, glxgears 188-195 FPS against 437-441 on llvmpipe; light scenes
+  are slower on virgl, as on 2.0.0).
+- `droiddesk-native-gpu on` + "Restart desktop": new session GALLIUM_DRIVER=virpipe. Aquarium
+  (500 fish) 30-32 FPS with the camera call running at the same time; 15 minutes stable,
+  no Firefox crash, camera "ok streaming" every minute, all Firefox processes together
+  170 % of one core.
+- Upgrade 2.0.10 -> 2.0.11 (`adb install -r`): Settings opens from the gear (theme, battery
+  optimisation, default launcher, desktop tools, process limit, system updates); native GPU
+  stays on after the update (status: zapnuto, virpipe, virgl/ANGLE). After the reinstall
+  the app first opened as a pop-up window; the fullscreen button fixed it.
+
 ## Galaxy Tab S10 FE, upgrade from 2.0.0 (unreleased build f2c24ad, 2026-11-14)
 
 Tab S10 FE (SM-X620, Exynos 1580 / Xclipse 540, Android 16) with Lexona 2.0.0 and an
