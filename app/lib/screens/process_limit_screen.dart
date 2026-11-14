@@ -167,8 +167,9 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
             Text('Or run a leaner desktop', style: LexonaTheme.subheading),
             const SizedBox(height: 4),
             Text(
-              'Parts of the desktop that most people do not need on Android. Each one off means '
-              'fewer programs. Applies when the desktop starts next time.',
+              'Parts of the desktop that most people do not need on Android. Each saving turned on '
+              'skips that part, so the desktop runs fewer programs. Applies when the desktop '
+              'starts next time.',
               style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary),
             ),
             const SizedBox(height: 8),
@@ -255,15 +256,15 @@ class _ProcessLimitScreenState extends State<ProcessLimitScreen> with WidgetsBin
     final saves = option['processes'] is int ? option['processes'] as int : 0;
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
-      // On = the part runs, as everywhere else in Android; off saves its programs.
-      value: option['off'] != true,
+      // On = the saving is on: the part does not start (like a power-saving switch).
+      value: option['off'] == true,
       title: Text(option['title']?.toString() ?? '', style: LexonaTheme.body),
       subtitle: Text(
-        '${option['detail'] ?? ''}${saves > 0 ? '\nOff: $saves fewer program${saves == 1 ? '' : 's'}' : ''}',
+        '${option['detail'] ?? ''}${saves > 0 ? '\nOn: $saves fewer program${saves == 1 ? '' : 's'}' : ''}',
         style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary),
       ),
       onChanged: (on) async {
-        await DroidDeskPlatform.setLeanOption(option['id'].toString(), !on);
+        await DroidDeskPlatform.setLeanOption(option['id'].toString(), on);
         if (!mounted) return;
         setState(() => _leanChanged = true);
         _refresh();

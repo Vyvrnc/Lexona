@@ -16,16 +16,16 @@ object LeanDesktop {
 
     val parts = listOf(
         Part(
-            "gvfs", "Trash and disks in the file manager",
+            "gvfs", "Without Trash and disks in the file manager",
             "gvfs: Trash, USB disks and network places in Thunar. Home, the SD card and " +
                 "lexona-usb in the terminal keep working.", 3,
         ),
-        Part("thumbnails", "Picture previews", "tumbler: thumbnails of images and videos in Thunar.", 1),
-        Part("notifications", "Desktop notifications", "xfce4-notifyd: pop-up notifications of Linux apps.", 1),
-        Part("usbtray", "USB icon in the panel", "The panel's USB icon; lexona-usb in the terminal keeps working.", 1),
-        Part("sound", "Sound", "PulseAudio: Linux apps play and record no sound.", 1),
+        Part("thumbnails", "Without picture previews", "tumbler: thumbnails of images and videos in Thunar.", 1),
+        Part("notifications", "Without desktop notifications", "xfce4-notifyd: pop-up notifications of Linux apps.", 1),
+        Part("usbtray", "Without the USB icon in the panel", "The panel's USB icon; lexona-usb in the terminal keeps working.", 1),
+        Part("sound", "Without sound", "PulseAudio: Linux apps play and record no sound.", 1),
         Part(
-            "debianbus", "Password store for Debian apps",
+            "debianbus", "Without the password store for Debian apps",
             "Debian's session bus with gnome-keyring: VS Code, Electron apps and GitHub tools " +
                 "keep their sign-ins there and will ask again, or fail to save them.", 4,
         ),

@@ -759,8 +759,12 @@ class MainActivity : FlutterActivity() {
                         contentResolver, android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
                     val action = if (devOn) Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS
                         else Settings.ACTION_DEVICE_INFO_SETTINGS
+                    val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    // Scrolls to and highlights "Disable child process restrictions" (AOSP
+                    // preference key; verified on the Tab S10 FE, One UI on Android 16).
+                    if (devOn) intent.putExtra(":settings:fragment_args_key", "disable_phantom_process_monitor")
                     val opened = runCatching {
-                        startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); true
+                        startActivity(intent); true
                     }.getOrElse {
                         runCatching { startActivity(Intent(Settings.ACTION_SETTINGS)); true }.getOrDefault(false)
                     }
