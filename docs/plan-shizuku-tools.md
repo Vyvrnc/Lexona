@@ -25,4 +25,5 @@ Goal: the roadmap's Shizuku features, end to end on the Galaxy A16. No release.
 5. Docs (VERIFICATION, backlog), commit, push 3 branches. No release.
 
 ## Status
-(updated as steps finish)
+Steps 1-4 done on the A16 (results in VERIFICATION.md, "Shizuku tools for Linux"); step 5
+docs done, pushed to the three branches. No release.

@@ -20,6 +20,41 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Shizuku tools for Linux (unreleased, 2026-11-14)
+
+Galaxy A16, Shizuku-Next, Lexona allowed. `shz-e2e.sh off|on` runs in Lexona's terminal
+(Termux side) and writes its results to Download; switches and the background button were
+tapped in the app.
+
+- All five commands exist after the desktop start (Termux bin and Debian /usr/local/bin).
+- Switches off (default): lexona-adb, lexona-logcat, lexona-input, lexona-screenshot and
+  lexona-apk-install each exit 1 with `turned off: Lexona -> Advanced -> "<switch>"`.
+- Switches on:
+  - lexona-adb: `id` is uid 2000 (shell); exit status passes through (1, 7); stdin is
+    passed through (`echo x | lexona-adb cat`); the shell parses the words (`$((40+2))`); a
+    leading `shell` is dropped; 3 MB of output arrive whole.
+  - lexona-adb with no command: a real pty (`tty` = /dev/pts/N), id 2000, `exit` ends it
+    with status 0. From Debian (`debian-run lexona-adb id`) also uid 2000.
+  - lexona-logcat: `-d -t 20` prints the lines; plain `lexona-logcat` under `timeout 3`
+    ends with 124 and no logcat process of the shell user is left.
+  - lexona-screenshot: a 1080x2340 PNG to a file, or to stdout with `-`.
+  - lexona-input: keyevent and swipe work. Android's `input` itself exits 0 on wrong
+    arguments, so a typo is not an error.
+  - lexona-apk-install: a new app (execprobe, uninstalled first) installs; three split APKs
+    in one session update the PDF viewer (lastUpdateTime changes); the same splits zipped as
+    .apks install; a text file and a missing file are refused.
+  - `gio open app.apk` (what Thunar does on a double click) installs the app.
+- Background: "Keep Lexona running" puts Lexona on the deviceidle whitelist and sets
+  RUN_ANY_IN_BACKGROUND to allow (both checked with dumpsys / cmd appops); the button then
+  offers "Put Android's default back".
+- Found and fixed on the device: the client waited forever after a finished command, since
+  `close()` does not end a LocalSocket while another thread sits in `read` on it (now
+  `shutdownOutput`/`shutdownInput` first, and the client stops at the exit mark). Termux has
+  no `xdg-mime`, so the desktop tweaks never set default apps (images in ristretto, .apk to
+  "Install on Android"); a `gio mime` fallback does it now.
+- Not tested: an .xapk with more than about 10 parts (all descriptors travel in one
+  message); lexona-adb resize of a running shell (SIGWINCH is wired, not checked).
+
 ## Lexona 2.0.10 candidate (2026-11-13)
 
 Optional Shizuku support, Galaxy A16 with Shizuku-Next 14.0.35, Lexona allowed:

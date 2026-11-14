@@ -415,12 +415,13 @@ possible), answer `err no-permission` at once.
 
 ## Roadmap: Shizuku and userspace tunnels (agreed 2026-11-13)
 
-Advanced screen (Shizuku, optional for power users), next features:
-- Install an APK from Linux (`lexona-apk-install`, `pm install` through Shizuku).
-- Lexona on the doze/standby whitelist with one tap (`dumpsys deviceidle whitelist +pkg`).
-- logcat in Linux (`lexona-logcat`), for debugging Android apps from the desktop.
-- Screen and input from Linux (screencap, `input`), behind its own switch.
-- A full `lexona-adb` shell as the shell user, behind a power-user switch with a warning.
+Advanced screen (Shizuku, optional for power users). Done 2026-11-14 (unreleased, see
+VERIFICATION "Shizuku tools for Linux"): `lexona-apk-install` (also splits, .apks/.xapk/.apkm,
+"Install on Android" for .apk files), "Keep Lexona running" (deviceidle whitelist +
+RUN_ANY_IN_BACKGROUND), `lexona-logcat`, `lexona-screenshot` / `lexona-input`, `lexona-adb`
+(pty shell or one command). Each group behind its own switch, all off by default.
+Open: an .xapk with more than ~10 parts (descriptors in batches); a desktop "phone screen"
+window built on screenshot + input (scrcpy-like, for staying in Linux).
 
 Userspace tunnels (`lexona-tunnel`), no Android VPN slot needed, so they work next to a
 system VPN and on a network without internet:
