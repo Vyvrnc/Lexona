@@ -53,10 +53,16 @@ if [ $check = 1 ]; then
 fi
 
 echo "LXU STEP Termux: installing updates"
+# An earlier install or update stopped half way (app killed, battery) leaves packages unpacked
+# but not configured, and apt then refuses everything: finish that first.
+# shellcheck disable=SC2086
+dpkg --force-confdef --force-confold --configure -a < /dev/null
+# shellcheck disable=SC2086
+apt-get -y $opts -f install < /dev/null
 # shellcheck disable=SC2086
 apt-get -y $opts full-upgrade < /dev/null || failed="$failed termux"
 if command -v debian-run >/dev/null 2>&1 && [ -d "$PREFIX/var/lib/proot-distro/containers/debian/rootfs/usr" ]; then
     echo "LXU STEP Debian: installing updates"
-    debian-run bash -c "export DEBIAN_FRONTEND=noninteractive; apt-get -y $opts full-upgrade && apt-get -y autoremove" < /dev/null || failed="$failed debian"
+    debian-run bash -c "export DEBIAN_FRONTEND=noninteractive; dpkg --force-confdef --force-confold --configure -a; apt-get -y $opts -f install; apt-get -y $opts full-upgrade && apt-get -y autoremove" < /dev/null || failed="$failed debian"
 fi
 [ -z "$failed" ] && echo "LXU DONE ok" || echo "LXU DONE fail$failed"

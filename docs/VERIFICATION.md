@@ -20,6 +20,28 @@ Automated checks before every release: `tools/glibc-native/test.sh` (pathhook an
 regressions in a Debian container) and `tools/check-launchers.py` (`bash -n` over the generated
 launchers).
 
+## Galaxy Tab S10 FE, upgrade from 2.0.0 (unreleased build f2c24ad, 2026-11-14)
+
+Tab S10 FE (SM-X620, Exynos 1580 / Xclipse 540, Android 16) with Lexona 2.0.0 and an
+existing environment; Shizuku-Next 14.0.35 installed for the test and started from adb.
+
+- Upgrade over 2.0.0 (`adb install -r`): XFCE configuration files identical (md5), Termux
+  324 and Debian 322 packages, home files 421 -> 422 and desktop entries 6 -> 7 (only the new
+  lexona-apk-install.desktop). The .apk default handler was set on the upgraded install.
+- Shizuku tools: off 10/10, on 34/34, `shz-verify.sh` 4/4 (same as the A16). On the
+  tablet `lexona-input swipe 540 1200` lands on the soft keyboard's "5" in the terminal
+  (a test artefact). After killing Shizuku the remote `sleep 600` outlived it here too.
+- `full.sh --heavy`: all PASS except the expected LIMIT (env -i) and SKIP (Claude Code
+  not installed); Firefox headless failed only because Firefox was not installed (the check
+  now skips then). OpenGL in Debian through virgl, clang, Debian python3, audio, bridges.
+- `lifecycle.sh`: background 120 s, notification, rotation and bridges PASS; the desktop
+  comes back 6 s after a force-stop. A process right after the force-stop is Shizuku's
+  ShizukuProvider sending its binder (normal, no desktop or service starts).
+- Interrupted install (dpkg killed during --unpack, Termux and Debian): `lexona-update`
+  stopped with "dpkg was interrupted" (LXU DONE fail). Fixed: it now runs
+  `dpkg --configure -a` and `apt-get -f install` first; the same test then ends with
+  LXU DONE ok and a clean `dpkg --audit` on both sides.
+
 ## Shizuku tools for Linux (unreleased, 2026-11-14)
 
 Galaxy A16, Shizuku-Next, Lexona allowed. `shz-e2e.sh off|on` runs in Lexona's terminal
