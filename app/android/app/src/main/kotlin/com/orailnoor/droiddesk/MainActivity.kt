@@ -1084,9 +1084,12 @@ class MainActivity : FlutterActivity() {
                 .getMethod("get", String::class.java)
                 .invoke(null, "persist.sys.fflag.override.$key") as String
         }.getOrNull()
-        // The override wins: on the Fold 7 it stayed "true" with the developer option set and
-        // Android kept trimming (docs/backlog.md).
-        return if (!override.isNullOrEmpty()) override != "false" else global != "false"
+        // Same order as FeatureFlagUtils.isEnabled: Settings.Global first, then the override.
+        // Fold 7 (Android 17, 2026-11-14): override "true", global "false" after Shizuku, and
+        // no trimming in logcat. Earlier the global was unset there and the override "true"
+        // let Android trim (docs/backlog.md).
+        if (!global.isNullOrEmpty()) return global != "false"
+        return override != "false"
     }
 
     private fun isDefaultLauncher(): Boolean {
