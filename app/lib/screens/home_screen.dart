@@ -91,6 +91,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                       IconButton(
                         onPressed: () => _showSettings(context),
+                        tooltip: 'Settings',
                         icon: Icon(
                           Icons.settings_rounded,
                           color: LexonaTheme.textMuted,
@@ -449,8 +450,8 @@ class HomeScreen extends StatelessWidget {
                           'Storage free',
                           '${state.deviceInfo['availableStorageMB'] ?? 'N/A'} MB',
                         ),
-                        // Always there: the lean desktop is reachable with the limit off too.
-                        ...[
+                        // A warning, not a setting: the screen itself is in Settings.
+                        if (state.deviceInfo['phantomLimit'] == true) ...[
                           _divider(),
                           InkWell(
                             onTap: () => Navigator.of(context).push(
@@ -460,49 +461,14 @@ class HomeScreen extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               child: Row(
                                 children: [
-                                  if (state.deviceInfo['phantomLimit'] == true)
-                                    Icon(Icons.warning_amber_rounded, size: 18, color: LexonaTheme.warning),
-                                  if (state.deviceInfo['phantomLimit'] == true) const SizedBox(width: 8),
+                                  Icon(Icons.warning_amber_rounded, size: 18, color: LexonaTheme.warning),
+                                  const SizedBox(width: 8),
                                   Expanded(
-                                    child: state.deviceInfo['phantomLimit'] == true
-                                        ? Text(
-                                            'Child process limit is on: Android may stop Linux programs',
-                                            style: LexonaTheme.body.copyWith(color: LexonaTheme.warning),
-                                          )
-                                        : Text('Process limit and lean desktop', style: LexonaTheme.bodySm),
+                                    child: Text(
+                                      'Child process limit is on: Android may stop Linux programs',
+                                      style: LexonaTheme.body.copyWith(color: LexonaTheme.warning),
+                                    ),
                                   ),
-                                  Icon(Icons.chevron_right_rounded, size: 18, color: LexonaTheme.textMuted),
-                                ],
-                              ),
-                            ),
-                          ),
-                          _divider(),
-                          // Updates without a terminal (lexona-update).
-                          InkWell(
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const SystemUpdateScreen()),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                children: [
-                                  Expanded(child: Text('System updates', style: LexonaTheme.bodySm)),
-                                  Icon(Icons.chevron_right_rounded, size: 18, color: LexonaTheme.textMuted),
-                                ],
-                              ),
-                            ),
-                          ),
-                          _divider(),
-                          // Optional power-user features (Shizuku).
-                          InkWell(
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const AdvancedScreen()),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                children: [
-                                  Expanded(child: Text('Advanced', style: LexonaTheme.bodySm)),
                                   Icon(Icons.chevron_right_rounded, size: 18, color: LexonaTheme.textMuted),
                                 ],
                               ),
@@ -768,6 +734,53 @@ class HomeScreen extends StatelessWidget {
                       Navigator.pop(sheetContext);
                       Navigator.of(pageContext).push(
                         MaterialPageRoute(builder: (_) => const DesktopToolsScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      state.deviceInfo['phantomLimit'] == true
+                          ? Icons.warning_amber_rounded
+                          : Icons.memory_rounded,
+                      color: state.deviceInfo['phantomLimit'] == true
+                          ? LexonaTheme.warning
+                          : LexonaTheme.primaryText,
+                    ),
+                    title: const Text('Process limit and lean desktop'),
+                    subtitle: Text(
+                      state.deviceInfo['phantomLimit'] == true
+                          ? 'The limit is on: Android may stop Linux programs'
+                          : 'Android child process limit, fewer desktop services',
+                    ),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      Navigator.of(pageContext).push(
+                        MaterialPageRoute(builder: (_) => const ProcessLimitScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.system_update_alt_rounded, color: LexonaTheme.primaryText),
+                    title: const Text('System updates'),
+                    subtitle: const Text('Update the Linux programs (Termux and Debian)'),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      Navigator.of(pageContext).push(
+                        MaterialPageRoute(builder: (_) => const SystemUpdateScreen()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.tune_rounded, color: LexonaTheme.primaryText),
+                    title: const Text('Advanced'),
+                    subtitle: const Text('Shizuku, Android data, Linux tools with shell rights'),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      Navigator.of(pageContext).push(
+                        MaterialPageRoute(builder: (_) => const AdvancedScreen()),
                       );
                     },
                   ),
