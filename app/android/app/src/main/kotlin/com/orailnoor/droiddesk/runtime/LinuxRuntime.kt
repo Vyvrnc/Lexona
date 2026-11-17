@@ -4808,6 +4808,12 @@ class LinuxRuntime(private val context: Context) {
             Log.e(TAG, "Native Termux utility package install failed")
             return false
         }
+        // adb (Termux's android-tools, bionic): this device's own adbd (127.0.0.1:5555 on
+        // ScreenMate, or wireless debugging) and devices on the network. Optional: lexona-unlimit
+        // installs it on demand when this failed.
+        if (!installPackageGroup("pkg install -y android-tools")) {
+            Log.w(TAG, "android-tools (adb) unavailable; pkg install android-tools later")
+        }
         // Debian (glibc programs, Claude Code, apt) belongs to the desktop: installed right
         // away. Without network or on failure the desktop still works and the catalog's
         // "Debian Compatibility" retries it.
