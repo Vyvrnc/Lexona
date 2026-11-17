@@ -32,6 +32,7 @@ class TerminalService : Service() {
     companion object {
         private const val TAG = "TerminalService"
         private const val NOTIFICATION_ID = 1002
+        private const val CHANNEL_ID = "lexona_terminal"
         private const val ACTION_UPDATE = "update"
         private const val ACTION_EXIT_ALL = "exit_all"
         private const val ACTION_WAKE_LOCK = "wake_lock"
@@ -93,11 +94,17 @@ class TerminalService : Service() {
     }
 
     private fun buildNotification(count: Int) = run {
+        // Own channel at DEFAULT importance (silent per notification): One UI shows LOW ones as a
+        // compact card that cannot be expanded, so "Exit all" and the wake lock were unreachable
+        // (Galaxy A16). A channel's importance cannot change after creation, hence a new id.
         val manager = getSystemService(NotificationManager::class.java)
-        if (manager.getNotificationChannel(DroidDeskService.CHANNEL_ID) == null) {
+        if (manager.getNotificationChannel(CHANNEL_ID) == null) {
             manager.createNotificationChannel(
-                NotificationChannel(DroidDeskService.CHANNEL_ID, "Lexona Linux Service", NotificationManager.IMPORTANCE_LOW)
-                    .apply { setShowBadge(false) },
+                NotificationChannel(CHANNEL_ID, "Terminal sessions", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    setShowBadge(false)
+                    setSound(null, null)
+                    enableVibration(false)
+                },
             )
         }
         val open = PendingIntent.getActivity(
@@ -109,17 +116,18 @@ class TerminalService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val held = wakeLock?.isHeld == true
-        NotificationCompat.Builder(this, DroidDeskService.CHANNEL_ID)
+        val text = (if (count == 1) "1 terminal session running" else "$count terminal sessions running") +
+            if (held) " · CPU kept awake" else ""
+        NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Lexona")
-            .setContentText(
-                (if (count == 1) "1 terminal session running" else "$count terminal sessions running") +
-                    if (held) " · CPU kept awake" else "",
-            )
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setOnlyAlertOnce(true)
             .setSmallIcon(com.orailnoor.droiddesk.R.drawable.ic_stat_lexona)
             .setContentIntent(open)
             .setOngoing(true)
             .setSilent(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .addAction(0, "Exit all", action(ACTION_EXIT_ALL, 1))
             .addAction(0, if (held) "Release wake lock" else "Keep CPU awake", action(ACTION_WAKE_LOCK, 2))
