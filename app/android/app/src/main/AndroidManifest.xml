@@ -109,6 +109,18 @@
                 android:value="Runs the user's Linux desktop session and its processes" />
         </service>
 
+        <!-- Foreground Service for terminal sessions without the desktop (Claude Code in a
+             terminal): a cached app process was reclaimed by lmkd under memory pressure. -->
+        <service
+            android:name=".service.TerminalService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Runs the user's interactive terminal sessions (shell, Claude Code)" />
+        </service>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

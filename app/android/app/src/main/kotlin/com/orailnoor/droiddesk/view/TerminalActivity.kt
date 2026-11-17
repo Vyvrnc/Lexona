@@ -24,6 +24,7 @@ import com.orailnoor.droiddesk.runtime.NativeExec
 import com.orailnoor.droiddesk.runtime.HostBridge
 import com.orailnoor.droiddesk.runtime.NetBridge
 import com.orailnoor.droiddesk.runtime.UsbBridge
+import com.orailnoor.droiddesk.service.TerminalService
 import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
 import com.termux.view.TerminalView
@@ -296,6 +297,7 @@ object TerminalSessions {
     @Synchronized
     fun sessionFor(context: Context, profile: String): TerminalSession {
         sessions[profile]?.let { if (it.isRunning) return it }
+        client.appContext = context.applicationContext
         val runtime = LinuxRuntime(context.applicationContext)
         // droiddesk-usb/-serial/-net/-eth of this app version, also without a desktop start.
         runCatching { runtime.writeDeviceTools() }.onFailure { Log.w(TAG, "Device tools: ${it.message}") }
@@ -336,12 +338,24 @@ object TerminalSessions {
         )
         sessions[profile] = session
         Log.i(TAG, "Terminal session $profile: $shell")
+        // Foreground service for as long as a session runs: otherwise lmkd reclaims the app
+        // (and Claude Code in it) once it is in the background.
+        TerminalService.update(context.applicationContext)
         return session
     }
 
     /** True while a terminal profile still runs (the USB and network bridges stay for it). */
     @Synchronized
     fun anyRunning(): Boolean = sessions.values.any { it.isRunning }
+
+    @Synchronized
+    fun runningCount(): Int = sessions.values.count { it.isRunning }
+
+    /** "Exit all" in the notification: ends every session (onSessionFinished stops the service). */
+    @Synchronized
+    fun finishAll() {
+        sessions.values.forEach { it.finishIfRunning() }
+    }
 
     @Synchronized
     fun forget(profile: String) {
@@ -356,7 +370,12 @@ object TerminalSessions {
         override fun onSessionFinished(finishedSession: TerminalSession) {
             // The emulator shows the exit status; Enter (or any extra key) starts it again.
             activity?.onSessionEnded(finishedSession)
+            // The last session ended: no reason to stay in the foreground (stopService is allowed
+            // from the background).
+            appContext?.let { TerminalService.update(it) }
         }
+
+        @Volatile var appContext: Context? = null
 
         override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
             val context = activity ?: return
