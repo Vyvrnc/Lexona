@@ -617,6 +617,27 @@ ssize_t readlink(const char *p, char *b, size_t n) { if (*self_exe && is_proc_se
 ssize_t readlinkat(int d, const char *p, char *b, size_t n) { if (*self_exe && is_proc_self_exe(p)) return copy_self_exe(b, n);
     REAL(readlinkat, ssize_t, int, const char *, char *, size_t); return real_readlinkat(d, mapd(d, p, 1), b, n); }
 char *realpath(const char *p, char *r) { REAL(realpath, char *, const char *, char *); return unmap(real_realpath(map(p, 0), r)); }
+/* _FORTIFY_SOURCE builds (Chromium, Electron, Firefox) call these instead of readlink, readlinkat
+ * and realpath, straight into glibc: Chromium's base::ReadSymbolicLink got the APK's libld.so for
+ * /proc/self/exe, looked for icudtl.dat next to it and died on SIGTRAP (Fold 7, Gitea #15). Same
+ * checks as glibc, then the hooked calls. */
+extern void __chk_fail(void) __attribute__((noreturn));
+ssize_t __readlink_chk(const char *p, char *b, size_t n, size_t size) {
+    if (n > size) __chk_fail();
+    return readlink(p, b, n);
+}
+ssize_t __readlinkat_chk(int d, const char *p, char *b, size_t n, size_t size) {
+    if (n > size) __chk_fail();
+    return readlinkat(d, p, b, n);
+}
+char *__realpath_chk(const char *p, char *r, size_t size) {
+    if (r && size < PATH_MAX) __chk_fail();
+    return realpath(p, r);
+}
+char *__getcwd_chk(char *b, size_t n, size_t size) {
+    if (n > size) __chk_fail();
+    return getcwd(b, n);
+}
 /* gettext opens its catalogs with libc-internal calls, so translations were never found
  * natively (ls --help, apt in English with LANG=cs_CZ.UTF-8, Fold 7). Programs name the
  * directory here; give libc the rootfs path. */

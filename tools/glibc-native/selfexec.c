@@ -10,7 +10,9 @@
 
 int main(int argc, char **argv) {
     char exe[PATH_MAX];
-    ssize_t n = readlink("/proc/self/exe", exe, sizeof exe - 1);
+    /* A length the compiler cannot prove: with _FORTIFY_SOURCE this becomes __readlink_chk. */
+    size_t room = argc > 2 ? strtoul(argv[2], NULL, 10) : sizeof exe - 1;
+    ssize_t n = readlink("/proc/self/exe", exe, room);
     if (n < 0) { perror("readlink"); return 1; }
     exe[n] = 0;
     /* "exe": only print what /proc/self/exe resolves to (a process without DD_* variables cannot

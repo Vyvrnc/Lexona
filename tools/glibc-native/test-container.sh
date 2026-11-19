@@ -73,13 +73,18 @@ done
 out=$(bash -c 'exec -a chromium-wrapper "$1" --library-path "$2" --preload "$3" "$4" proc' _ \
     "$work/plib/ld.so" "$libs" "$work/hook.so" "$root/usr/bin/selfexec")
 [[ $out == "selfexec child --no-config exe-ok" ]] || { echo "self exe under another argv[0]: $out" >&2; exit 1; }
-# The same without any DD_* variable (Chromium's process on the Fold 7 had none): the APK's
-# loader is recognised by its name, libld.so.
+# The same without any DD_* variable: the APK's loader is recognised by its name, libld.so.
 cp "$loader" "$work/libld.so"
 out=$(env -u DD_PLIB -u DD_ROOTFS -u DD_TMP -u DD_LIBPATH -u DD_NATIVE_ACTIVE \
     bash -c 'exec -a chromium-wrapper "$1" --library-path "$2" --preload "$3" "$4" exe' _ \
     "$work/libld.so" "$libs" "$work/hook.so" "$root/usr/bin/selfexec")
 [[ $out == "$root/usr/bin/selfexec" ]] || { echo "self exe without DD_* variables: $out" >&2; exit 1; }
+# A _FORTIFY_SOURCE build calls __readlink_chk, not readlink (Chromium's base::ReadSymbolicLink,
+# Gitea #15): the hook must answer that too.
+gcc -O2 -D_FORTIFY_SOURCE=2 -Wall -Wextra -Werror -o "$root/usr/bin/selfexec-fortify" /repo/tools/glibc-native/selfexec.c
+nm -D "$root/usr/bin/selfexec-fortify" | grep -q __readlink_chk || { echo "selfexec-fortify does not call __readlink_chk" >&2; exit 1; }
+out=$("$work/plib/ld.so" --library-path "$libs" --preload "$work/hook.so" "$root/usr/bin/selfexec-fortify" exe)
+[[ $out == "$root/usr/bin/selfexec-fortify" ]] || { echo "self exe through __readlink_chk: $out" >&2; exit 1; }
 echo "self re-exec checks OK"
 # Process name from --argv0 instead of "ld.so" (pgrep, pkill).
 [[ $("$work/plib/ld.so" --library-path "$libs" --preload "$work/hook.so" --argv0 /opt/x/my-probe "$root/usr/bin/probe" comm) == my-probe ]]
