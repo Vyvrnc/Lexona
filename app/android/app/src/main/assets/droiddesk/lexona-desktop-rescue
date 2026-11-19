@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# lexona-desktop-rescue: brings the XFCE desktop up when xfce4-session hangs while starting it.
+#
+#   lexona-desktop-rescue          only when needed: the session runs, but neither the panel nor
+#                                  xfdesktop does (black screen)
+#   lexona-desktop-rescue --force  always
+#
+# Seen on the Galaxy Z Fold 7 after Android closed Lexona for low memory (2026-11-19, Gitea #11):
+# xfce4-session sat in a blocking wait4 on the client it had just started (xfwm4, then
+# xfsettingsd) and answered no ICE request, the clients waited for it, the screen stayed black.
+# The session is stopped (SIGSTOP), clients that hang on it are killed, the parts of the
+# desktop start without a session manager, then the autostart entries. Based on plocha-nahod
+# from the Fold. The session's start script runs this 45 s after the start.
+set -u
+alive() {  # alive NAME: a process of that name that is not a zombie
+    local pid
+    for pid in $(pgrep -x "$1" 2>/dev/null); do
+        case $(awk '/^State:/ { print $2; exit }' "/proc/$pid/status" 2>/dev/null) in
+            ''|Z|X) ;;
+            *) return 0 ;;
+        esac
+    done
+    return 1
+}
+
+sess=$(pgrep -x xfce4-session 2>/dev/null | head -n 1)
+[ -n "$sess" ] || exit 0
+if [ "${1:-}" != --force ] && { alive xfce4-panel || alive xfdesktop; }; then
+    exit 0
+fi
+echo "lexona-desktop-rescue: the session $sess has not started the panel or xfdesktop; starting them" >&2
+
+# The session's environment (PATH, XDG_*, D-Bus) without the session manager.
+while IFS= read -r line; do
+    case $line in
+        SESSION_MANAGER=*|DESKTOP_AUTOSTART_ID=*|_=*) ;;
+        *=*) export "${line?}" ;;
+    esac
+done < <(tr '\0' '\n' < "/proc/$sess/environ" 2>/dev/null)
+unset SESSION_MANAGER DESKTOP_AUTOSTART_ID
+export XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP:-XFCE}
+kill -STOP "$sess" 2>/dev/null
+
+logdir=${TMPDIR:-/tmp}
+for part in xfwm4 xfsettingsd xfce4-panel xfdesktop xfce4-notifyd; do
+    # Started by the session and waiting for its answer: end them.
+    for pid in $(pgrep -x "$part" 2>/dev/null); do
+        tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep -q '^SESSION_MANAGER=' && kill -9 "$pid" 2>/dev/null
+    done
+    alive "$part" && continue
+    cmd=$part
+    if [ "$part" = xfce4-notifyd ]; then
+        cmd=${PREFIX:-/usr}/lib/xfce4/notifyd/xfce4-notifyd
+        [ -x "$cmd" ] || continue
+    fi
+    setsid nohup "$cmd" > "$logdir/lexona-rescue-$part.log" 2>&1 < /dev/null &
+    sleep 2
+done
+
+# Autostart, as the session would have run it: the user's entries override system entries of
+# the same name; Hidden=true and entries for other desktops are skipped.
+declare -A seen=()
+for f in "$HOME"/.config/autostart/*.desktop "${PREFIX:-/usr}"/etc/xdg/autostart/*.desktop; do
+    [ -f "$f" ] || continue
+    name=${f##*/}
+    [ -n "${seen[$name]:-}" ] && continue
+    seen[$name]=1
+    grep -q '^Hidden=true' "$f" && continue
+    only=$(sed -n 's/^OnlyShowIn=//p' "$f" | head -n 1)
+    [ -n "$only" ] && case ";$only;" in *";XFCE;"*) ;; *) continue ;; esac
+    grep -q '^NotShowIn=.*XFCE' "$f" && continue
+    exec_line=$(sed -n 's/^Exec=//p' "$f" | head -n 1)
+    exec_line=${exec_line//%[fFuUdDnNickvm]/}  # field codes of the Desktop Entry spec
+    [ -n "${exec_line// /}" ] || continue
+    setsid nohup bash -c "$exec_line" > /dev/null 2>&1 < /dev/null &
+done
+echo "lexona-desktop-rescue: done; the panel can take about 30 s" >&2

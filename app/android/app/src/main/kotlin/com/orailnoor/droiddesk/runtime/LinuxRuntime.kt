@@ -2283,6 +2283,13 @@ class LinuxRuntime(private val context: Context) {
                     context.assets.open("droiddesk/lexona-mem").bufferedReader().use { it.readText() }.substringAfter('\n'),
             )
             memScript.setExecutable(true, false)
+            File(binDir, "lexona-desktop-rescue").let { rescue ->
+                rescue.writeText(
+                    "#!${File(binDir, "bash").absolutePath}\n" +
+                        context.assets.open("droiddesk/lexona-desktop-rescue").bufferedReader().use { it.readText() }.substringAfter('\n'),
+                )
+                rescue.setExecutable(true, false)
+            }
             File(homeDir, ".config/autostart").let { dir ->
                 dir.mkdirs()
                 // The manual watchdog from the Fold (pamet-hlidac) would offer twice.
@@ -2523,10 +2530,17 @@ class LinuxRuntime(private val context: Context) {
 
                 # Free RAM in the dock, just before the battery (Gitea #9). Once: a removed
                 # plugin stays removed. -n -a: plain -s failed after an interrupted run.
+                # A RAM genmon of any id (the Fold 7 has its own pamet-panel as plugin-7) counts.
                 ram_marker="${'$'}HOME/.config/droiddesk/xfce-panel-ram-v1"
+                ram_plugin_exists() {
+                    xfconf-query -c xfce4-panel -l 2>/dev/null | grep -E '^/plugins/plugin-[0-9]+/command${'$'}' |
+                        while read -r prop; do xfconf-query -c xfce4-panel -p "${'$'}prop" 2>/dev/null; done |
+                        grep -qE 'lexona-mem|pamet-panel'
+                }
                 if [ ! -f "${'$'}ram_marker" ] &&
                     [ -f "${File(prefixDir, "lib/xfce4/panel/plugins/libgenmon.so").absolutePath}" ] &&
-                    ! xfconf-query -c xfce4-panel -p /plugins/plugin-28 >/dev/null 2>&1; then
+                    ! xfconf-query -c xfce4-panel -p /plugins/plugin-28 >/dev/null 2>&1 &&
+                    ! ram_plugin_exists; then
                     xfconf-query -c xfce4-panel -p /plugins/plugin-28 -n -t string -s genmon
                     xfconf-query -c xfce4-panel -p /plugins/plugin-28/command -n -t string -s "${memScript.absolutePath} panel"
                     xfconf-query -c xfce4-panel -p /plugins/plugin-28/use-label -n -t bool -s false
@@ -5446,6 +5460,12 @@ class LinuxRuntime(private val context: Context) {
                 pkill -9 -x gpg-agent >/dev/null 2>&1 || true
             fi
 
+            # After a low-memory kill on the Fold 7 xfce4-session hung in wait4 on the client it had
+            # just started, and the screen stayed black (Gitea #11). 45 s after the start the rescue
+            # checks that the panel or xfdesktop runs and otherwise starts the desktop itself.
+            if [ "$desktopCommand" = xfce4-session ] && [ -x "${File(binDir, "lexona-desktop-rescue").absolutePath}" ]; then
+                ( sleep 45; exec "${File(binDir, "lexona-desktop-rescue").absolutePath}" ) > /dev/null 2>&1 < /dev/null &
+            fi
             echo "DIAG: Launching $desktopCommand natively on DISPLAY=:0 ..."
             exec $desktopCommand
         """.trimIndent()
