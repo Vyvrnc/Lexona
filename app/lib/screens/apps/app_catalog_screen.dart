@@ -467,6 +467,17 @@ class _AppCatalogScreenState extends State<AppCatalogScreen>
           Color(0xFF10A37F),
           optional: true,
         ),
+      if (!state.hasRoot)
+        const _FeaturedApp(
+          'chromium_drm',
+          'Chromium (DRM video)',
+          'Netflix, Disney+, HBO Max and Prime Video in Debian\'s Chromium. Downloads Google\'s '
+              'proprietary Widevine module (about 200 MB); installing it accepts its licence. '
+              'Software decryption only: lower resolution, some services (SkyShowtime) refuse it.',
+          Icons.live_tv_rounded,
+          Color(0xFFE50914),
+          optional: true,
+        ),
     ];
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),

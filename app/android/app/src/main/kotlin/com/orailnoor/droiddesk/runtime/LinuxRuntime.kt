@@ -344,7 +344,80 @@ class LinuxRuntime(private val context: Context) {
         "proot_debian" to isMinimalDebianInstalled(),
         "claude_code" to isClaudeCodeInstalled(),
         "codex" to isCodexInstalled(),
+        "chromium_drm" to isChromiumDrmInstalled(),
     )
+
+    private val chromiumDrmLauncher get() = File(homeDir, ".local/share/applications/lexona-chromium-drm.desktop")
+
+    /** Debian's Chromium with the Widevine CDM, and its menu entry (Gitea #15). */
+    private fun isChromiumDrmInstalled(): Boolean =
+        File(debianRootfs(baseDir), "var/lib/widevine/libwidevinecdm.so").exists() &&
+            File(debianRootfs(baseDir), "usr/bin/chromium").exists() && chromiumDrmLauncher.exists()
+
+    /**
+     * DRM video (Netflix, Disney+, HBO Max, Prime Video) in Debian's Chromium with Google's
+     * Widevine CDM, software decryption only (L3). assets/droiddesk/chromium-drm-install.sh runs
+     * under proot's fake root. The menu entry starts Chromium natively (debian-run falls back to
+     * proot and learns it when the native start fails) and as ChromeOS: Netflix refused the
+     * Linux user agent (E100).
+     */
+    private fun installChromiumDrm(onProgress: ((Double, String) -> Unit)?): Boolean {
+        if (!isMinimalDebianInstalled()) {
+            onProgress?.invoke(0.1, "Installing Debian for Chromium...")
+            if (!installMinimalDebian(onProgress)) return false
+        }
+        val waitUntil = System.currentTimeMillis() + 10 * 60 * 1000
+        while (debianSetupRunning && System.currentTimeMillis() < waitUntil) {
+            onProgress?.invoke(0.2, "Waiting for Debian setup to finish...")
+            Thread.sleep(2000)
+        }
+        val script = File(debianRootfs(baseDir), "usr/local/share/droiddesk/chromium-drm-install.sh")
+        val copied = runCatching {
+            script.parentFile?.mkdirs()
+            context.assets.open("droiddesk/chromium-drm-install.sh").use { input -> script.outputStream().use(input::copyTo) }
+            script.setExecutable(true, false)
+        }.isSuccess
+        if (!copied) return false
+        val stepLine = Regex("""chromium-drm: \[(\d+)/(\d+)] (.*)""")
+        val pending = StringBuilder()
+        val run = File(binDir, "debian-run").absolutePath
+        val output = executeCommand(
+            "env DD_NATIVE=0 \"$run\" bash /usr/local/share/droiddesk/chromium-drm-install.sh",
+        ) { chunk ->
+            pending.append(chunk)
+            while (true) {
+                val end = pending.indexOf("\n")
+                if (end < 0) break
+                val line = pending.substring(0, end).trim()
+                pending.delete(0, end + 1)
+                stepLine.find(line)?.let { m ->
+                    val n = m.groupValues[1].toDouble()
+                    val total = m.groupValues[2].toDouble().coerceAtLeast(1.0)
+                    onProgress?.invoke(0.25 + 0.7 * (n - 1) / total, m.groupValues[3])
+                }
+            }
+        }
+        if (!File(debianRootfs(baseDir), "var/lib/widevine/libwidevinecdm.so").exists()) {
+            Log.w(TAG, "Chromium DRM installation failed: ${output.takeLast(2000)}")
+            return false
+        }
+        val userAgent = "Mozilla/5.0 (X11; CrOS aarch64 15633.69.0) AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/120.0.0.0 Safari/537.36"
+        chromiumDrmLauncher.parentFile?.mkdirs()
+        chromiumDrmLauncher.writeText(
+            """
+            [Desktop Entry]
+            Type=Application
+            Name=Chromium (DRM video)
+            Comment=Netflix, Disney+, HBO Max, Prime Video (Widevine, software decryption)
+            Exec=$run /usr/local/bin/electron-run /usr/bin/chromium --user-data-dir=/root/.config/chromium-drm "--user-agent=$userAgent" %U
+            Icon=chromium
+            Categories=Network;WebBrowser;AudioVideo;
+            Terminal=false
+            """.trimIndent() + "\n",
+        )
+        return true
+    }
 
     /** Codex CLI from npm in Debian (global prefix /usr/local). */
     private fun isCodexInstalled(): Boolean = java.nio.file.Files.exists(
@@ -4986,6 +5059,7 @@ class LinuxRuntime(private val context: Context) {
             "proot_debian" -> installMinimalDebian(onProgress)
             "claude_code" -> installClaudeCode(onProgress)
             "codex" -> installCodex(onProgress)
+            "chromium_drm" -> installChromiumDrm(onProgress)
             else -> false
         }
 
