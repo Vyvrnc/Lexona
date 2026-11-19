@@ -1051,6 +1051,8 @@ class LinuxRuntime(private val context: Context) {
             #!${File(binDir, "bash").absolutePath}
             export DISPLAY="${'$'}{DISPLAY:-:0}"
             export TMPDIR="${tmpDir.absolutePath}"
+            # Links from Debian programs (Rust crate webbrowser) go to xdg-open, i.e. to Lexona.
+            export BROWSER="${'$'}{BROWSER:-xdg-open}"
             native="${binDir.absolutePath}/droiddesk-glibc-native"
             if [ -x "${'$'}native" ] && native_result=${'$'}(mktemp "${'$'}TMPDIR/droiddesk-native-result.XXXXXX"); then
                 # Native preflight owns the Wine/Hangover/Box/FEX proot-only policy,
@@ -1060,6 +1062,14 @@ class LinuxRuntime(private val context: Context) {
                 native_fallback=${'$'}(< "${'$'}native_result")
                 rm -f "${'$'}native_result"
                 [ "${'$'}native_fallback" = proot ] || exit "${'$'}native_status"
+            fi
+            # Under ptrace (a Claude Code session in Lexona runs under proot) a nested proot never
+            # attaches and the command hangs in state t. The app starts it instead, outside this
+            # process tree; it gets no input then.
+            tracer=${'$'}(awk '/^TracerPid:/ { print ${'$'}2; exit }' /proc/self/status 2>/dev/null)
+            if [ -n "${'$'}tracer" ] && [ "${'$'}tracer" != 0 ] && [ -x "${binDir.absolutePath}/lexona-host" ]; then
+                [ -t 0 ] && echo "debian-run: under proot, so through lexona-host (no input)" >&2
+                exec "${binDir.absolutePath}/lexona-host" debian-run "${'$'}@"
             fi
             mkdir -p "${tmpDir.absolutePath}/proot"
             droiddesk_dri=()
@@ -1915,6 +1925,22 @@ class LinuxRuntime(private val context: Context) {
                         if (!ours) continue
                         writeAtomically(target, wrapper)
                         target.setExecutable(true, false)
+                    }
+                    // pkexec for GUI installers (no polkit in Debian): Gitea #1.
+                    File(debianBin, "pkexec").let { target ->
+                        val ours = !target.exists() ||
+                            runCatching { target.readText().contains("Lexona: pkexec without polkit") }.getOrDefault(false)
+                        if (ours) {
+                            writeAtomically(target, context.assets.open("droiddesk/debian-pkexec").use { it.readBytes() })
+                            target.setExecutable(true, false)
+                        }
+                    }
+                    // Programs that open links through BROWSER (Rust crate webbrowser: "No valid
+                    // browsers detected") get xdg-open, which hands the URL to Lexona: Gitea #3.
+                    // Login shells (proot) read it here; debian-run exports it for native runs.
+                    File(debianRootfs(baseDir), "etc/profile.d/lexona-browser.sh").let { profile ->
+                        profile.parentFile?.mkdirs()
+                        writeAtomically(profile, ": \"\${BROWSER:=xdg-open}\"\nexport BROWSER\n".toByteArray())
                     }
                 }.onFailure { Log.w(TAG, "Debian lexona-host: ${it.message}") }
             }

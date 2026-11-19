@@ -1,0 +1,17 @@
+#!/bin/sh
+# Lexona: pkexec without polkit, in Debian's /usr/local/bin. GUI installers (ArtCraft Launcher:
+# "pkexec apt-get install -y ./x.deb") need it. Debian's root is proot's fake root: when the
+# caller already is uid 0 the command runs directly, otherwise through "lexona-host debian-run"
+# (started by the app outside the caller's process tree; the command gets no input).
+[ "$1" = --version ] && { echo "pkexec version 126 (Lexona)"; exit 0; }
+while [ $# -gt 0 ]; do
+    case $1 in
+        --user|-u) shift 2 ;;
+        --) shift; break ;;
+        -*) shift ;;
+        *) break ;;
+    esac
+done
+[ $# -gt 0 ] || { echo "pkexec: no command given" >&2; exit 127; }
+[ "$(id -u)" = 0 ] && exec "$@"
+exec /usr/local/bin/lexona-host debian-run "$@"
