@@ -111,6 +111,11 @@ class TerminalActivity : Activity() {
         val session = TerminalSessions.sessionFor(this, profile)
         terminalView.attachSession(session)
         title = titleFor(profile)
+        // The shell process starts only when the view first lays the session out (updateSize);
+        // until then isRunning() is false and sessionFor's update counted no session, so a
+        // first terminal ran without the foreground service. Ask again once it runs.
+        terminalView.post { TerminalService.update(applicationContext) }
+        terminalView.postDelayed({ TerminalService.update(applicationContext) }, 2000)
     }
 
     /** Restarts the profile's process after it ended ("Enter" on the finished screen). */
