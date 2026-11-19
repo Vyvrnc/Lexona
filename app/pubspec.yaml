@@ -1,7 +1,7 @@
 name: droiddesk
 description: "Lexona – Linux experience on Android"
 publish_to: 'none'
-version: 2.0.15+125
+version: 2.0.16+126
 
 environment:
   sdk: ^3.10.3
