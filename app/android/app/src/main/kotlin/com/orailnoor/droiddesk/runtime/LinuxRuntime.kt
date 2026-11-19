@@ -96,7 +96,7 @@ class LinuxRuntime(private val context: Context) {
         // 19: Mesa 26.2.6-1 (glxgears/glmark2 crash fixed).
         // 20: wmctrl, xdotool, x11-utils for droiddesk-zones.
         // 21: the installer's language as Debian's default locale.
-        private const val DEBIAN_SETUP_VERSION = 21
+        private const val DEBIAN_SETUP_VERSION = 22
         private const val MESA_KGSL_SHA256 = "13c78f6ebe3f7ceafad61133e788997ef76bbe1d3dbfd5937c9f25e92114f4da"
         // Craft app ids (table in assets/droiddesk/craft-install.sh); also guards the shell command.
         private val CRAFT_ID = Regex("[a-z]{1,20}craft")
@@ -1615,7 +1615,11 @@ class LinuxRuntime(private val context: Context) {
             RUN="${File(binDir, "debian-run").absolutePath}"
             MIMEAPPS="${File(homeDir, ".config/mimeapps.list").absolutePath}"
             STATE="${File(homeDir, ".config/droiddesk/debian-scheme-handlers").absolutePath}"
-            mkdir -p "${'$'}OUT"; rm -f "${'$'}OUT"/debian-*.desktop
+            mkdir -p "${'$'}OUT"
+            # An entry the user hid (NoDisplay or Hidden=true added by hand or by a menu editor) stays
+            # hidden after the next sync; the sync used to rewrite it (RustDesk on the Fold 7).
+            HIDDEN=" $(grep -lE '^(NoDisplay|Hidden)=true' "${'$'}OUT"/debian-*.desktop 2>/dev/null | sed 's|.*/||' | tr '\n' ' ') "
+            rm -f "${'$'}OUT"/debian-*.desktop
             find_icon() {
                 case "${'$'}1" in /*) [ -f "${'$'}1" ] && echo "${'$'}RF${'$'}1"; return;; esac
                 f=$(ls /usr/share/icons/hicolor/*/apps/"${'$'}1".png /usr/share/icons/hicolor/scalable/apps/"${'$'}1".svg /usr/share/pixmaps/"${'$'}1".* 2>/dev/null | sort -V | tail -1)
@@ -1720,6 +1724,7 @@ class LinuxRuntime(private val context: Context) {
                         echo "Exec=env DD_NATIVE_GUI=1 ${'$'}RUN ${'$'}exec_line"
                     fi
                     echo "Icon=$(find_icon "${'$'}icon")"
+                    case "${'$'}HIDDEN" in *" ${'$'}{out##*/} "*) echo "NoDisplay=true" ;; esac
                 } >> "${'$'}out"
             done
             sync_schemes
