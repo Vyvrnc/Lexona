@@ -18,9 +18,11 @@ R=$PREFIX/var/lib/proot-distro/containers/debian/rootfs
 mkdir -p "$dir"
 
 # Newer Firefox and git keep their files under ~/.config (XDG); autostart holds own entries
-# such as the xset mouse speed.
+# such as the xset mouse speed. Own scripts, icons and Chromium profiles too: web app launchers
+# and the signed-in Chromium profile were missing after the move on the Fold 7.
 termux=()
 for p in ${LX_ONLY:-.ssh .gnupg .gitconfig .mozilla .config/mozilla .config/git .config/gh .config/autostart \
+        .config/chromium .config/chromium-google .local/bin .local/share/icons \
         .bash_history Desktop Documents Downloads Pictures Music Videos projekty}; do
     [ -e "$HOME/$p" ] && termux+=("home/$p")
 done
@@ -53,7 +55,9 @@ args=(--exclude=root/.local/share/claude --exclude=root/.local/bin/claude --excl
       --exclude=root/.cache --exclude=root/.npm --exclude=root/.config/droiddesk
       --exclude=root/.bashrc --exclude=root/.profile --exclude='*/node_modules'
       --exclude=root/.claude/shell-snapshots --exclude=root/.claude/statsig
-      --exclude='home/.config/autostart/droiddesk-*' --exclude='home/.config/mozilla/firefox/*/cache2')
+      --exclude='home/.config/autostart/droiddesk-*' --exclude='home/.config/mozilla/firefox/*/cache2'
+      --exclude='home/.local/bin/droiddesk-*' --exclude='home/.config/chromium*/*/Cache'
+      --exclude='home/.config/chromium*/*/Code Cache' --exclude='home/.config/chromium*/*/GPUCache')
 # LX_EXCLUDE: more paths to leave out, space separated, relative to Debian's /root or the Termux
 # home, e.g. LX_EXCLUDE="projekty apps .wine* sd-a.img whisper mesa-build Downloads".
 set -f  # the patterns go to tar as they are

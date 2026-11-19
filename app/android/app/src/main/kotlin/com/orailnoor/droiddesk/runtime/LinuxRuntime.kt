@@ -3181,12 +3181,19 @@ class LinuxRuntime(private val context: Context) {
         Log.i(TAG, "Relocating Termux paths: $relocations")
         var patchCount = 0
 
-        val dirsToScan = listOf("bin", "libexec", "share", "etc", "var/lib/dpkg/info")
+        // lib: only scripts (Chromium's lib/chromium/chromium-launcher.sh kept the com.termux
+        // shebang, so Chrome PWA launchers failed: Gitea #4); libraries are skipped unread.
+        val dirsToScan = listOf("bin", "libexec", "share", "etc", "var/lib/dpkg/info", "lib")
+        val libraryName = Regex("""\.(so(\.[0-9.]+)?|a|o|pyc)$""")
         for (dirName in dirsToScan) {
             val dir = File(prefixDir, dirName)
             if (!dir.exists()) continue
+            val scriptsOnly = dirName == "lib"
 
-            dir.walkTopDown().forEach { file ->
+            // lib only two levels deep (lib/chromium/...): python and node trees hold tens of
+            // thousands of files and are read after every package install.
+            dir.walkTopDown().maxDepth(if (scriptsOnly) 2 else Int.MAX_VALUE).forEach { file ->
+                if (scriptsOnly && libraryName.containsMatchIn(file.name)) return@forEach
                 if (file.isFile && file.canRead()) {
                     try {
                         val bytes = file.inputStream().use {
@@ -3197,7 +3204,7 @@ class LinuxRuntime(private val context: Context) {
 
                         val isScript = bytes.size >= 2 &&
                             bytes[0] == '#'.code.toByte() && bytes[1] == '!'.code.toByte()
-                        val isPathConfig = file.extension.lowercase() in setOf(
+                        val isPathConfig = !scriptsOnly && file.extension.lowercase() in setOf(
                             "service", "desktop", "conf", "xml", "pc", "cmake",
                             "la", "prl", "sh", "pl", "py", "rb", "json", "ini",
                         )

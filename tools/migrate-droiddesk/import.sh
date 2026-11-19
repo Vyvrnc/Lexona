@@ -102,7 +102,9 @@ done
 
 # Old app paths in text configs (Claude Code settings and hooks, ~/.config, own scripts); the
 # conversation history itself is left as written. grep finds nothing = exit 1, hence || true.
-for d in "$R/root/.claude" "$R/root/.config" "$R/root/.local/bin" "$HOME/.config/autostart" "$HOME/.config/git"; do
+# Desktop icons, own launchers and scripts too: ~/Desktop kept the old package name (Fold 7).
+for d in "$R/root/.claude" "$R/root/.config" "$R/root/.local/bin" "$HOME/.config/autostart" "$HOME/.config/git" \
+        "$HOME/Desktop" "$HOME/.local/bin" "$HOME/.local/share/applications"; do
     [ -d "$d" ] || continue
     { grep -rlI --exclude-dir=projects --exclude-dir=todos "$old" "$d" 2>/dev/null || true; } | while read -r f; do
         sed -i "s#$old#$new#g" "$f" && echo "paths rewritten: $f"
@@ -110,9 +112,10 @@ for d in "$R/root/.claude" "$R/root/.config" "$R/root/.local/bin" "$HOME/.config
 done
 # Firefox profiles keep absolute paths in their small config files (extensions.json,
 # compatibility.ini, prefs.js); databases and caches are left alone.
-for d in "$HOME/.config/mozilla" "$HOME/.mozilla" "$R/root/.mozilla"; do
+for d in "$HOME/.config/mozilla" "$HOME/.mozilla" "$R/root/.mozilla" "$HOME/.config/chromium" "$HOME/.config/chromium-google"; do
     [ -d "$d" ] || continue
-    { grep -rlI --include='*.json' --include='*.ini' --include='*.js' --exclude-dir=storage \
+    { grep -rlI --include='*.json' --include='*.ini' --include='*.js' --include=Preferences --include='Local State' \
+        --exclude-dir=storage --exclude-dir=Cache --exclude-dir='Code Cache' --exclude-dir=GPUCache \
         --exclude-dir=cache2 "$old" "$d" 2>/dev/null || true; } | while read -r f; do
         sed -i "s#$old#$new#g" "$f" && echo "paths rewritten: $f"
     done
