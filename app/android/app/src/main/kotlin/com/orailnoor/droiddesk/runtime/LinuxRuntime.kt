@@ -274,6 +274,7 @@ class LinuxRuntime(private val context: Context) {
         }
         sessionProcess = null
         killDesktopShell()
+        PowerSave.restoreInBackground(context)
     }
 
     private fun killDesktopShell() {
@@ -5484,6 +5485,8 @@ class LinuxRuntime(private val context: Context) {
             }
             .start()
         sessionProcess = startedSession
+        // Android apps the user picked sleep while the desktop runs (Gitea #10).
+        PowerSave.applyInBackground(context)
 
         Thread {
             try {
@@ -5718,6 +5721,7 @@ class LinuxRuntime(private val context: Context) {
         }
         sessionProcess = null
         killDesktopShell()
+        PowerSave.restoreInBackground(context)
         dbusProcess?.destroyForcibly()
         dbusProcess = null
         stopDebianSessionBus()

@@ -52,6 +52,8 @@ class MainActivity : FlutterActivity() {
         if (linuxRuntime.isBootstrapped()) {
             thread(name = "repair-login-files") { linuxRuntime.repairLoginFiles() }
         }
+        // Android apps left asleep by a desktop that Android killed wake up again (Gitea #10).
+        com.orailnoor.droiddesk.runtime.PowerSave.restoreIfStale(this) { linuxRuntime.isRunning() }
 
         handleHomeLaunch(intent)
         SharedStorage.requestIfNeeded(this)
@@ -720,6 +722,39 @@ class MainActivity : FlutterActivity() {
                         val message = if (set != null) support.backgroundUnrestricted(this, undo = !set).second else ""
                         val state = support.backgroundState(this)
                         runOnUiThread { result.success(mapOf("state" to state, "message" to message)) }
+                    }
+                }
+
+                "powerSave" -> {
+                    // Advanced, "Android apps while on Linux": state and the running apps with RAM.
+                    thread(name = "power-save-list") {
+                        val ps = com.orailnoor.droiddesk.runtime.PowerSave
+                        val apps = ps.running(this)
+                        runOnUiThread { result.success(mapOf("enabled" to ps.enabled(this), "apps" to apps)) }
+                    }
+                }
+
+                "powerSaveSet" -> {
+                    // enabled: the whole feature; package + selected: one app in the list.
+                    val ps = com.orailnoor.droiddesk.runtime.PowerSave
+                    call.argument<Boolean>("enabled")?.let { on ->
+                        ps.setEnabled(this, on)
+                        if (on && linuxRuntime.isRunning()) ps.applyInBackground(this)
+                    }
+                    val pkg = call.argument<String>("package")
+                    val selected = call.argument<Boolean>("selected")
+                    if (pkg != null && selected != null) {
+                        ps.setSelected(this, pkg, selected)
+                        if (selected && ps.enabled(this) && linuxRuntime.isRunning()) ps.applyInBackground(this)
+                    }
+                    result.success(true)
+                }
+
+                "powerSaveStop" -> {
+                    val pkg = call.argument<String>("package") ?: ""
+                    thread(name = "power-save-stop") {
+                        val ok = com.orailnoor.droiddesk.runtime.PowerSave.stopNow(this, pkg)
+                        runOnUiThread { result.success(ok) }
                     }
                 }
 

@@ -193,6 +193,22 @@ class DroidDeskPlatform {
     return Map<String, dynamic>.from(r ?? {});
   }
 
+  /// Android apps asleep while on Linux: {enabled, apps: [{package, label, mb, system,
+  /// selected, sleeping}]}, the running apps biggest first (needs Shizuku).
+  static Future<Map<String, dynamic>> powerSave() async {
+    final r = await _channel.invokeMethod('powerSave');
+    return Map<String, dynamic>.from(r ?? {});
+  }
+
+  static Future<void> powerSaveSet({bool? enabled, String? package, bool? selected}) async {
+    await _channel.invokeMethod('powerSaveSet', {'enabled': enabled, 'package': package, 'selected': selected});
+  }
+
+  /// Force-stops one Android app now.
+  static Future<bool> powerSaveStop(String package) async {
+    return await _channel.invokeMethod<bool>('powerSaveStop', {'package': package}) ?? false;
+  }
+
   /// lexona-update (check: only list what can be updated); output streams via onTerminalOutput.
   static Future<String> systemUpdate({required bool check}) async {
     return await _channel.invokeMethod<String>('systemUpdate', {'check': check}) ?? '';

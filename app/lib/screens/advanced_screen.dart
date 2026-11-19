@@ -47,7 +47,126 @@ class _AdvancedScreenState extends State<AdvancedScreen> with WidgetsBindingObse
       final bg = await DroidDeskPlatform.shizukuBackground();
       if (!mounted) return;
       setState(() => _background = bg['state'] as String? ?? 'unknown');
+      _loadApps();
     }
+  }
+
+  // ── Android apps while on Linux (Gitea #10) ──
+  bool _psEnabled = false;
+  bool _psLoading = false;
+  List<Map<String, dynamic>> _psApps = [];
+  final Set<String> _psStopping = {};
+
+  Future<void> _loadApps() async {
+    if (_psLoading) return;
+    setState(() => _psLoading = true);
+    final r = await DroidDeskPlatform.powerSave();
+    if (!mounted) return;
+    setState(() {
+      _psLoading = false;
+      _psEnabled = r['enabled'] as bool? ?? false;
+      _psApps = ((r['apps'] as List?) ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    });
+  }
+
+  Widget _powerSaveCard(bool granted) {
+    final total = _psApps.fold<int>(0, (sum, a) => sum + (a['mb'] as int? ?? 0));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Android apps while on Linux', style: LexonaTheme.subheading),
+        const SizedBox(height: 6),
+        Text(
+          'Apps you also use on the desktop (Slack, Gmail, Element…) take memory on Android too. '
+          'Pick them below: while the desktop runs they are stopped and may not run in the '
+          'background, so they free memory and send no notifications. When the desktop stops, '
+          'they get their earlier setting back, also after Lexona was closed.',
+          style: LexonaTheme.body.copyWith(color: LexonaTheme.textSecondary),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _psEnabled,
+          onChanged: !granted && !_psEnabled
+              ? null
+              : (on) async {
+                  setState(() => _psEnabled = on);
+                  await DroidDeskPlatform.powerSaveSet(enabled: on);
+                },
+          title: Text('Put the picked apps to sleep while the desktop runs', style: LexonaTheme.body),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _psApps.isEmpty
+                    ? (_psLoading ? 'Reading running apps…' : 'Running apps appear here.')
+                    : 'Running now: ${_psApps.length} apps, $total MB',
+                style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary),
+              ),
+            ),
+            if (_psLoading)
+              const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              IconButton(
+                tooltip: 'Refresh',
+                icon: const Icon(Icons.refresh_rounded),
+                onPressed: granted ? _loadApps : null,
+              ),
+          ],
+        ),
+        for (final a in _psApps) _appRow(a, granted),
+      ],
+    );
+  }
+
+  Widget _appRow(Map<String, dynamic> a, bool granted) {
+    final pkg = a['package'] as String;
+    final selected = a['selected'] as bool? ?? false;
+    final sleeping = a['sleeping'] as bool? ?? false;
+    return Row(
+      children: [
+        Checkbox(
+          value: selected,
+          onChanged: !granted
+              ? null
+              : (on) async {
+                  setState(() => a['selected'] = on ?? false);
+                  await DroidDeskPlatform.powerSaveSet(package: pkg, selected: on ?? false);
+                },
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(a['label'] as String? ?? pkg, style: LexonaTheme.body, overflow: TextOverflow.ellipsis),
+              Text(
+                sleeping ? '$pkg · asleep' : pkg,
+                style: LexonaTheme.caption.copyWith(color: LexonaTheme.textSecondary),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        Text('${a['mb']} MB', style: LexonaTheme.body),
+        IconButton(
+          tooltip: 'Stop now',
+          icon: _psStopping.contains(pkg)
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.stop_circle_outlined),
+          onPressed: !granted || _psStopping.contains(pkg)
+              ? null
+              : () async {
+                  setState(() => _psStopping.add(pkg));
+                  await DroidDeskPlatform.powerSaveStop(pkg);
+                  if (!mounted) return;
+                  setState(() => _psStopping.remove(pkg));
+                  _loadApps();
+                },
+        ),
+      ],
+    );
   }
 
   Map<String, bool> _switches = {};
@@ -201,6 +320,8 @@ class _AdvancedScreenState extends State<AdvancedScreen> with WidgetsBindingObse
           )),
           const SizedBox(height: 16),
           _card(_backgroundCard(granted)),
+          const SizedBox(height: 16),
+          _card(_powerSaveCard(granted)),
           const SizedBox(height: 16),
           _card(_toolsCard(granted)),
         ],
