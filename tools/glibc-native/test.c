@@ -547,6 +547,15 @@ int main(int argc, char **argv) {
         int rc = i ? posix_spawnp(&pid, "probe", NULL, NULL, a, environ) : posix_spawn(&pid, "/usr/bin/probe", NULL, NULL, a, environ);
         check(rc == 0, "spawn"); child_status(pid);
     }
+    {   /* Rust's Command::current_dir: the chdir action runs in glibc's child (Gitea #2). */
+        pid_t pid; char *a[] = {"probe", "child", "spawn", NULL};
+        posix_spawn_file_actions_t fa;
+        check(posix_spawn_file_actions_init(&fa) == 0, "file actions init");
+        check(posix_spawn_file_actions_addchdir_np(&fa, "/root/apps/test") == 0, "addchdir_np");
+        int rc = posix_spawnp(&pid, "probe", &fa, NULL, a, environ);
+        check(rc == 0, "spawn with chdir into the rootfs"); child_status(pid);
+        posix_spawn_file_actions_destroy(&fa);
+    }
     for (int minimal = 0; minimal < 2; ++minimal) {
         pid_t pid = fork(); check(pid >= 0, "bionic fork");
         if (!pid) {

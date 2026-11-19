@@ -1291,6 +1291,22 @@ static int spawn_command(pid_t *pid, const char *file, const posix_spawn_file_ac
 }
 int posix_spawn(pid_t *pid, const char *p, const posix_spawn_file_actions_t *f, const posix_spawnattr_t *t, char *const a[], char *const e[]) { return spawn_command(pid, p, f, t, a, e, 0); }
 int posix_spawnp(pid_t *pid, const char *p, const posix_spawn_file_actions_t *f, const posix_spawnattr_t *t, char *const a[], char *const e[]) { return spawn_command(pid, p, f, t, a, e, 1); }
+/* posix_spawn's file actions run in glibc's child, where no hook sees them: a chdir or open
+ * there got Debian's path unmapped. Rust's Command::current_dir stores its directory with
+ * addchdir_np, so every program ArtCraft Launcher started ended with 127 before exec ("No such
+ * file or directory", Galaxy Z Fold 7, Gitea #2). The path is mapped when the action is stored. */
+int posix_spawn_file_actions_addchdir_np(posix_spawn_file_actions_t *a, const char *p) {
+    REAL(posix_spawn_file_actions_addchdir_np, int, posix_spawn_file_actions_t *, const char *);
+    if (!real_posix_spawn_file_actions_addchdir_np) return ENOSYS;
+    const char *m = mapped(p, pathbuf, 0);
+    return m ? real_posix_spawn_file_actions_addchdir_np(a, m) : ENAMETOOLONG;
+}
+int posix_spawn_file_actions_addopen(posix_spawn_file_actions_t *a, int fd, const char *p, int f, mode_t mode) {
+    REAL(posix_spawn_file_actions_addopen, int, posix_spawn_file_actions_t *, int, const char *, int, mode_t);
+    if (!real_posix_spawn_file_actions_addopen) return ENOSYS;
+    const char *m = mapped(p, pathbuf, open_nofollow(f));
+    return m ? real_posix_spawn_file_actions_addopen(a, fd, m, f, mode) : ENAMETOOLONG;
+}
 
 /* glibc's system() and popen() exec /bin/sh with internal calls past this hook: on Android
  * that ran mksh with Debian's PATH (Python os.system, audit on Tab S10 FE). Keep glibc's
