@@ -369,6 +369,7 @@ int main(int argc, char **argv) {
     }
     check(!euidaccess("/usr/share/X11/xkb", R_OK | X_OK), "XKB euidaccess mapping");
     check(!eaccess("/usr/share/X11/xkb", R_OK | X_OK), "XKB eaccess mapping");
+    check(!access("///usr/share/X11/xkb", R_OK | X_OK), "leading slashes mapped like one");
     check(!faccessat(AT_FDCWD, "/usr/share/X11/xkb", R_OK | X_OK, AT_EACCESS),
           "XKB faccessat effective access");
     int xkb = open("/usr/share/X11", O_RDONLY | O_DIRECTORY);

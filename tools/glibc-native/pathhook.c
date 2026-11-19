@@ -233,6 +233,9 @@ static int root_only(const char *p) {
 /* Caller-owned stack buffers are private to each thread and nested invocation. */
 static const char *mapped(const char *p, char b[PATH_MAX], int nofollow) {
     if (!p || p[0] != '/') return p;
+    /* "///var" is "/var" to the kernel; the prefix checks below saw no /var and left it on
+     * Android's read-only root (widevine-installer: DESTDIR=/ + /var/lib/widevine). */
+    while (p[1] == '/') ++p;
     const char *root = getenv("DD_ROOTFS"), *tmp = getenv("DD_TMP");
     if (!root || (tmp && pre(p, tmp))) return p;
     /* The root itself is Debian's: ls / and find / listed Android's root, so native Claude's
