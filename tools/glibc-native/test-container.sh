@@ -68,6 +68,11 @@ for how in proc loader; do
     out=$("$work/plib/ld.so" --library-path "$libs" --preload "$work/hook.so" --argv0 selfexec "$root/usr/bin/selfexec" "$how")
     [[ $out == "selfexec child --no-config exe-ok" ]] || { echo "self re-exec ($how): $out" >&2; exit 1; }
 done
+# The loader under another first word (Chromium from electron-run): /proc/self/exe must still
+# be the program, or Chromium looks for icudtl.dat next to the loader (Gitea #15).
+out=$(bash -c 'exec -a chromium-wrapper "$1" --library-path "$2" --preload "$3" "$4" proc' _ \
+    "$work/plib/ld.so" "$libs" "$work/hook.so" "$root/usr/bin/selfexec")
+[[ $out == "selfexec child --no-config exe-ok" ]] || { echo "self exe under another argv[0]: $out" >&2; exit 1; }
 echo "self re-exec checks OK"
 # Process name from --argv0 instead of "ld.so" (pgrep, pkill).
 [[ $("$work/plib/ld.so" --library-path "$libs" --preload "$work/hook.so" --argv0 /opt/x/my-probe "$root/usr/bin/probe" comm) == my-probe ]]

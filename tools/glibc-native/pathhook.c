@@ -107,7 +107,19 @@ __attribute__((constructor)) static void find_self_exe(void) {
     if (n <= 0) return;
     buf[n] = 0;
     char *a = buf, *end = buf + n, *argv0 = NULL;
-    if (!is_loader(a)) return;
+    /* Started as "$DD_PLIB/ld.so ... PROGRAM", or through the same loader under another first
+     * word (Chromium from electron-run): /proc/self/exe is then the APK's libld.so, and Chromium
+     * looked for icudtl.dat next to it and died on SIGTRAP (Fold 7, Gitea #15). The loader is
+     * recognised by the file itself: /proc/self/exe and $DD_PLIB/ld.so are the same inode. */
+    if (!is_loader(a)) {
+        const char *plib = getenv("DD_PLIB");
+        char want[PATH_MAX];
+        struct stat self_st, loader_st;
+        if (!plib || snprintf(want, sizeof want, "%s/ld.so", plib) >= (int)sizeof want) return;
+        if (raw_syscall(SYS_newfstatat, AT_FDCWD, "/proc/self/exe", &self_st, 0) != 0 ||
+            raw_syscall(SYS_newfstatat, AT_FDCWD, want, &loader_st, 0) != 0 ||
+            self_st.st_dev != loader_st.st_dev || self_st.st_ino != loader_st.st_ino) return;
+    }
     for (a += strlen(a) + 1; a < end; a += strlen(a) + 1) {
         if (ld_option_with_value(a)) {
             if (!strcmp(a, "--argv0") && a + strlen(a) + 1 < end) argv0 = a + strlen(a) + 1;
