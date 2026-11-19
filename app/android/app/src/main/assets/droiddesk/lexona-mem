@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+# lexona-mem: the phone's free RAM for the desktop. When Android runs out of memory, lmkd closes
+# the whole of Lexona with the desktop and unsaved work. This offers to close one program first.
+#
+#   lexona-mem top [N]   programs on the desktop by RAM: "MB<TAB>name<TAB>pid pid ..."
+#   lexona-mem panel     output for the panel's genmon plugin (free RAM, tooltip, click = offer)
+#   lexona-mem offer     offer to close one of the biggest programs now
+#   lexona-mem watch     daemon (autostart): offer below LEXONA_MEM_WARN_MB (1700), and as the
+#                        last resort below LEXONA_MEM_LAST_MB (900) close the biggest program itself
+#
+# Gitea #8 and #9; the manual version from the Galaxy Z Fold 7 (2026-11-19) was pamet-top,
+# pamet-panel and pamet-hlidac plus earlyoom.
+WARN=${LEXONA_MEM_WARN_MB:-1700}
+LAST=${LEXONA_MEM_LAST_MB:-900}
+SELF=$(readlink -f "$0" 2>/dev/null || echo "$0")
+PIDF=${TMPDIR:-/tmp}/lexona-mem-watch.pid
+
+case ${LANG:-}${LC_MESSAGES:-} in
+    cs*) cs=1 ;;
+    *) cs=0 ;;
+esac
+say() { if [ "$cs" = 1 ]; then printf '%s' "$1"; else printf '%s' "$2"; fi; }
+
+avail_mb() { awk '/^MemAvailable:/ { print int($2 / 1024); exit }' /proc/meminfo; }
+total_mb() { awk '/^MemTotal:/ { print int($2 / 1024); exit }' /proc/meminfo; }
+gb() { awk -v m="$1" -v cs="$cs" 'BEGIN { s = sprintf("%.1f", m / 1024); if (cs == 1) sub(/\./, ",", s); print s }'; }
+
+# Programs summed per application. Lexona itself, X, the panel and session, Claude Code, tmux and
+# helpers that must not be closed are left out; under 50 MB is not worth offering.
+top() {
+    local n=${1:-5} p c r
+    for p in /proc/[0-9]*; do
+        read -r c < "$p/comm" 2>/dev/null || continue
+        r=$(awk '/^VmRSS:/ { print $2; exit }' "$p/status" 2>/dev/null)
+        [ -n "$r" ] && printf '%s\t%s\t%s\n' "$r" "$c" "${p#/proc/}"
+    done | awk -F'\t' '
+    function app(c) {
+        if (c ~ /^(chrome|chromium|chrome_crashpad)/) return "Chromium"
+        if (c ~ /^(firefox|Isolated Web|Web Content|WebExtensions|Privileged Cont|RDD Process|Socket Process|Utility Process|forkserver|GPU Process)/) return "Firefox"
+        return c
+    }
+    $2 !~ /^(claude|node|bash|sh|tmux.*|linker64|ld\.so|io\.github\.vy.*|X|Xwayland|xfwm4|xfce4-.*|xfdesktop|xfsettingsd|xfconfd|Thunar|thunar|pulseaudio|dbus-.*|gvfs.*|at-spi.*|gnome-keyring.*|python3|awk|sort|head|cat|sleep|proot|droiddesk-.*|lexona-.*|syncthing|tailscaled|sshd?)$/ {
+        a = app($2); kb[a] += $1; pids[a] = pids[a] " " $3
+    }
+    END { for (a in kb) if (kb[a] >= 51200) printf "%d\t%s\t%s\n", kb[a] / 1024, a, substr(pids[a], 2) }' |
+        sort -rn | head -n "$n"
+}
+
+panel() {
+    local avail color tool list
+    avail=$(avail_mb)
+    if [ "$avail" -lt "$WARN" ]; then color='#ff5555'
+    elif [ "$avail" -lt 2500 ]; then color='#ffb86c'
+    else color=''
+    fi
+    tool="$(say "Volná RAM telefonu" "Free phone RAM"): $(gb "$avail") GB / $(gb "$(total_mb)") GB"
+    list=$(top 5 | awk -F'\t' '{ printf "\n  %s: %d MB", $2, $1 }')
+    [ -n "$list" ] && tool="$tool
+$(say "Největší na ploše:" "Biggest on the desktop:")$list"
+    tool="$tool
+$(say "Pod $(gb "$WARN") GB nabídnu zavřít program, aby Android nezavřel celou Lexonu." \
+      "Below $(gb "$WARN") GB Lexona offers to close a program before Android closes all of Lexona.")"
+    if [ -n "$color" ]; then
+        echo "<txt><span foreground='$color'>RAM $(gb "$avail") GB</span></txt>"
+    else
+        echo "<txt>RAM $(gb "$avail") GB</txt>"
+    fi
+    echo "<tool>$tool</tool>"
+    echo "<txtclick>$SELF offer</txtclick>"
+}
+
+offer() {
+    local avail lines=() args=() i=0 choice l mb name pids
+    avail=$(avail_mb)
+    mapfile -t lines < <(top 3)
+    if [ ${#lines[@]} -eq 0 ]; then
+        notify-send -u normal -i dialog-information "$(say "RAM telefonu: volné" "Phone RAM: free") $(gb "$avail") GB" \
+            "$(say "Na ploše teď neběží nic velkého." "Nothing big runs on the desktop now.")"
+        return
+    fi
+    for l in "${lines[@]}"; do
+        IFS=$'\t' read -r mb name _ <<< "$l"
+        args+=(-A "k$i=$(say "Zavřít" "Close") $name ($mb MB)")
+        i=$((i + 1))
+    done
+    args+=(-A "none=$(say "Nechat běžet" "Keep running")")
+    choice=$(notify-send -u critical -i dialog-warning -a Lexona "${args[@]}" \
+        "$(say "Dochází paměť: volné" "Memory is running out: free") $(gb "$avail") GB" \
+        "$(say "Když dojde úplně, Android zavře celou Lexonu i s neuloženou prací. Zavřete raději jeden program:" \
+               "When it runs out, Android closes all of Lexona with unsaved work. Close one program instead:")")
+    case $choice in
+        k[0-9])
+            IFS=$'\t' read -r mb name pids <<< "${lines[${choice#k}]}"
+            # shellcheck disable=SC2086
+            kill -TERM $pids 2>/dev/null
+            notify-send -u low -i dialog-information "$(say "Zavřeno" "Closed"): $name" \
+                "$(say "Uvolní se asi" "Frees about") $mb MB."
+            ;;
+    esac
+}
+
+# Last resort, like earlyoom -M: no question, the biggest program gets SIGTERM.
+last_resort() {
+    local l mb name pids
+    l=$(top 1)
+    [ -n "$l" ] || return
+    IFS=$'\t' read -r mb name pids <<< "$l"
+    # shellcheck disable=SC2086
+    kill -TERM $pids 2>/dev/null
+    notify-send -u critical -i dialog-warning -a Lexona "$(say "Zavřeno kvůli paměti" "Closed to free memory"): $name" \
+        "$(say "Volná RAM klesla pod" "Free RAM fell below") $(gb "$LAST") GB. $(say "Bez toho by Android zavřel celou Lexonu." "Otherwise Android would have closed all of Lexona.")"
+}
+
+watch() {
+    [ -f "$PIDF" ] && kill -0 "$(cat "$PIDF" 2>/dev/null)" 2>/dev/null && exit 0
+    echo $$ > "$PIDF"
+    local quiet_until=0 a now
+    while :; do
+        a=$(avail_mb)
+        now=$(date +%s)
+        if [ "$a" -lt "$LAST" ]; then
+            last_resort
+            sleep 10
+            continue
+        fi
+        if [ "$a" -lt "$WARN" ] && [ "$now" -ge "$quiet_until" ]; then
+            offer &
+            quiet_until=$((now + 180))
+        elif [ "$a" -ge $((WARN + 300)) ]; then
+            quiet_until=0
+        fi
+        sleep 5
+    done
+}
+
+case ${1:-} in
+    top) top "${2:-5}" ;;
+    panel) panel ;;
+    offer) offer ;;
+    watch) watch ;;
+    *) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac

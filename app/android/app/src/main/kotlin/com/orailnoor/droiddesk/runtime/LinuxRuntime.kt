@@ -2270,6 +2270,30 @@ class LinuxRuntime(private val context: Context) {
             )
             batteryScript.setExecutable(true, false)
 
+            // Free RAM in the dock and the memory watchdog (Gitea #8, #9): lmkd closed all of
+            // Lexona when the phone ran out of memory (Fold 7, 2026-11-19).
+            val memScript = File(binDir, "lexona-mem")
+            memScript.writeText(
+                "#!${File(binDir, "bash").absolutePath}\n" +
+                    context.assets.open("droiddesk/lexona-mem").bufferedReader().use { it.readText() }.substringAfter('\n'),
+            )
+            memScript.setExecutable(true, false)
+            File(homeDir, ".config/autostart").let { dir ->
+                dir.mkdirs()
+                // The manual watchdog from the Fold (pamet-hlidac) would offer twice.
+                if (!File(dir, "pamet-hlidac.desktop").exists()) {
+                    File(dir, "lexona-mem-watch.desktop").writeText(
+                        """
+                        [Desktop Entry]
+                        Type=Application
+                        Name=Lexona memory watchdog
+                        Exec=${memScript.absolutePath} watch
+                        NoDisplay=true
+                        """.trimIndent() + "\n",
+                    )
+                }
+            }
+
             writeDeviceTools()
 
             // Opens a file or URL in an Android app through AndroidAppBridge.
@@ -2489,6 +2513,32 @@ class LinuxRuntime(private val context: Context) {
                         args+=(-t int -s "${'$'}id")
                     done
                     xfconf-query -c xfce4-panel -p /panels/panel-2/plugin-ids -a "${'$'}{args[@]}"
+                    xfce4-panel -r
+                fi
+
+                # Free RAM in the dock, just before the battery (Gitea #9). Once: a removed
+                # plugin stays removed. -n -a: plain -s failed after an interrupted run.
+                ram_marker="${'$'}HOME/.config/droiddesk/xfce-panel-ram-v1"
+                if [ ! -f "${'$'}ram_marker" ] &&
+                    [ -f "${File(prefixDir, "lib/xfce4/panel/plugins/libgenmon.so").absolutePath}" ] &&
+                    ! xfconf-query -c xfce4-panel -p /plugins/plugin-28 >/dev/null 2>&1; then
+                    xfconf-query -c xfce4-panel -p /plugins/plugin-28 -n -t string -s genmon
+                    xfconf-query -c xfce4-panel -p /plugins/plugin-28/command -n -t string -s "${memScript.absolutePath} panel"
+                    xfconf-query -c xfce4-panel -p /plugins/plugin-28/use-label -n -t bool -s false
+                    xfconf-query -c xfce4-panel -p /plugins/plugin-28/update-period -n -t int -s 5000
+                    args=()
+                    placed=0
+                    for id in ${'$'}(xfconf-query -c xfce4-panel -p /panels/panel-2/plugin-ids | grep -E '^[0-9]+${'$'}'); do
+                        [ "${'$'}id" = 28 ] && continue
+                        if [ ${'$'}placed = 0 ] && { [ "${'$'}id" = 26 ] || [ "${'$'}id" = 3 ]; }; then
+                            args+=(-t int -s 28)
+                            placed=1
+                        fi
+                        args+=(-t int -s "${'$'}id")
+                    done
+                    [ ${'$'}placed = 1 ] || args+=(-t int -s 28)
+                    xfconf-query -c xfce4-panel -p /panels/panel-2/plugin-ids -n -a "${'$'}{args[@]}"
+                    mkdir -p "${'$'}(dirname "${'$'}ram_marker")" && touch "${'$'}ram_marker"
                     xfce4-panel -r
                 fi
 
