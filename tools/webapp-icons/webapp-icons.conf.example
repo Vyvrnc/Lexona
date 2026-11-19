@@ -1,0 +1,10 @@
+# x11-seticon configuration: window res_name (Chromium --app)  icon  [badge = count from the title]
+# <HOME> = Lexona's native home. Icons: Papirus 64x64/apps SVG rendered with
+# `rsvg-convert -w 256 -h 256` into ~/.local/share/icons/webapps/.
+claude.ai               <HOME>/.local/share/icons/webapps/claude.png
+mail.google.com         <HOME>/.local/share/icons/webapps/gmail.png  badge
+meet.google.com         <HOME>/.local/share/icons/webapps/google-meet.png
+calendar.google.com     <HOME>/.local/share/icons/webapps/google-calendar.png
+drive.google.com        <HOME>/.local/share/icons/webapps/google-drive.png
+app.slack.com__client   <HOME>/.local/share/icons/webapps/slack.png
+app.element.io          <HOME>/.local/share/icons/webapps/element.png
