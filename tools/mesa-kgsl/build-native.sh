@@ -6,7 +6,7 @@
 set -euo pipefail
 
 MESA_VERSION=26.2.6
-ASSET_REVISION=1
+ASSET_REVISION=2
 MESA_SHA256=b9436b3e1a8be76fbd4823dc884f90596ab7c6ac5e1867a305e66ffccfb31a92
 TERMUX_PACKAGES_COMMIT=84f9775ddbeda5eb04ceabd7c86f340ac4c9ccbb
 PATCH_DIR=${1:-$(cd "$(dirname "$0")" && pwd)}

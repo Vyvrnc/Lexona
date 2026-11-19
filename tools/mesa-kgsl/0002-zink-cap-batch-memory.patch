@@ -1,0 +1,50 @@
+zink: flush a batch that holds more than 512 MB (ZINK_BATCH_MEM_MB)
+
+Zink flushes a batch for memory only at 80% of the device-local heaps. Turnip on
+Adreno reports most of the phone's RAM there, so a client that uploads textures
+without presenting (RustDesk's minimized Flutter window decoding a 3840x1080
+stream) kept every replaced texture alive: 300 MB -> 2.8 GB in 50 s on the
+Galaxy Z Fold 7 until Android killed Lexona. Visible windows present and flush
+every frame and never got near it. Lexona Gitea #13.
+
+--- a/src/gallium/drivers/zink/zink_batch.c	2026-11-19 13:38:18.484030000 +0100
++++ b/src/gallium/drivers/zink/zink_batch.c	2026-11-19 13:38:50.820372200 +0100
+@@ -7,6 +7,7 @@
+ #include "zink_resource.h"
+ #include "zink_screen.h"
+ #include "zink_surface.h"
++#include "util/u_debug.h"
+ 
+ #ifdef VK_USE_PLATFORM_METAL_EXT
+ #include "QuartzCore/CAMetalLayer.h"
+@@ -1040,12 +1041,29 @@
+    return !found;
+ }
+ 
++/* Cap on the memory one batch may hold before it is flushed (Lexona). The upstream limit is
++ * 80% of the device-local heaps; Turnip on Adreno reports most of the phone's RAM there, so a
++ * client that uploads textures without presenting (a minimized Flutter window decoding video)
++ * kept every replaced texture alive until the phone ran out of memory. ZINK_BATCH_MEM_MB
++ * sets the cap, 0 keeps the upstream limit. */
++static VkDeviceSize
++batch_mem_cap(struct zink_screen *screen)
++{
++   static VkDeviceSize cap;
++   if (!cap) {
++      uint64_t mb = debug_get_num_option("ZINK_BATCH_MEM_MB", 512);
++      VkDeviceSize bytes = mb ? (VkDeviceSize)mb << 20 : screen->clamp_video_mem;
++      cap = MIN2(bytes, screen->clamp_video_mem);
++   }
++   return cap;
++}
++
+ /* this is a vague, handwave-y estimate */
+ ALWAYS_INLINE static void
+ check_oom_flush(struct zink_context *ctx)
+ {
+    const VkDeviceSize resource_size = ctx->bs->resource_size;
+-   if (resource_size >= zink_screen(ctx->base.screen)->clamp_video_mem) {
++   if (resource_size >= batch_mem_cap(zink_screen(ctx->base.screen))) {
+        ctx->oom_flush = true;
+        ctx->oom_stall = true;
+     }
