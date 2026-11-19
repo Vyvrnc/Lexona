@@ -110,15 +110,23 @@ __attribute__((constructor)) static void find_self_exe(void) {
     /* Started as "$DD_PLIB/ld.so ... PROGRAM", or through the same loader under another first
      * word (Chromium from electron-run): /proc/self/exe is then the APK's libld.so, and Chromium
      * looked for icudtl.dat next to it and died on SIGTRAP (Fold 7, Gitea #15). The loader is
-     * recognised by the file itself: /proc/self/exe and $DD_PLIB/ld.so are the same inode. */
+     * recognised by the file itself: the APK's libld.so, or the same inode as $DD_PLIB/ld.so.
+     * Chromium's process had no DD_* variables at all, so the name check must work without them. */
     if (!is_loader(a)) {
+        char exe[PATH_MAX];
+        ssize_t len = (ssize_t)raw_syscall(SYS_readlinkat, AT_FDCWD, "/proc/self/exe", exe, sizeof exe - 1);
+        if (len <= 0) return;
+        exe[len] = 0;
+        const char *base = strrchr(exe, '/');
+        int loader = !strcmp(base ? base + 1 : exe, "libld.so");
         const char *plib = getenv("DD_PLIB");
         char want[PATH_MAX];
         struct stat self_st, loader_st;
-        if (!plib || snprintf(want, sizeof want, "%s/ld.so", plib) >= (int)sizeof want) return;
-        if (raw_syscall(SYS_newfstatat, AT_FDCWD, "/proc/self/exe", &self_st, 0) != 0 ||
-            raw_syscall(SYS_newfstatat, AT_FDCWD, want, &loader_st, 0) != 0 ||
-            self_st.st_dev != loader_st.st_dev || self_st.st_ino != loader_st.st_ino) return;
+        if (!loader && plib && snprintf(want, sizeof want, "%s/ld.so", plib) < (int)sizeof want &&
+            raw_syscall(SYS_newfstatat, AT_FDCWD, "/proc/self/exe", &self_st, 0) == 0 &&
+            raw_syscall(SYS_newfstatat, AT_FDCWD, want, &loader_st, 0) == 0 &&
+            self_st.st_dev == loader_st.st_dev && self_st.st_ino == loader_st.st_ino) loader = 1;
+        if (!loader) return;
     }
     for (a += strlen(a) + 1; a < end; a += strlen(a) + 1) {
         if (ld_option_with_value(a)) {

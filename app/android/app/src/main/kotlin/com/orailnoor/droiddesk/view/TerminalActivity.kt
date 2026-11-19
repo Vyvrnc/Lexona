@@ -308,6 +308,8 @@ object TerminalSessions {
         runCatching { runtime.writeDeviceTools() }.onFailure { Log.w(TAG, "Device tools: ${it.message}") }
         // This app version's exec hook, also before the first desktop start after an update.
         runCatching { runtime.ensureSocketHookPrebuilt() }.onFailure { Log.w(TAG, "Socket hook: ${it.message}") }
+        // And this app version's native runtime (pathhook.so): it was set up only at desktop start.
+        runCatching { runtime.refreshNativeRuntimeInBackground() }.onFailure { Log.w(TAG, "Native runtime: ${it.message}") }
         // etc/profile from this Android user's real paths (user 10 on Android Automotive).
         runCatching { runtime.repairLoginFiles() }.onFailure { Log.w(TAG, "Login files: ${it.message}") }
         // Debian's session bus and keyring (Electron apps, libsecret), also without a desktop.

@@ -13,6 +13,9 @@ int main(int argc, char **argv) {
     ssize_t n = readlink("/proc/self/exe", exe, sizeof exe - 1);
     if (n < 0) { perror("readlink"); return 1; }
     exe[n] = 0;
+    /* "exe": only print what /proc/self/exe resolves to (a process without DD_* variables cannot
+     * re-execute itself through the loader). */
+    if (argc > 1 && !strcmp(argv[1], "exe")) { printf("%s\n", exe); return 0; }
     if (!strcmp(argv[0], "rg")) {
         printf("selfexec child %s %s\n", argc > 1 ? argv[1] : "-", strstr(exe, "/usr/bin/selfexec") ? "exe-ok" : exe);
         return 0;

@@ -4506,6 +4506,14 @@ class LinuxRuntime(private val context: Context) {
     private fun nativeLoader(): File? =
         File(context.applicationInfo.nativeLibraryDir, "libld.so").takeIf { it.isFile }
 
+    /**
+     * The native runtime of this app version (pathhook.so, patched glibc) also for a terminal
+     * without the desktop: setup ran only at desktop start, so after an update the old hook stayed
+     * in place for terminal-only use (Fold 7, 2.0.16). Setup compares a signature and is a no-op
+     * when nothing changed.
+     */
+    fun refreshNativeRuntimeInBackground() = refreshNativeSetupInBackground()
+
     private fun refreshNativeSetupInBackground() {
         val launcher = File(binDir, "droiddesk-glibc-native")
         if ((NativeExec.linkerExec(context) && nativeLoader() == null) || nativeSetupRunning ||
