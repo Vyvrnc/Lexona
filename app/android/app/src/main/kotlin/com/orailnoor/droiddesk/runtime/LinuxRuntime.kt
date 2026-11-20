@@ -84,7 +84,8 @@ class LinuxRuntime(private val context: Context) {
         // Release asset built by tools/mesa-kgsl/build.sh (tag mesa-kgsl-<version>).
         // <Mesa version>-<build revision>; -2 adds softpipe so zink can present
         // without kopper (the kopper path flickers without DRI3).
-        private const val MESA_KGSL_VERSION = "26.2.6-1"
+        // 26.3.1-2: Mesa 26.3.1 plus the zink batch cap (tools/mesa-kgsl/0002, Gitea #13).
+        private const val MESA_KGSL_VERSION = "26.3.1-2"
         // Bump when debian-setup gains something existing installs need (rerun at session start).
         // 12: libxcb-keysyms1, Mesa library check, GPU self-test (fold.69).
         // 13: gpu-run Vulkan-only mode with lavapipe fallback, clearer self-test detail (fold.70).
@@ -96,8 +97,10 @@ class LinuxRuntime(private val context: Context) {
         // 19: Mesa 26.2.6-1 (glxgears/glmark2 crash fixed).
         // 20: wmctrl, xdotool, x11-utils for droiddesk-zones.
         // 21: the installer's language as Debian's default locale.
-        private const val DEBIAN_SETUP_VERSION = 22
-        private const val MESA_KGSL_SHA256 = "13c78f6ebe3f7ceafad61133e788997ef76bbe1d3dbfd5937c9f25e92114f4da"
+        // 22: menu sync keeps entries the user hid.
+        // 23: Mesa 26.3.1-2 (zink batch cap against the minimized-Flutter leak).
+        private const val DEBIAN_SETUP_VERSION = 23
+        private const val MESA_KGSL_SHA256 = "2110729ca40aff1551ae0033c9bc8f1587587cb46f7f3e266dda0df149de2eb9"
         // Craft app ids (table in assets/droiddesk/craft-install.sh); also guards the shell command.
         private val CRAFT_ID = Regex("[a-z]{1,20}craft")
 
