@@ -1,0 +1,58 @@
+module-aaudio-sink: report the real latency (PA_SINK_MESSAGE_GET_LATENCY)
+
+The stock Termux module set only a fixed latency and answered GET_LATENCY with 0,
+so Chromium did no A/V sync: on the Galaxy Z Fold 7 Netflix's sound over
+Bluetooth A2DP ran audibly behind the picture. The latency now comes from
+AAudioStream_getTimestamp (presentation position, includes the HAL and A2DP)
+and AAudioStream_getFramesWritten. Lexona Gitea #18.
+
+--- a/src/modules/module-aaudio-sink.c
++++ b/src/modules/module-aaudio-sink.c
+@@ -25,6 +25,7 @@
+ #include <stdio.h>
+ #include <errno.h>
+ #include <unistd.h>
++#include <time.h>
+ 
+ #include <pulse/rtclock.h>
+ #include <pulse/timeval.h>
+@@ -188,12 +189,39 @@
+     }
+ }
+ 
++/* How long a frame rendered now takes until it is heard: the frames AAudio has taken from us but
++ * not yet presented. AAudio's timestamp is the presentation position (it includes the HAL and,
++ * on current Android, Bluetooth A2DP), extrapolated to now. Without it, frames written minus
++ * frames read (AAudio's buffer only). Clients such as Chromium use this for A/V sync; the stock
++ * module reported 0, so video ran ahead of the sound (Lexona, Bluetooth in a car, Gitea #18). */
++static pa_usec_t stream_latency(struct userdata *u) {
++    int64_t written, position, time_ns, pending;
++    struct timespec now;
++
++    if (!u->stream || !u->ss.rate)
++        return 0;
++    written = AAudioStream_getFramesWritten(u->stream);
++    if (AAudioStream_getTimestamp(u->stream, CLOCK_MONOTONIC, &position, &time_ns) == AAUDIO_OK &&
++        clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
++        int64_t now_ns = (int64_t) now.tv_sec * 1000000000LL + now.tv_nsec;
++        int64_t elapsed = now_ns > time_ns ? now_ns - time_ns : 0;
++        pending = written - (position + elapsed * (int64_t) u->ss.rate / 1000000000LL);
++    } else {
++        pending = written - AAudioStream_getFramesRead(u->stream);
++    }
++    return pending > 0 ? (pa_usec_t) (pending * PA_USEC_PER_SEC / u->ss.rate) : 0;
++}
++
+ static int sink_process_msg(pa_msgobject *o, int code, void *data, int64_t offset, pa_memchunk *memchunk) {
+     struct userdata* u = PA_SINK(o)->userdata;
+ 
+     pa_assert(u);
+ 
+     switch (code) {
++        case PA_SINK_MESSAGE_GET_LATENCY:
++            /* The stream is closed while the sink is suspended. */
++            *((int64_t *) data) = PA_SINK_IS_OPENED(u->sink->thread_info.state) ? (int64_t) stream_latency(u) : 0;
++            return 0;
+         case SINK_MESSAGE_RENDER:
+             return process_render(u, data, offset);
+         case SINK_MESSAGE_OPEN_STREAM:
