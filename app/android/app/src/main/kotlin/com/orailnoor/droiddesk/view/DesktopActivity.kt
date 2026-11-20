@@ -486,7 +486,7 @@ class DesktopActivity : Activity() {
             visibility = if (preferences.getBoolean("extra_keys", false)) View.VISIBLE else View.GONE
         }
         val extraKeysButton = controlButton("Keys").apply {
-            contentDescription = "Show or hide arrow, Esc, Tab and Ctrl keys"
+            contentDescription = "Show or hide arrow, Esc, Tab, Ctrl, F11 and Alt+F4 keys"
             setOnClickListener {
                 val show = extraKeys.visibility != View.VISIBLE
                 extraKeys.visibility = if (show) View.VISIBLE else View.GONE
@@ -564,7 +564,12 @@ class DesktopActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.END
             addView(buttonRow)
-            addView(extraKeys)
+            // With F11 and Alt+F4 the keys row is wider than a phone in portrait: it scrolls.
+            addView(android.widget.HorizontalScrollView(this@DesktopActivity).apply {
+                isHorizontalScrollBarEnabled = false
+                overScrollMode = View.OVER_SCROLL_NEVER
+                addView(extraKeys)
+            })
         }
 
         collapsedControl = controlButton("☰").apply {
@@ -665,6 +670,19 @@ class DesktopActivity : Activity() {
             }
         }
         ctrlButtonRef = ctrlButton
+        // Alt+F4 closes the active window: an app window in fullscreen or Chromium --app has no
+        // title bar to close it with, and in the car (Tesla mirror) there is no keyboard.
+        val closeWindow = controlButton("Alt+F4").apply {
+            setPadding((10 * density).toInt(), 0, (10 * density).toInt(), 0)
+            setOnClickListener {
+                send(KeyEvent.KEYCODE_ALT_LEFT, true)
+                send(KeyEvent.KEYCODE_F4, true)
+                send(KeyEvent.KEYCODE_F4, false)
+                send(KeyEvent.KEYCODE_ALT_LEFT, false)
+                releaseCtrlIfLatched()
+                lorieView?.requestFocus()
+            }
+        }
         val height = (40 * density).toInt()
         return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -679,6 +697,8 @@ class DesktopActivity : Activity() {
                 key("→", KeyEvent.KEYCODE_DPAD_RIGHT, repeat = true),
                 key("Home", KeyEvent.KEYCODE_MOVE_HOME, repeat = false),
                 key("End", KeyEvent.KEYCODE_MOVE_END, repeat = false),
+                key("F11", KeyEvent.KEYCODE_F11, repeat = false),
+                closeWindow,
             ).forEach { addView(it, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, height)) }
         }
     }
