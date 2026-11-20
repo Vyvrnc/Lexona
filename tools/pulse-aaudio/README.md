@@ -18,6 +18,11 @@ then reported "Latency: 25 ms, configured 60000 usec" on the phone's speaker).
 
 ## Build (on the phone, Termux side of Lexona)
 
+`SRC=/path/to/pulseaudio-17.0/src sh tools/pulse-aaudio/build.sh` (config.h here, version.h from
+`version.h.in`, strip). The result goes to `app/android/app/src/main/assets/droiddesk/pulse/`;
+Lexona copies it to `$PREFIX/lib/pulseaudio/lexona/` and pulseaudio loads it by path with
+`latency=60`, falling back to the stock module.
+
 Done on the Fold 7 (2026-11-20) without meson: a hand-written `config.h` (`PACKAGE_VERSION`,
 `HAVE_PTHREAD`, `HAVE_ATOMIC_BUILTINS`, `HAVE_ATOMIC_BUILTINS_MEMORY_MODEL`, …) and
 `pulse/version.h` from `version.h.in` are enough; the structures the module touches do not depend

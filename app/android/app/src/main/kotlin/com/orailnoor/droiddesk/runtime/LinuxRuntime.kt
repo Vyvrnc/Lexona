@@ -5662,6 +5662,14 @@ class LinuxRuntime(private val context: Context) {
         val aaudio = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
         val config = if (aaudio) writePulseConfig() else null
         val configArgs = config?.let { "-n -F \"${it.absolutePath}\" " } ?: ""
+        // Lexona's AAudio sink (tools/pulse-aaudio, Gitea #18), from the APK into the prefix;
+        // pulseaudio loads it by path. Null when the copy fails: the stock module then.
+        val lexonaAaudioSink = if (!aaudio) null else runCatching {
+            File(prefixDir, "lib/pulseaudio/lexona/module-aaudio-sink-lexona.so").also { target ->
+                target.parentFile?.mkdirs()
+                copyAssetAtomically("droiddesk/pulse/module-aaudio-sink-lexona.so", target)
+            }
+        }.onFailure { Log.w(TAG, "Lexona AAudio sink: ${it.message}") }.getOrNull()
         val mic = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
         runCatching {
@@ -5684,18 +5692,28 @@ class LinuxRuntime(private val context: Context) {
             timeout 2 pulseaudio -k >/dev/null 2>&1 || true
             pkill -9 -x pulseaudio >/dev/null 2>&1 || true
             if [ "${if (aaudio) "1" else "0"}" = "1" ]; then
-                pa_daemon --start --exit-idle-time=-1 $configArgs\
-                    --load=module-aaudio-sink \
-                    --load="$tcp" || true
+                # Lexona's AAudio sink reports its real latency, so Chromium keeps picture and sound
+                # together (over Bluetooth the sound lagged, Gitea #18); 60 ms buffer instead of
+                # ~300. It is built for one PulseAudio version: after a Termux update it does not
+                # load, then the stock module with the same buffer, then the stock default.
                 audio_ready=0
-                for attempt in 1 2 3 4 5 6 7 8 9 10; do
-                    if timeout 2 pactl list short sinks 2>/dev/null | grep -q AAudio_sink; then
-                        audio_ready=1
-                        break
-                    fi
-                    sleep 0.1
+                for sink in "${lexonaAaudioSink?.absolutePath ?: ""} latency=60" "module-aaudio-sink latency=60" "module-aaudio-sink"; do
+                    case "${'$'}sink" in " "*) continue ;; esac
+                    timeout 2 pulseaudio -k >/dev/null 2>&1 || true
+                    pkill -9 -x pulseaudio >/dev/null 2>&1 || true
+                    pa_daemon --start --exit-idle-time=-1 $configArgs\
+                        --load="${'$'}sink" \
+                        --load="$tcp" || true
+                    for attempt in 1 2 3 4 5 6 7 8 9 10; do
+                        if timeout 2 pactl list short sinks 2>/dev/null | grep -q AAudio_sink; then
+                            audio_ready=1
+                            break
+                        fi
+                        sleep 0.1
+                    done
+                    echo "AAudio_sink ready: ${'$'}audio_ready (${'$'}sink)" >> "${'$'}pa_log"
+                    [ "${'$'}audio_ready" = "1" ] && break
                 done
-                echo "AAudio_sink ready: ${'$'}audio_ready" >> "${'$'}pa_log"
                 if [ "${'$'}audio_ready" != "1" ]; then
                     timeout 2 pulseaudio -k >/dev/null 2>&1 || true
                     pkill -9 -x pulseaudio >/dev/null 2>&1 || true
