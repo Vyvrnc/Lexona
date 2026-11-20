@@ -397,7 +397,8 @@ int pa__init(pa_module*m) {
         goto fail;
     }
 
-    u->sink = pa_sink_new(m->core, &data, 0);
+    /* PA_SINK_LATENCY: without it pa_sink_get_latency() never asks GET_LATENCY and reports 0. */
+    u->sink = pa_sink_new(m->core, &data, PA_SINK_LATENCY);
     pa_sink_new_data_done(&data);
 
     if (!u->sink) {

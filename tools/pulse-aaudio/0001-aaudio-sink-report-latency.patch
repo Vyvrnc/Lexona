@@ -1,10 +1,12 @@
-module-aaudio-sink: report the real latency (PA_SINK_MESSAGE_GET_LATENCY)
+module-aaudio-sink: report the real latency (PA_SINK_MESSAGE_GET_LATENCY, PA_SINK_LATENCY)
 
 The stock Termux module set only a fixed latency and answered GET_LATENCY with 0,
 so Chromium did no A/V sync: on the Galaxy Z Fold 7 Netflix's sound over
 Bluetooth A2DP ran audibly behind the picture. The latency now comes from
 AAudioStream_getTimestamp (presentation position, includes the HAL and A2DP)
 and AAudioStream_getFramesWritten. Lexona Gitea #18.
+
+The sink is created with PA_SINK_LATENCY, otherwise pa_sink_get_latency() never asks.
 
 --- a/src/modules/module-aaudio-sink.c
 +++ b/src/modules/module-aaudio-sink.c
@@ -56,3 +58,13 @@ and AAudioStream_getFramesWritten. Lexona Gitea #18.
          case SINK_MESSAGE_RENDER:
              return process_render(u, data, offset);
          case SINK_MESSAGE_OPEN_STREAM:
+@@ -369,7 +397,8 @@
+         goto fail;
+     }
+ 
+-    u->sink = pa_sink_new(m->core, &data, 0);
++    /* PA_SINK_LATENCY: without it pa_sink_get_latency() never asks GET_LATENCY and reports 0. */
++    u->sink = pa_sink_new(m->core, &data, PA_SINK_LATENCY);
+     pa_sink_new_data_done(&data);
+ 
+     if (!u->sink) {
